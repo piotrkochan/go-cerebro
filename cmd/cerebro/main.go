@@ -56,7 +56,11 @@ func runServe(args []string) {
 		os.Exit(1)
 	}
 	hc := &http.Client{Timeout: 60 * time.Second}
-	client := elastic.NewHTTPClientWithConfig(hc, cfg.ES)
+	client, err := elastic.NewHTTPClientWithConfig(hc, cfg.ES)
+	if err != nil {
+		slog.Error("init elasticsearch client", "err", err)
+		os.Exit(1)
+	}
 
 	store, err := history.Open(cfg.Data.Path, cfg.Rest.HistorySize)
 	if err != nil {
@@ -104,9 +108,14 @@ func runOpenAPI(args []string) {
 		slog.Error("init auth", "err", err)
 		os.Exit(1)
 	}
+	client, err := elastic.NewHTTPClientWithConfig(nil, cfg.ES)
+	if err != nil {
+		slog.Error("init elasticsearch client", "err", err)
+		os.Exit(1)
+	}
 	srv := server.New(server.Options{
 		Cfg:    cfg,
-		Client: elastic.NewHTTPClientWithConfig(nil, cfg.ES),
+		Client: client,
 		Auth:   authMod,
 	})
 	out, _ := json.MarshalIndent(srv.HumaAPI().OpenAPI(), "", "  ")

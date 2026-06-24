@@ -3,8 +3,11 @@ package elastic
 import (
 	"context"
 	"encoding/json"
+	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/lmenezes/cerebro/internal/config"
@@ -89,6 +92,27 @@ func TestExecuteRequest_NormalizesSupportedMethod(t *testing.T) {
 	_, err := c.ExecuteRequest(context.Background(), " post ", "_search", nil, target)
 	require.NoError(t, err)
 	assert.Equal(t, http.MethodPost, gotMethod)
+}
+
+func TestNewHTTPClientWithConfig_UsesCustomCA(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Elastic-Product", "Elasticsearch")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	caFile := filepath.Join(dir, "ca.pem")
+	cert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: srv.Certificate().Raw})
+	require.NoError(t, os.WriteFile(caFile, cert, 0o600))
+
+	c, err := NewHTTPClientWithConfig(nil, config.ES{CACertFile: caFile})
+	require.NoError(t, err)
+
+	resp, err := c.ExecuteRequest(context.Background(), http.MethodGet, "_cluster/health", nil, Server{Host: config.Host{Host: srv.URL}})
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.Status)
 }
 
 func readAll(rc interface {

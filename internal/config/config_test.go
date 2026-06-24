@@ -65,3 +65,16 @@ hosts:
 	_, ok = cfg.HostByName("Missing")
 	assert.False(t, ok)
 }
+
+func TestLoad_RequiresESClientCertAndKeyTogether(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+es:
+  client_cert_file: "/tmp/client.pem"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "client_cert_file")
+}

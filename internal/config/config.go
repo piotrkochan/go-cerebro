@@ -38,6 +38,7 @@ type AuthSettings struct {
 	Username     string       `yaml:"username"`
 	Password     string       `yaml:"password"`
 	URL          string       `yaml:"url"`
+	CACertFile   string       `yaml:"ca_cert_file"`
 	BaseDN       string       `yaml:"base_dn"`
 	Method       string       `yaml:"method"`
 	UserTemplate string       `yaml:"user_template"`
@@ -61,9 +62,12 @@ type Server struct {
 }
 
 type ES struct {
-	Gzip             bool  `yaml:"gzip"`
-	AllowAdHocHosts  bool  `yaml:"allow_ad_hoc_hosts"`
-	MaxResponseBytes int64 `yaml:"max_response_bytes"`
+	Gzip             bool   `yaml:"gzip"`
+	AllowAdHocHosts  bool   `yaml:"allow_ad_hoc_hosts"`
+	MaxResponseBytes int64  `yaml:"max_response_bytes"`
+	CACertFile       string `yaml:"ca_cert_file"`
+	ClientCertFile   string `yaml:"client_cert_file"`
+	ClientKeyFile    string `yaml:"client_key_file"`
 }
 
 type Rest struct {
@@ -161,6 +165,9 @@ func (c *Config) normalize() {
 }
 
 func (c *Config) validate() error {
+	if (c.ES.ClientCertFile == "") != (c.ES.ClientKeyFile == "") {
+		return fmt.Errorf("es.client_cert_file and es.client_key_file must be configured together")
+	}
 	for _, h := range c.Hosts {
 		if err := validateHostURL(h.Host); err != nil {
 			return fmt.Errorf("invalid host %q: %w", h.Name, err)

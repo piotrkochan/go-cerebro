@@ -3,12 +3,15 @@ package elastic
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -110,12 +113,19 @@ func NewHTTPClient(hc *http.Client) *HTTPClient {
 	}
 }
 
-func NewHTTPClientWithConfig(hc *http.Client, cfg config.ES) *HTTPClient {
+func NewHTTPClientWithConfig(hc *http.Client, cfg config.ES) (*HTTPClient, error) {
 	c := NewHTTPClient(hc)
 	if cfg.MaxResponseBytes > 0 {
 		c.maxResponseBytes = cfg.MaxResponseBytes
 	}
-	return c
+	transport, err := transportWithTLS(c.transport, cfg)
+	if err != nil {
+		return nil, err
+	}
+	if transport != nil {
+		c.transport = transport
+	}
+	return c, nil
 }
 
 const (
@@ -230,6 +240,63 @@ func readLimited(r io.Reader, maxBytes int64) ([]byte, error) {
 		return nil, fmt.Errorf("elasticsearch response exceeds configured limit of %d bytes", maxBytes)
 	}
 	return raw, nil
+}
+
+func transportWithTLS(base http.RoundTripper, cfg config.ES) (http.RoundTripper, error) {
+	if cfg.CACertFile == "" && cfg.ClientCertFile == "" && cfg.ClientKeyFile == "" {
+		return nil, nil
+	}
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
+	if cfg.CACertFile != "" {
+		pem, err := os.ReadFile(cfg.CACertFile) // #nosec G304 -- operator-controlled config path.
+		if err != nil {
+			return nil, fmt.Errorf("read es.ca_cert_file: %w", err)
+		}
+		pool, err := x509.SystemCertPool()
+		if err != nil {
+			pool = x509.NewCertPool()
+		}
+		if !pool.AppendCertsFromPEM(pem) {
+			return nil, errors.New("es.ca_cert_file does not contain a valid PEM certificate")
+		}
+		tlsConfig.RootCAs = pool
+	}
+	if cfg.ClientCertFile != "" || cfg.ClientKeyFile != "" {
+		if cfg.ClientCertFile == "" || cfg.ClientKeyFile == "" {
+			return nil, errors.New("es.client_cert_file and es.client_key_file must be configured together")
+		}
+		cert, err := tls.LoadX509KeyPair(cfg.ClientCertFile, cfg.ClientKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("load Elasticsearch client certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+	if base == nil {
+		return &http.Transport{TLSClientConfig: tlsConfig}, nil
+	}
+	if t, ok := base.(*http.Transport); ok {
+		clone := t.Clone()
+		clone.TLSClientConfig = mergeTLSConfig(clone.TLSClientConfig, tlsConfig)
+		return clone, nil
+	}
+	return nil, errors.New("custom Elasticsearch transport cannot be combined with TLS file settings")
+}
+
+func mergeTLSConfig(base, override *tls.Config) *tls.Config {
+	if base == nil {
+		return override.Clone()
+	}
+	clone := base.Clone()
+	if override.MinVersion != 0 {
+		clone.MinVersion = override.MinVersion
+	}
+	if override.RootCAs != nil {
+		clone.RootCAs = override.RootCAs
+	}
+	if len(override.Certificates) > 0 {
+		clone.Certificates = override.Certificates
+	}
+	return clone
 }
 
 func (c *HTTPClient) Main(ctx context.Context, t Server) (Response, error) {

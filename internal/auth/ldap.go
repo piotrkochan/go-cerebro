@@ -1,10 +1,13 @@
 package auth
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/go-ldap/ldap/v3"
@@ -19,6 +22,7 @@ type LDAPService struct {
 	groupSearch  *config.GroupSearch
 	bindDN       string
 	bindPW       string
+	tlsConfig    *tls.Config
 }
 
 func NewLDAPService(s config.AuthSettings) (*LDAPService, error) {
@@ -32,6 +36,10 @@ func NewLDAPService(s config.AuthSettings) (*LDAPService, error) {
 	if ldapURL.Scheme != "ldaps" && !s.InsecureLDAP {
 		return nil, errors.New("ldap auth requires ldaps:// unless insecure_ldap is explicitly enabled")
 	}
+	tlsConfig, err := ldapTLSConfig(s.CACertFile)
+	if err != nil {
+		return nil, err
+	}
 	svc := &LDAPService{
 		url:          s.URL,
 		userTemplate: s.UserTemplate,
@@ -39,6 +47,7 @@ func NewLDAPService(s config.AuthSettings) (*LDAPService, error) {
 		insecureLDAP: s.InsecureLDAP,
 		bindDN:       s.BindDN,
 		bindPW:       s.BindPW,
+		tlsConfig:    tlsConfig,
 	}
 	if s.GroupSearch != nil && s.GroupSearch.Group != "" {
 		gs := *s.GroupSearch
@@ -69,7 +78,28 @@ func (l *LDAPService) Authenticate(username, password string) (string, error) {
 }
 
 func (l *LDAPService) dial() (*ldap.Conn, error) {
+	if l.tlsConfig != nil {
+		return ldap.DialURL(l.url, ldap.DialWithTLSConfig(l.tlsConfig))
+	}
 	return ldap.DialURL(l.url)
+}
+
+func ldapTLSConfig(caCertFile string) (*tls.Config, error) {
+	if caCertFile == "" {
+		return nil, nil
+	}
+	pem, err := os.ReadFile(caCertFile) // #nosec G304 -- operator-controlled config path.
+	if err != nil {
+		return nil, fmt.Errorf("read ldap ca_cert_file: %w", err)
+	}
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		pool = x509.NewCertPool()
+	}
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, errors.New("ldap ca_cert_file does not contain a valid PEM certificate")
+	}
+	return &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: pool}, nil
 }
 
 func (l *LDAPService) checkUserAuth(username, password string) bool {
