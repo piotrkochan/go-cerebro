@@ -4,9 +4,11 @@ import { useStore } from '@tanstack/react-store';
 
 import { Alerts } from '../components/Alerts';
 import { Navbar } from '../components/Navbar';
+import { navbar } from '../api/client';
 import { alertsStore } from '../stores/alertsStore';
 import { refreshActions, refreshStore } from '../stores/refreshStore';
-import { sessionActions, sessionStore } from '../stores/sessionStore';
+import { getConnection, sessionActions, sessionStore } from '../stores/sessionStore';
+import { textValue } from '../utils/format';
 
 export function AppShell() {
   const alerts = useStore(alertsStore, (state) => state.alerts);
@@ -14,6 +16,7 @@ export function AppShell() {
   const host = useStore(sessionStore, (state) => state.host);
   const status = useStore(sessionStore, (state) => state.status);
   const refreshInterval = useStore(refreshStore, (state) => state.interval);
+  const refreshTick = useStore(refreshStore, (state) => state.tick);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,6 +28,23 @@ export function AppShell() {
     const timer = window.setInterval(() => refreshActions.tick(), refreshInterval);
     return () => window.clearInterval(timer);
   }, [connected, refreshInterval]);
+
+  useEffect(() => {
+    if (!connected || !host) return;
+    let ignore = false;
+    async function loadStatus() {
+      try {
+        const result = await navbar<true>({ body: getConnection(), throwOnError: true });
+        if (!ignore) sessionActions.setStatus(textValue((result.data.data as { status?: unknown } | undefined)?.status));
+      } catch {
+        if (!ignore) sessionActions.setStatus('');
+      }
+    }
+    void loadStatus();
+    return () => {
+      ignore = true;
+    };
+  }, [connected, host, refreshTick]);
 
   function disconnect() {
     sessionActions.disconnect();

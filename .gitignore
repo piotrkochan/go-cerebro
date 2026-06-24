@@ -14,3 +14,7 @@ cerebro.db-*
 conf/application.yaml
 *.test
 *.out
+/public/index.html
+/public/assets/index.css
+/public/assets/index.js
+/public/assets/JsonEditor.js
