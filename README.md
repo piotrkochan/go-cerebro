@@ -3,7 +3,7 @@
 [![CI](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/piotrkochan/go-cerebro)](./LICENSE)
 
-Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmenezes/cerebro) Elasticsearch web admin tool. The original application was Java + Angular; this fork is rewritten to Go, Huma, React and TypeScript while keeping the Cerebro user experience.
+Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmenezes/cerebro) Elasticsearch web admin tool. The original application was Java + Angular; this fork is rewritten to Go, Huma, React and TypeScript while keeping the Cerebro user experience. AI assistance was used during the refactor; despite careful review, there may still be rough edges, so please keep that in mind while evaluating or using this version.
 
 The backend exposes a Huma/OpenAPI HTTP API. The frontend consumes a generated TypeScript client from `openapi/cerebro.json`; hand-written frontend API wrappers should be avoided.
 
