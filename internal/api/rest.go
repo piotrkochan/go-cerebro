@@ -29,6 +29,11 @@ type RestHistoryIn struct {
 	Body HostBody
 }
 
+type RestRequestResponse struct {
+	Status int             `json:"status" doc:"HTTP status returned by Elasticsearch."`
+	Data   json.RawMessage `json:"data" doc:"Raw Elasticsearch response payload."`
+}
+
 func (d *Deps) RegisterRest(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "rest-index",
@@ -60,16 +65,16 @@ func (d *Deps) RegisterRest(api huma.API) {
 		Method:      http.MethodPost,
 		Path:        "/rest/request",
 		Tags:        []string{"rest"},
-	}, func(ctx context.Context, in *RestRequestIn) (*RawOutput, error) {
+	}, func(ctx context.Context, in *RestRequestIn) (*Output[RestRequestResponse], error) {
 		t, err := d.resolveTarget(httpRequest(ctx), in.Body.HostBody)
 		if err != nil {
-			return failMsg[RawResponse](400, err.Error())
+			return failMsg[RestRequestResponse](400, err.Error())
 		}
 		resp, err := d.Client.ExecuteRequest(ctx, in.Body.Method, in.Body.Path, in.Body.Data, t)
 		if err != nil {
-			return failMsg[RawResponse](500, err.Error())
+			return failMsg[RestRequestResponse](500, err.Error())
 		}
-		if resp.IsSuccess() && d.History != nil {
+		if d.History != nil {
 			bodyStr := "{}"
 			if len(in.Body.Data) > 0 {
 				var asString string
@@ -84,7 +89,7 @@ func (d *Deps) RegisterRest(api huma.API) {
 				slog.Error("save rest history", "err", err)
 			}
 		}
-		return raw(resp.Status, resp.Body)
+		return ok(200, RestRequestResponse{Status: resp.Status, Data: resp.Body})
 	})
 
 	huma.Register(api, huma.Operation{

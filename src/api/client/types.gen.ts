@@ -957,6 +957,21 @@ export type RestRequestInBody = {
     username?: string;
 };
 
+export type RestRequestResponse = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Raw Elasticsearch response payload.
+     */
+    data: unknown;
+    /**
+     * HTTP status returned by Elasticsearch.
+     */
+    status: number;
+};
+
 export type SnapshotsCreateInBody = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1661,6 +1676,17 @@ export type RestRequestInBodyWritable = {
      * Optional per-request basic auth username override.
      */
     username?: string;
+};
+
+export type RestRequestResponseWritable = {
+    /**
+     * Raw Elasticsearch response payload.
+     */
+    data: unknown;
+    /**
+     * HTTP status returned by Elasticsearch.
+     */
+    status: number;
 };
 
 export type SnapshotsCreateInBodyWritable = {
@@ -2842,10 +2868,10 @@ export type RestRequestResponses = {
     /**
      * OK
      */
-    200: RawResponse;
+    200: RestRequestResponse;
 };
 
-export type RestRequestResponse = RestRequestResponses[keyof RestRequestResponses];
+export type RestRequestResponse2 = RestRequestResponses[keyof RestRequestResponses];
 
 export type SnapshotsGetData = {
     body: HostBodyWritable;
