@@ -1,0 +1,196 @@
+package api
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/lmenezes/cerebro/internal/auth"
+	"github.com/lmenezes/cerebro/internal/config"
+	"github.com/lmenezes/cerebro/internal/elastic"
+	"github.com/lmenezes/cerebro/internal/history"
+)
+
+type Deps struct {
+	Cfg     *config.Config
+	Client  elastic.Client
+	History *history.Store
+	Auth    *auth.Module
+}
+
+// Output is the Huma output wrapper for a typed response body.
+type Output[T any] struct {
+	Status int
+	Body   T
+}
+
+// List is a typed collection response. Returning a top-level object lets Huma
+// attach the response JSON Schema via `$schema`; top-level arrays cannot carry
+// that property.
+type List[T any] struct {
+	Items []T `json:"items" doc:"Collection items."`
+}
+
+// RawResponse wraps arbitrary Elasticsearch JSON so every endpoint still has a
+// schema-bearing response object. The raw upstream payload is exposed as `data`.
+type RawResponse struct {
+	Data json.RawMessage `json:"data" doc:"Raw Elasticsearch response payload."`
+}
+
+// RawOutput is the Huma output wrapper for endpoints that proxy Elasticsearch
+// responses.
+type RawOutput = Output[RawResponse]
+
+// ok returns a typed payload with the upstream HTTP status preserved.
+func ok[T any](status int, v T) (*Output[T], error) {
+	return &Output[T]{Status: status, Body: v}, nil
+}
+
+func okList[T any](status int, v []T) (*Output[List[T]], error) {
+	if v == nil {
+		v = []T{}
+	}
+	return ok(status, List[T]{Items: v})
+}
+
+// fail turns an upstream error response into a standard Huma error response.
+func fail[T any](status int, raw json.RawMessage) (*Output[T], error) {
+	if status < http.StatusBadRequest {
+		status = http.StatusInternalServerError
+	}
+	return nil, huma.NewError(status, string(raw))
+}
+
+// failMsg returns a standard Huma error response for Cerebro-side failures.
+func failMsg[T any](status int, msg string) (*Output[T], error) {
+	if status < http.StatusBadRequest {
+		status = http.StatusInternalServerError
+	}
+	return nil, huma.NewError(status, msg)
+}
+
+// raw returns an Elasticsearch response body verbatim with the upstream HTTP
+// status preserved.
+func raw(status int, body json.RawMessage) (*RawOutput, error) {
+	if body == nil {
+		body = json.RawMessage("null")
+	}
+	return ok(status, RawResponse{Data: body})
+}
+
+// HostBody is embedded by every request body — the host name field that selects the cluster target.
+type HostBody struct {
+	Host     string `json:"host" required:"true" doc:"Name of the target Elasticsearch host (as configured, or an ad-hoc URL)."`
+	Username string `json:"username,omitempty" doc:"Optional per-request basic auth username override."`
+	Password string `json:"password,omitempty" doc:"Optional per-request basic auth password override."`
+}
+
+// resolveTarget converts the "host" field on the request body into an elastic.Server, applying
+// the per-request override of credentials and forwarding any whitelisted headers.
+func (d *Deps) resolveTarget(r *http.Request, hb HostBody) (elastic.Server, error) {
+	if hb.Host == "" {
+		return elastic.Server{}, errors.New("missing required parameter host")
+	}
+	host, ok := d.Cfg.HostByName(hb.Host)
+	if !ok {
+		// Allow ad-hoc hosts (used by /connect screen) — original Cerebro accepts unknown host names too.
+		host = config.Host{Name: hb.Host, Host: hb.Host}
+	}
+	if host.Auth == nil && hb.Username != "" && hb.Password != "" {
+		host.Auth = &config.ESAuth{Username: hb.Username, Password: hb.Password}
+	}
+	headers := [][2]string{}
+	for _, h := range host.HeadersWhitelist {
+		if v := r.Header.Get(h); v != "" {
+			headers = append(headers, [2]string{h, v})
+		}
+	}
+	return elastic.Server{Host: host, Headers: headers}, nil
+}
+
+// httpRequest extracts the underlying http.Request from a Huma context (for header forwarding).
+func httpRequest(ctx context.Context) *http.Request {
+	if r, ok := ctx.Value(httpReqKey{}).(*http.Request); ok {
+		return r
+	}
+	return nil
+}
+
+type httpReqKey struct{}
+
+// WithHTTPRequest is used by middleware to expose the *http.Request to handlers (so they can read whitelisted headers).
+func WithHTTPRequest(ctx context.Context, r *http.Request) context.Context {
+	return context.WithValue(ctx, httpReqKey{}, r)
+}
+
+// passthrough is the universal handler shape for proxy endpoints: resolve the target host,
+// run the Elasticsearch call and return its status and body verbatim.
+func (d *Deps) passthrough(ctx context.Context, hb HostBody, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error)) (*RawOutput, error) {
+	t, err := d.resolveTarget(httpRequest(ctx), hb)
+	if err != nil {
+		return failMsg[RawResponse](400, err.Error())
+	}
+	resp, err := fn(ctx, t)
+	if err != nil {
+		return failMsg[RawResponse](500, err.Error())
+	}
+	return raw(resp.Status, resp.Body)
+}
+
+// transformResp converts a successful ES response into a typed payload via tf; errors pass straight through.
+func transformResp[T any](ctx context.Context, d *Deps, hb HostBody, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error), tf func(json.RawMessage) T) (*Output[T], error) {
+	t, err := d.resolveTarget(httpRequest(ctx), hb)
+	if err != nil {
+		return failMsg[T](400, err.Error())
+	}
+	resp, err := fn(ctx, t)
+	if err != nil {
+		return failMsg[T](500, err.Error())
+	}
+	if !resp.IsSuccess() {
+		return fail[T](resp.Status, resp.Body)
+	}
+	return ok(resp.Status, tf(resp.Body))
+}
+
+func transformRawResp(ctx context.Context, d *Deps, hb HostBody, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error), tf func(json.RawMessage) json.RawMessage) (*RawOutput, error) {
+	t, err := d.resolveTarget(httpRequest(ctx), hb)
+	if err != nil {
+		return failMsg[RawResponse](400, err.Error())
+	}
+	resp, err := fn(ctx, t)
+	if err != nil {
+		return failMsg[RawResponse](500, err.Error())
+	}
+	if !resp.IsSuccess() {
+		return fail[RawResponse](resp.Status, resp.Body)
+	}
+	return raw(resp.Status, tf(resp.Body))
+}
+
+func transformListResp[T any](ctx context.Context, d *Deps, hb HostBody, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error), tf func(json.RawMessage) []T) (*Output[List[T]], error) {
+	t, err := d.resolveTarget(httpRequest(ctx), hb)
+	if err != nil {
+		return failMsg[List[T]](400, err.Error())
+	}
+	resp, err := fn(ctx, t)
+	if err != nil {
+		return failMsg[List[T]](500, err.Error())
+	}
+	if !resp.IsSuccess() {
+		return fail[List[T]](resp.Status, resp.Body)
+	}
+	return okList(resp.Status, tf(resp.Body))
+}
+
+// firstError returns the first non-success response, or nil if all are 2xx.
+func firstError(resps []elastic.Response) *elastic.Response {
+	for i := range resps {
+		if !resps[i].IsSuccess() {
+			return &resps[i]
+		}
+	}
+	return nil
+}

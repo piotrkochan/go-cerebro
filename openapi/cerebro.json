@@ -1,0 +1,3930 @@
+{
+  "components": {
+    "schemas": {
+      "Alias": {
+        "additionalProperties": false,
+        "properties": {
+          "alias": {
+            "description": "Alias name.",
+            "type": "string"
+          },
+          "filter": {
+            "description": "Optional alias filter query (null when absent)."
+          },
+          "index": {
+            "description": "Index the alias points at.",
+            "type": "string"
+          },
+          "index_routing": {
+            "description": "Optional index routing value (null when absent)."
+          },
+          "search_routing": {
+            "description": "Optional search routing value (null when absent)."
+          }
+        },
+        "required": [
+          "alias",
+          "index",
+          "filter",
+          "search_routing",
+          "index_routing"
+        ],
+        "type": "object"
+      },
+      "AliasesUpdateInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AliasesUpdateInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "changes": {
+            "description": "Alias actions in Elasticsearch _aliases format, e.g. {\"add\": {...}} / {\"remove\": {...}}.",
+            "items": {},
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host"
+        ],
+        "type": "object"
+      },
+      "AnalysisAnalyzerInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AnalysisAnalyzerInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "analyzer": {
+            "description": "Analyzer name.",
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Text to analyze.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "analyzer",
+          "text",
+          "host"
+        ],
+        "type": "object"
+      },
+      "AnalysisFieldInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AnalysisFieldInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "field": {
+            "description": "Field name.",
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "text": {
+            "description": "Text to analyze.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "field",
+          "text",
+          "host"
+        ],
+        "type": "object"
+      },
+      "AnalysisIndexInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AnalysisIndexInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "host"
+        ],
+        "type": "object"
+      },
+      "CatInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CatInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "api": {
+            "description": "Name of the _cat API to call, e.g. \"indices\", \"shards\", \"allocation\".",
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api",
+          "host"
+        ],
+        "type": "object"
+      },
+      "Changes": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Changes.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cluster_name": {
+            "description": "Cluster name."
+          },
+          "indices": {
+            "description": "All index names, including closed indices.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "nodes": {
+            "description": "Distinct node names.",
+            "items": {},
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "indices",
+          "nodes",
+          "cluster_name"
+        ],
+        "type": "object"
+      },
+      "ClusterSettingsSaveInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ClusterSettingsSaveInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "settings": {
+            "description": "Cluster settings document to PUT to _cluster/settings."
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "settings",
+          "host"
+        ],
+        "type": "object"
+      },
+      "CommonsIndexInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CommonsIndexInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "host"
+        ],
+        "type": "object"
+      },
+      "CommonsNodeInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CommonsNodeInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "node": {
+            "description": "Node name or id.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "node",
+          "host"
+        ],
+        "type": "object"
+      },
+      "CreateIndexCreateInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CreateIndexCreateInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Name of the index to create.",
+            "type": "string"
+          },
+          "metadata": {
+            "description": "Index creation body (settings, mappings, aliases). Defaults to {}."
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "host"
+        ],
+        "type": "object"
+      },
+      "CreateIndexGetMetaInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CreateIndexGetMetaInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index to copy mappings/settings from.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "host"
+        ],
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message text",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value at the given location"
+          }
+        },
+        "type": "object"
+      },
+      "ErrorModel": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ErrorModel.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "examples": [
+              "Property foo is required but is missing."
+            ],
+            "type": "string"
+          },
+          "errors": {
+            "description": "Optional list of individual error details",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "examples": [
+              "https://example.com/error-log/abc123"
+            ],
+            "format": "uri",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              400
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "examples": [
+              "Bad Request"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "examples": [
+              "https://example.com/errors/example"
+            ],
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "HostBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/HostBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host"
+        ],
+        "type": "object"
+      },
+      "IndexSettingsGetInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/IndexSettingsGetInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "host"
+        ],
+        "type": "object"
+      },
+      "IndexSettingsUpdateInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/IndexSettingsUpdateInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "settings": {
+            "description": "Settings document to PUT to the index _settings."
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "settings",
+          "host"
+        ],
+        "type": "object"
+      },
+      "ListAlias": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ListAlias.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "items": {
+            "description": "Collection items.",
+            "items": {
+              "$ref": "#/components/schemas/Alias"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ListNode": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ListNode.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "items": {
+            "description": "Collection items.",
+            "items": {
+              "$ref": "#/components/schemas/Node"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ListRepository": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ListRepository.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "items": {
+            "description": "Collection items.",
+            "items": {
+              "$ref": "#/components/schemas/Repository"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ListString": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ListString.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "items": {
+            "description": "Collection items.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ListTemplate": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ListTemplate.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "items": {
+            "description": "Collection items.",
+            "items": {
+              "$ref": "#/components/schemas/Template"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "Metadata": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Metadata.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "mappings": {
+            "description": "Index mappings (null when not found)."
+          },
+          "settings": {
+            "description": "Index settings (null when not found)."
+          }
+        },
+        "required": [
+          "mappings",
+          "settings"
+        ],
+        "type": "object"
+      },
+      "Node": {
+        "additionalProperties": false,
+        "properties": {
+          "attributes": {
+            "additionalProperties": {},
+            "description": "Custom node attributes (internal ES attributes filtered out).",
+            "type": "object"
+          },
+          "coordinating": {
+            "description": "Whether the node is a coordinating-only node.",
+            "type": "boolean"
+          },
+          "cpu": {
+            "$ref": "#/components/schemas/NodeCPU"
+          },
+          "current_master": {
+            "description": "Whether this node is the elected master.",
+            "type": "boolean"
+          },
+          "data": {
+            "description": "Whether the node has a data role.",
+            "type": "boolean"
+          },
+          "disk": {
+            "$ref": "#/components/schemas/NodeDisk",
+            "description": "Disk usage (null when filesystem stats are unavailable)."
+          },
+          "heap": {
+            "$ref": "#/components/schemas/NodeHeap"
+          },
+          "host": {
+            "description": "Node host."
+          },
+          "id": {
+            "description": "Node id.",
+            "type": "string"
+          },
+          "ingest": {
+            "description": "Whether the node has the ingest role.",
+            "type": "boolean"
+          },
+          "jvm": {
+            "description": "JVM version."
+          },
+          "master": {
+            "description": "Whether the node is master-eligible.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Node name."
+          },
+          "uptime": {
+            "description": "JVM uptime in milliseconds."
+          },
+          "version": {
+            "description": "Elasticsearch version."
+          }
+        },
+        "required": [
+          "id",
+          "current_master",
+          "name",
+          "host",
+          "heap",
+          "disk",
+          "cpu",
+          "uptime",
+          "jvm",
+          "attributes",
+          "version",
+          "master",
+          "coordinating",
+          "ingest",
+          "data"
+        ],
+        "type": "object"
+      },
+      "NodeCPU": {
+        "additionalProperties": false,
+        "properties": {
+          "load": {
+            "description": "1-minute load average."
+          },
+          "os": {
+            "description": "OS CPU usage percentage."
+          },
+          "process": {
+            "description": "Process CPU usage percentage."
+          }
+        },
+        "required": [
+          "process",
+          "os",
+          "load"
+        ],
+        "type": "object"
+      },
+      "NodeDisk": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "description": "Available filesystem size in bytes.",
+            "format": "double",
+            "type": "number"
+          },
+          "percent": {
+            "description": "Used disk percentage.",
+            "format": "double",
+            "type": "number"
+          },
+          "total": {
+            "description": "Total filesystem size in bytes.",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "available",
+          "percent"
+        ],
+        "type": "object"
+      },
+      "NodeHeap": {
+        "additionalProperties": false,
+        "properties": {
+          "max": {
+            "description": "Maximum JVM heap."
+          },
+          "percent": {
+            "description": "Used JVM heap percentage."
+          },
+          "used": {
+            "description": "Used JVM heap."
+          }
+        },
+        "required": [
+          "max",
+          "used",
+          "percent"
+        ],
+        "type": "object"
+      },
+      "Overview": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Overview.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active_primary_shards": {},
+          "active_shards": {},
+          "closed_indices": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cluster_name": {
+            "description": "Cluster name."
+          },
+          "docs_count": {
+            "description": "Total primary docs count."
+          },
+          "indices": {
+            "items": {
+              "$ref": "#/components/schemas/OverviewIndex"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "initializing_shards": {},
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/OverviewNode"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "number_of_nodes": {
+            "description": "Number of nodes in the cluster."
+          },
+          "relocating_shards": {},
+          "shard_allocation": {
+            "description": "Whether shard allocation is enabled (cluster.routing.allocation.enable == all).",
+            "type": "boolean"
+          },
+          "size_in_bytes": {
+            "description": "Total store size in bytes."
+          },
+          "special_indices": {
+            "description": "Number of dot-prefixed (system) indices.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "description": "Cluster health status (green/yellow/red)."
+          },
+          "total_indices": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unassigned_shards": {}
+        },
+        "required": [
+          "cluster_name",
+          "status",
+          "number_of_nodes",
+          "active_primary_shards",
+          "active_shards",
+          "relocating_shards",
+          "initializing_shards",
+          "unassigned_shards",
+          "docs_count",
+          "size_in_bytes",
+          "total_indices",
+          "closed_indices",
+          "special_indices",
+          "indices",
+          "nodes",
+          "shard_allocation"
+        ],
+        "type": "object"
+      },
+      "OverviewDisk": {
+        "additionalProperties": false,
+        "properties": {
+          "free": {
+            "description": "Free filesystem size in bytes.",
+            "format": "double",
+            "type": "number"
+          },
+          "total": {
+            "description": "Total filesystem size in bytes.",
+            "format": "double",
+            "type": "number"
+          },
+          "used_percent": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "free",
+          "used_percent"
+        ],
+        "type": "object"
+      },
+      "OverviewHeap": {
+        "additionalProperties": false,
+        "properties": {
+          "committed": {
+            "description": "Committed JVM heap in bytes."
+          },
+          "max": {
+            "description": "Maximum JVM heap in bytes."
+          },
+          "used": {
+            "description": "Used JVM heap in bytes."
+          },
+          "used_percent": {}
+        },
+        "required": [
+          "used",
+          "committed",
+          "used_percent",
+          "max"
+        ],
+        "type": "object"
+      },
+      "OverviewIndex": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "deleted_docs": {},
+          "doc_count": {},
+          "name": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "num_replicas": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "num_shards": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "shards": {
+            "additionalProperties": {
+              "items": {
+                "additionalProperties": {},
+                "type": "object"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "description": "Routing table shards grouped by node name ('unassigned' for unassigned shards).",
+            "type": "object"
+          },
+          "size_in_bytes": {
+            "description": "Primary store size in bytes."
+          },
+          "special": {
+            "description": "Whether the index is dot-prefixed (system index).",
+            "type": "boolean"
+          },
+          "total_size_in_bytes": {},
+          "unhealthy": {
+            "description": "Whether any shard is not STARTED.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "closed",
+          "special",
+          "unhealthy",
+          "doc_count",
+          "deleted_docs",
+          "size_in_bytes",
+          "total_size_in_bytes",
+          "aliases",
+          "num_shards",
+          "num_replicas",
+          "shards"
+        ],
+        "type": "object"
+      },
+      "OverviewIndicesInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OverviewIndicesInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "indices": {
+            "description": "Comma-separated index names.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "indices",
+          "host"
+        ],
+        "type": "object"
+      },
+      "OverviewNode": {
+        "additionalProperties": false,
+        "properties": {
+          "attributes": {
+            "additionalProperties": {},
+            "description": "Custom node attributes (internal ES attributes filtered out).",
+            "type": "object"
+          },
+          "available_processors": {},
+          "coordinating": {
+            "description": "Whether the node is a coordinating-only node.",
+            "type": "boolean"
+          },
+          "cpu_percent": {},
+          "current_master": {
+            "description": "Whether this node is the elected master.",
+            "type": "boolean"
+          },
+          "data": {
+            "description": "Whether the node has a data role.",
+            "type": "boolean"
+          },
+          "disk": {
+            "$ref": "#/components/schemas/OverviewDisk"
+          },
+          "es_version": {
+            "description": "Elasticsearch version."
+          },
+          "heap": {
+            "$ref": "#/components/schemas/OverviewHeap"
+          },
+          "host": {},
+          "id": {
+            "description": "Node id.",
+            "type": "string"
+          },
+          "ingest": {
+            "description": "Whether the node has the ingest role.",
+            "type": "boolean"
+          },
+          "ip": {},
+          "jvm_version": {},
+          "load_average": {
+            "description": "1-minute load average."
+          },
+          "master": {
+            "description": "Whether the node is master-eligible.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Node name."
+          }
+        },
+        "required": [
+          "id",
+          "current_master",
+          "name",
+          "host",
+          "ip",
+          "es_version",
+          "jvm_version",
+          "load_average",
+          "available_processors",
+          "cpu_percent",
+          "master",
+          "data",
+          "coordinating",
+          "ingest",
+          "heap",
+          "disk",
+          "attributes"
+        ],
+        "type": "object"
+      },
+      "OverviewRelocateInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OverviewRelocateInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "from": {
+            "description": "Source node.",
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "shard": {
+            "description": "Shard number.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "to": {
+            "description": "Destination node.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "shard",
+          "from",
+          "to",
+          "host"
+        ],
+        "type": "object"
+      },
+      "OverviewShardKindInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OverviewShardKindInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Allocation kind to keep enabled, e.g. \"primaries\" or \"none\".",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "host"
+        ],
+        "type": "object"
+      },
+      "OverviewShardStatsInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OverviewShardStatsInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "node": {
+            "description": "Node id the shard is allocated on.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "shard": {
+            "description": "Shard number.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "shard",
+          "node",
+          "host"
+        ],
+        "type": "object"
+      },
+      "RawResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RawResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "description": "Raw Elasticsearch response payload."
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "RepositoriesCreateInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RepositoriesCreateInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "name": {
+            "description": "Repository name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "settings": {
+            "description": "Repository settings, type-specific."
+          },
+          "type": {
+            "description": "Repository type (fs, s3, url, ...).",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "settings",
+          "host"
+        ],
+        "type": "object"
+      },
+      "RepositoriesDeleteInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RepositoriesDeleteInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "name": {
+            "description": "Repository name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "host"
+        ],
+        "type": "object"
+      },
+      "Repository": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Repository name.",
+            "type": "string"
+          },
+          "settings": {
+            "description": "Repository settings, type-specific."
+          },
+          "type": {
+            "description": "Repository type (fs, s3, url, ...).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "settings"
+        ],
+        "type": "object"
+      },
+      "RestRequestInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RestRequestInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {},
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "path",
+          "host"
+        ],
+        "type": "object"
+      },
+      "SnapshotsCreateInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SnapshotsCreateInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "ignoreUnavailable": {
+            "type": "boolean"
+          },
+          "includeGlobalState": {
+            "type": "boolean"
+          },
+          "indices": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "snapshot",
+          "ignoreUnavailable",
+          "includeGlobalState",
+          "host"
+        ],
+        "type": "object"
+      },
+      "SnapshotsDeleteInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SnapshotsDeleteInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "snapshot",
+          "host"
+        ],
+        "type": "object"
+      },
+      "SnapshotsLoadInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SnapshotsLoadInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "host"
+        ],
+        "type": "object"
+      },
+      "SnapshotsRestoreInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SnapshotsRestoreInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "ignoreUnavailable": {
+            "type": "boolean"
+          },
+          "includeAliases": {
+            "type": "boolean"
+          },
+          "includeGlobalState": {
+            "type": "boolean"
+          },
+          "indices": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "renamePattern": {
+            "type": "string"
+          },
+          "renameReplacement": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "snapshot",
+          "ignoreUnavailable",
+          "includeAliases",
+          "includeGlobalState",
+          "host"
+        ],
+        "type": "object"
+      },
+      "Template": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Template name.",
+            "type": "string"
+          },
+          "template": {
+            "description": "Raw template definition."
+          }
+        },
+        "required": [
+          "name",
+          "template"
+        ],
+        "type": "object"
+      },
+      "TemplatesCreateInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TemplatesCreateInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "template": {},
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "template",
+          "host"
+        ],
+        "type": "object"
+      },
+      "TemplatesDeleteInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TemplatesDeleteInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "host"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Cerebro — Elasticsearch cluster management UI.",
+    "title": "Cerebro",
+    "version": "0.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/aliases/get_aliases": {
+      "post": {
+        "description": "Returns all index aliases flattened into one list.",
+        "operationId": "aliases-get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListAlias"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List aliases",
+        "tags": [
+          "aliases"
+        ]
+      }
+    },
+    "/aliases/update_aliases": {
+      "post": {
+        "description": "Applies a batch of alias add/remove actions.",
+        "operationId": "aliases-update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AliasesUpdateInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update aliases",
+        "tags": [
+          "aliases"
+        ]
+      }
+    },
+    "/analysis/analyze/analyzer": {
+      "post": {
+        "description": "Runs _analyze with the given analyzer and returns the produced tokens.",
+        "operationId": "analysis-analyze-analyzer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisAnalyzerInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Analyze text by analyzer",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/analysis/analyze/field": {
+      "post": {
+        "description": "Runs _analyze against the analyzer of the given field and returns the produced tokens.",
+        "operationId": "analysis-analyze-field",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisFieldInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Analyze text by field",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/analysis/analyzers": {
+      "post": {
+        "description": "Returns analyzer names defined in the index settings.",
+        "operationId": "analysis-analyzers",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisIndexInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListString"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List index analyzers",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/analysis/fields": {
+      "post": {
+        "description": "Returns text fields of the index that can be analyzed.",
+        "operationId": "analysis-fields",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisIndexInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListString"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List analyzable fields",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/analysis/indices": {
+      "post": {
+        "description": "Returns names of open indices available for analysis.",
+        "operationId": "analysis-indices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListString"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List open indices",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/cat": {
+      "post": {
+        "description": "Proxies the given Elasticsearch _cat API and returns its JSON output verbatim.",
+        "operationId": "cat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Run a _cat API",
+        "tags": [
+          "cat"
+        ]
+      }
+    },
+    "/cluster_changes": {
+      "post": {
+        "description": "Returns the current index and node names plus the cluster name, used by the UI to detect cluster topology changes.",
+        "operationId": "cluster-changes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Changes"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get cluster changes snapshot",
+        "tags": [
+          "cluster"
+        ]
+      }
+    },
+    "/cluster_settings": {
+      "post": {
+        "description": "Returns the cluster settings (persistent and transient) as reported by Elasticsearch.",
+        "operationId": "cluster-settings-get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get cluster settings",
+        "tags": [
+          "cluster"
+        ]
+      }
+    },
+    "/cluster_settings/save": {
+      "post": {
+        "description": "Updates the cluster settings with the given document.",
+        "operationId": "cluster-settings-save",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClusterSettingsSaveInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Save cluster settings",
+        "tags": [
+          "cluster"
+        ]
+      }
+    },
+    "/commons/get_index_mapping": {
+      "post": {
+        "operationId": "commons-get-index-mapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommonsIndexInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get index mapping",
+        "tags": [
+          "commons"
+        ]
+      }
+    },
+    "/commons/get_index_settings": {
+      "post": {
+        "operationId": "commons-get-index-settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommonsIndexInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get index settings",
+        "tags": [
+          "commons"
+        ]
+      }
+    },
+    "/commons/get_index_stats": {
+      "post": {
+        "operationId": "commons-get-index-stats",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommonsIndexInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get index stats",
+        "tags": [
+          "commons"
+        ]
+      }
+    },
+    "/commons/get_node_stats": {
+      "post": {
+        "operationId": "commons-get-node-stats",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommonsNodeInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get node stats",
+        "tags": [
+          "commons"
+        ]
+      }
+    },
+    "/commons/indices": {
+      "post": {
+        "operationId": "commons-indices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListString"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List index names",
+        "tags": [
+          "commons"
+        ]
+      }
+    },
+    "/commons/nodes": {
+      "post": {
+        "operationId": "commons-nodes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListString"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List node names",
+        "tags": [
+          "commons"
+        ]
+      }
+    },
+    "/connect": {
+      "post": {
+        "description": "Checks connectivity by fetching _cluster/health of the target host.",
+        "operationId": "connect",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Connect to a cluster",
+        "tags": [
+          "connect"
+        ]
+      }
+    },
+    "/connect/hosts": {
+      "get": {
+        "description": "Returns the names of the Elasticsearch hosts configured in Cerebro.",
+        "operationId": "connect-hosts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListString"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List configured hosts",
+        "tags": [
+          "connect"
+        ]
+      }
+    },
+    "/create_index/create": {
+      "post": {
+        "operationId": "create-index-create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIndexCreateInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create an index",
+        "tags": [
+          "create_index"
+        ]
+      }
+    },
+    "/create_index/get_index_metadata": {
+      "post": {
+        "description": "Returns the mappings and settings of an existing index, used to prefill the create-index form.",
+        "operationId": "create-index-get-metadata",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIndexGetMetaInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Metadata"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get index metadata",
+        "tags": [
+          "create_index"
+        ]
+      }
+    },
+    "/index_settings": {
+      "post": {
+        "description": "Returns the index settings in flat format, including defaults.",
+        "operationId": "index-settings-get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndexSettingsGetInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get index settings (flat)",
+        "tags": [
+          "index"
+        ]
+      }
+    },
+    "/index_settings/update": {
+      "post": {
+        "operationId": "index-settings-update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndexSettingsUpdateInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update index settings",
+        "tags": [
+          "index"
+        ]
+      }
+    },
+    "/navbar": {
+      "post": {
+        "description": "Returns the cluster health document (verbatim from _cluster/health), extended with a \"username\" field when authentication is enabled.",
+        "operationId": "navbar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get navbar data",
+        "tags": [
+          "navbar"
+        ]
+      }
+    },
+    "/nodes": {
+      "post": {
+        "description": "Returns one entry per node with roles, heap, disk, CPU and uptime information.",
+        "operationId": "nodes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListNode"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List cluster nodes",
+        "tags": [
+          "nodes"
+        ]
+      }
+    },
+    "/overview": {
+      "post": {
+        "description": "Returns the cluster dashboard payload: health, indices with shard routing, and nodes.",
+        "operationId": "overview",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get cluster overview",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/clear_indices_cache": {
+      "post": {
+        "operationId": "overview-clear-indices-cache",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewIndicesInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Clear indices cache",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/close_indices": {
+      "post": {
+        "operationId": "overview-close-indices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewIndicesInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Close indices",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/delete_indices": {
+      "post": {
+        "operationId": "overview-delete-indices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewIndicesInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete indices",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/disable_shard_allocation": {
+      "post": {
+        "operationId": "overview-disable-shard-allocation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewShardKindInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Disable shard allocation",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/enable_shard_allocation": {
+      "post": {
+        "operationId": "overview-enable-shard-allocation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Enable shard allocation",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/flush_indices": {
+      "post": {
+        "operationId": "overview-flush-indices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewIndicesInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Flush indices",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/force_merge": {
+      "post": {
+        "operationId": "overview-force-merge",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewIndicesInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Force merge indices",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/get_shard_stats": {
+      "post": {
+        "description": "Returns stats (or recovery info) for one shard of an index on a given node.",
+        "operationId": "overview-shard-stats",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewShardStatsInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get shard stats",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/open_indices": {
+      "post": {
+        "operationId": "overview-open-indices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewIndicesInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Open indices",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/refresh_indices": {
+      "post": {
+        "operationId": "overview-refresh-indices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewIndicesInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Refresh indices",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/overview/relocate_shard": {
+      "post": {
+        "operationId": "overview-relocate-shard",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverviewRelocateInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Relocate a shard",
+        "tags": [
+          "overview"
+        ]
+      }
+    },
+    "/repositories": {
+      "post": {
+        "operationId": "repositories-list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListRepository"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List snapshot repositories",
+        "tags": [
+          "repositories"
+        ]
+      }
+    },
+    "/repositories/create": {
+      "post": {
+        "operationId": "repositories-create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepositoriesCreateInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create a snapshot repository",
+        "tags": [
+          "repositories"
+        ]
+      }
+    },
+    "/repositories/delete": {
+      "post": {
+        "operationId": "repositories-delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepositoriesDeleteInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete a snapshot repository",
+        "tags": [
+          "repositories"
+        ]
+      }
+    },
+    "/rest": {
+      "post": {
+        "operationId": "rest-index",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "rest"
+        ]
+      }
+    },
+    "/rest/history": {
+      "post": {
+        "operationId": "rest-history",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "rest"
+        ]
+      }
+    },
+    "/rest/request": {
+      "post": {
+        "operationId": "rest-request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestRequestInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "rest"
+        ]
+      }
+    },
+    "/snapshots": {
+      "post": {
+        "operationId": "snapshots-get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "snapshots"
+        ]
+      }
+    },
+    "/snapshots/create": {
+      "post": {
+        "operationId": "snapshots-create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotsCreateInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "snapshots"
+        ]
+      }
+    },
+    "/snapshots/delete": {
+      "post": {
+        "operationId": "snapshots-delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotsDeleteInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "snapshots"
+        ]
+      }
+    },
+    "/snapshots/load": {
+      "post": {
+        "operationId": "snapshots-load",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotsLoadInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "snapshots"
+        ]
+      }
+    },
+    "/snapshots/restore": {
+      "post": {
+        "operationId": "snapshots-restore",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotsRestoreInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "snapshots"
+        ]
+      }
+    },
+    "/templates": {
+      "post": {
+        "operationId": "templates-list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTemplate"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/templates/create": {
+      "post": {
+        "operationId": "templates-create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplatesCreateInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/templates/delete": {
+      "post": {
+        "operationId": "templates-delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplatesDeleteInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "tags": [
+          "templates"
+        ]
+      }
+    }
+  }
+}

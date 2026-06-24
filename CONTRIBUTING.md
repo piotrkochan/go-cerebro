@@ -16,34 +16,24 @@ Before getting started on a pull request(be it a new feature or a bug fix), plea
 Even though I'm open to feature requests, I might not always agree on the value a feature might bring. And I would hate to waste someone else's time.
 
 Once working on a pull request, please:
-- include the generated css/js files(grunt build)
+- include the generated frontend files (`npm run build`)
 - add tests that validate your changes
 - squash your development commits to keep only important commits(fix typo, wrong indent should not be part of git history)
 - rebase it against development before submiting
-- make sure all tests pass(sbt test / grunt test)
+- make sure all tests pass (`npm test`)
 
 ## Development
 
-You can run cerebro for development through sbt:
+Generate the API client and run the frontend build:
 
 ```sh
-$ sbt
-[info] Loading project definition from /Users/leo/dev/cerebro/project
-[info] Set current project to cerebro (in build file:/Users/leo/dev/cerebro/)
-[cerebro] $ run
-
---- (Running the application, auto-reloading is enabled) ---
-
-[info] p.c.s.NettyServer - Listening for HTTP on /0:0:0:0:0:0:0:0:9000
-
-(Server started, use Ctrl+D to stop and go back to the console...)
+npm run api:generate
+npm run build
 ```
 
-Make sure you also run Grunt in order to build the js/css artifcats as you change the code.
+Run the Go server and, in another terminal, Vite for frontend development:
 
 ```sh
-$ grunt watch
-Running "watch" task
-Waiting...(node:20784) DeprecationWarning: process.EventEmitter is deprecated. 
-Use require('events') instead.
+go run ./cmd/cerebro serve -config conf/application.dev.yaml
+npm run dev
 ```

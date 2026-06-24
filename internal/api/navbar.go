@@ -1,0 +1,47 @@
+package api
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/lmenezes/cerebro/internal/auth"
+)
+
+type NavbarIn struct {
+	Body HostBody
+}
+
+func (d *Deps) RegisterNavbar(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "navbar",
+		Method:      http.MethodPost,
+		Path:        "/navbar",
+		Summary:     "Get navbar data",
+		Description: "Returns the cluster health document (verbatim from _cluster/health), extended with a \"username\" field when authentication is enabled.",
+		Tags:        []string{"navbar"},
+	}, func(ctx context.Context, in *NavbarIn) (*RawOutput, error) {
+		t, err := d.resolveTarget(httpRequest(ctx), in.Body)
+		if err != nil {
+			return failMsg[RawResponse](400, err.Error())
+		}
+		resp, err := d.Client.ClusterHealth(ctx, t)
+		if err != nil {
+			return failMsg[RawResponse](500, err.Error())
+		}
+		if !resp.IsSuccess() {
+			return fail[RawResponse](resp.Status, resp.Body)
+		}
+		if user := auth.UserFrom(ctx); user != "" {
+			var m map[string]json.RawMessage
+			if err := json.Unmarshal(resp.Body, &m); err == nil {
+				name, _ := json.Marshal(user)
+				m["username"] = name
+				newBody, _ := json.Marshal(m)
+				return raw(resp.Status, newBody)
+			}
+		}
+		return raw(resp.Status, resp.Body)
+	})
+}

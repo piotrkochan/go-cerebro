@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Download Go dependencies
+        run: go mod download
+
+      - name: Check Go modules are tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      - name: Generate OpenAPI client
+        run: npm run api:generate
+
+      - name: Check generated API is committed
+        run: git diff --exit-code -- openapi/cerebro.json src/api/client
+
+      - name: Run frontend and API typechecks
+        run: |
+          npm run typecheck
+          npm run api:typecheck
+
+      - name: Run Go tests
+        run: go test -race -shuffle=on ./cmd/... ./internal/...
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build release package
+        run: |
+          mkdir -p dist/package
+          CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o dist/package/cerebro ./cmd/cerebro
+          cp -R public conf README.md LICENSE dist/package/
+          tar -C dist/package -czf "dist/cerebro-${GITHUB_REF_NAME}-linux-amd64.tar.gz" .
+          sha256sum dist/*.tar.gz > dist/checksums.txt
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/*.tar.gz \
+            dist/checksums.txt \
+            --title "Cerebro ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --verify-tag

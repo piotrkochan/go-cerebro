@@ -1,0 +1,575 @@
+import { useEffect, useState, type ReactNode } from 'react';
+
+import {
+  commonsGetIndexMapping,
+  commonsGetIndexSettings,
+  commonsGetIndexStats,
+  overview,
+  overviewClearIndicesCache,
+  overviewCloseIndices,
+  overviewDeleteIndices,
+  overviewDisableShardAllocation,
+  overviewEnableShardAllocation,
+  overviewFlushIndices,
+  overviewForceMerge,
+  overviewOpenIndices,
+  overviewRefreshIndices,
+  overviewRelocateShard,
+  overviewShardStats,
+  type HostBodyWritable,
+  type Overview,
+  type OverviewIndex,
+  type OverviewNode,
+} from '../api/client';
+import { Icon } from '../components/Icon';
+import { LazyJsonEditor } from '../components/LazyJsonEditor';
+import {
+  IndexHeader,
+  Loading,
+  OverviewNodeCell,
+  Pagination,
+  type ShardRef,
+  Stats,
+  byName,
+  renderShards,
+} from '../components/LegacyUi';
+import type { Notify } from '../types';
+import { errorMessage, formatJson, formatNumber, numberValue, textValue } from '../utils/format';
+
+type JsonDialog = {
+  body: unknown;
+  title: string;
+};
+
+type ConfirmDialog = {
+  body: string;
+  confirmLabel: string;
+  onConfirm: () => Promise<void> | void;
+  title: string;
+};
+
+export function OverviewPage({
+  connection,
+  notify,
+  refreshTick,
+  setStatus,
+}: {
+  connection: HostBodyWritable;
+  notify: Notify;
+  refreshTick: number;
+  setStatus: (status: string) => void;
+}) {
+  const [data, setData] = useState<Overview>();
+  const [filterName, setFilterName] = useState('');
+  const [nodeFilter, setNodeFilter] = useState('');
+  const [showClosed, setShowClosed] = useState(false);
+  const [showSpecial, setShowSpecial] = useState(false);
+  const [expandedView, setExpandedView] = useState(false);
+  const [asc, setAsc] = useState(true);
+  const [showOnlyAffected, setShowOnlyAffected] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(getOverviewPageSize);
+  const [jsonDialog, setJsonDialog] = useState<JsonDialog | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
+  const [relocatingShard, setRelocatingShard] = useState<ShardRef | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    void loadOverview((nextData) => {
+      if (!ignore) {
+        setData(nextData);
+        setStatus(textValue(nextData.status));
+      }
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [connection, notify, refreshTick, setStatus]);
+
+  async function loadOverview(onData?: (nextData: Overview) => void) {
+    try {
+      const result = await overview<true>({ body: connection, throwOnError: true });
+      if (onData) onData(result.data);
+      else {
+        setData(result.data);
+        setStatus(textValue(result.data.status));
+      }
+    } catch (error) {
+      notify('danger', errorMessage(error));
+    }
+  }
+
+  useEffect(() => {
+    function resize() {
+      setPageSize(getOverviewPageSize());
+    }
+
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+
+  async function runAction(label: string, action: () => Promise<unknown>) {
+    try {
+      await action();
+      notify('success', label);
+      await loadOverview();
+    } catch (error) {
+      notify('danger', errorMessage(error));
+    }
+  }
+
+  async function showJson(title: string, action: () => Promise<{ data: { data: unknown } }>) {
+    try {
+      const result = await action();
+      setJsonDialog({ body: result.data.data, title });
+    } catch (error) {
+      notify('danger', errorMessage(error));
+    }
+  }
+
+  function confirmDelete(title: string, body: string, onConfirm: () => Promise<void> | void) {
+    setConfirmDialog({ body, confirmLabel: 'delete', onConfirm, title });
+  }
+
+  const indexActions = {
+    clearCache: (index: OverviewIndex) =>
+      void runAction('index cache cleared', () =>
+        overviewClearIndicesCache<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+      ),
+    closeIndex: (index: OverviewIndex) =>
+      void runAction('index closed', () =>
+        overviewCloseIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+      ),
+    deleteIndex: (index: OverviewIndex) =>
+      confirmDelete(
+        `Delete ${index.name}?`,
+        `Delete index ${index.name}? This operation cannot be undone.`,
+        () =>
+          runAction('index deleted', () =>
+            overviewDeleteIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+          ),
+      ),
+    flushIndex: (index: OverviewIndex) =>
+      void runAction('index flushed', () =>
+        overviewFlushIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+      ),
+    forceMerge: (index: OverviewIndex) =>
+      void runAction('force merge started', () =>
+        overviewForceMerge<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+      ),
+    openIndex: (index: OverviewIndex) =>
+      void runAction('index opened', () =>
+        overviewOpenIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+      ),
+    refreshIndex: (index: OverviewIndex) =>
+      void runAction('index refreshed', () =>
+        overviewRefreshIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+      ),
+    showMappings: (index: OverviewIndex) =>
+      void showJson(`${index.name} mappings`, () =>
+        commonsGetIndexMapping<true>({ body: { ...connection, index: index.name }, throwOnError: true }),
+      ),
+    showSettings: (index: OverviewIndex) =>
+      void showJson(`${index.name} settings`, () =>
+        commonsGetIndexSettings<true>({ body: { ...connection, index: index.name }, throwOnError: true }),
+      ),
+    showStats: (index: OverviewIndex) =>
+      void showJson(`${index.name} stats`, () =>
+        commonsGetIndexStats<true>({ body: { ...connection, index: index.name }, throwOnError: true }),
+      ),
+  };
+
+  const shardActions = {
+    select: (shard?: ShardRef) => setRelocatingShard(shard ?? null),
+    selected: relocatingShard,
+    showStats: (shard: ShardRef) =>
+      void showJson(`${shard.index} shard ${shard.shard} stats`, () =>
+        overviewShardStats<true>({
+          body: { ...connection, index: shard.index, node: shard.node, shard: shard.shard },
+          throwOnError: true,
+        }),
+      ),
+  };
+
+  function canReceiveShard(index: OverviewIndex | null, node: OverviewNode) {
+    if (!index || !relocatingShard) return false;
+    if (relocatingShard.index !== index.name || relocatingShard.node === node.id) return false;
+    const nodeShards = index.shards?.[node.id];
+    const shards = Array.isArray(nodeShards) ? nodeShards : [];
+    return !shards.some((raw) => numberValue((raw as { shard?: unknown }).shard) === relocatingShard.shard);
+  }
+
+  async function relocateShard(to: string) {
+    if (!relocatingShard) return;
+    await runAction('relocation started', () =>
+      overviewRelocateShard<true>({
+        body: {
+          ...connection,
+          from: relocatingShard.node,
+          index: relocatingShard.index,
+          shard: relocatingShard.shard,
+          to,
+        },
+        throwOnError: true,
+      }),
+    );
+    setRelocatingShard(null);
+  }
+
+  if (!data) return <Loading label="loading overview" />;
+
+  const indices = (data.indices ?? [])
+    .filter((index) => (showClosed || !index.closed) && (showSpecial || !index.special))
+    .filter((index) => !showOnlyAffected || index.unhealthy || Boolean(index.shards?.unassigned?.length))
+    .filter((index) => `${index.name} ${(index.aliases ?? []).join(' ')}`.toLowerCase().includes(filterName.toLowerCase()))
+    .sort((left, right) => (asc ? left.name.localeCompare(right.name) : right.name.localeCompare(left.name)));
+  const nodesList = (data.nodes ?? []).filter((node) =>
+    textValue(node.name).toLowerCase().includes(nodeFilter.toLowerCase()),
+  );
+  const pageCount = Math.max(1, Math.ceil(indices.length / pageSize));
+  const currentPage = Math.min(page, pageCount - 1);
+  const pageElements = indices.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
+  const pageSlots = Array.from({ length: pageSize }, (_, index) => pageElements[index] ?? null);
+  const selectedIndices = pageElements.map((index) => index.name).join(',');
+
+  return (
+    <div>
+      {jsonDialog ? <JsonModal dialog={jsonDialog} onClose={() => setJsonDialog(null)} /> : null}
+      {confirmDialog ? <ConfirmModal dialog={confirmDialog} onClose={() => setConfirmDialog(null)} /> : null}
+      <Stats data={data} />
+      <div className="row">
+        <div className="col-lg-4">
+          <div className="row">
+            <div className="col-lg-6 col-sm-6 form-group">
+              <input
+                className="form-control form-control-sm"
+                placeholder="filter indices by name or aliases"
+                type="text"
+                value={filterName}
+                onChange={(event) => setFilterName(event.target.value)}
+              />
+            </div>
+            <div className="col-lg-3 col-sm-3 col-xs-6 form-group">
+              <div className="checkbox">
+                <label>
+                  <input checked={showClosed} type="checkbox" onChange={(event) => setShowClosed(event.target.checked)} />{' '}
+                  closed ({data.closed_indices})
+                </label>
+              </div>
+            </div>
+            <div className="col-lg-3 col-sm-3 col-xs-6 form-group">
+              <div className="checkbox">
+                <label>
+                  <input checked={showSpecial} type="checkbox" onChange={(event) => setShowSpecial(event.target.checked)} />{' '}
+                  .special ({data.special_indices})
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-4">
+          <div className="row">
+            <div className="col-lg-6 col-sm-6 form-group">
+              <input
+                className="form-control form-control-sm"
+                placeholder="filter nodes by name"
+                type="text"
+                value={nodeFilter}
+                onChange={(event) => setNodeFilter(event.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-4 form-group">
+          <Pagination page={currentPage} pageSize={pageSize} setPage={setPage} total={indices.length} />
+        </div>
+      </div>
+      <table className="table table-bordered table-condensed table-rounded table-inverse shard-map">
+        <thead>
+          <tr>
+            <td>
+              <div className="grid grid-cols-4 items-start">
+                <div className="min-w-0">
+                  {data.shard_allocation ? (
+                    <div className="group relative">
+                      <span className="title normal-action" title="disable shard allocation">
+                        <Icon className="table-control" name="unlock" size={28} />
+                      </span>
+                      <ul className="absolute top-full left-0 z-[1000] hidden min-w-[160px] list-none border border-[#55595c] bg-[#373a3c] py-[5px] text-left shadow-lg group-hover:block group-focus-within:block [&>li>a]:block [&>li>a]:whitespace-nowrap [&>li>a]:px-5 [&>li>a]:py-[3px] [&>li>a:hover]:bg-[#434749] [&>li>a:hover]:text-white">
+                        {['none', 'primaries', 'new_primaries'].map((kind) => (
+                          <li key={kind}>
+                            <a
+                              target="_self"
+                              onClick={() =>
+                                void runAction('shard allocation disabled', () =>
+                                  overviewDisableShardAllocation<true>({
+                                    body: { ...connection, kind },
+                                    throwOnError: true,
+                                  }),
+                                )
+                              }
+                            >
+                              <Icon name="lock" /> {kind}
+                              {kind === 'none' ? ' (default)' : ''}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <Icon
+                      className="table-control red normal-action"
+                      name="lock"
+                      size={28}
+                      title="enable shard allocation"
+                      onClick={() =>
+                        void runAction('shard allocation enabled', () =>
+                          overviewEnableShardAllocation<true>({ body: connection, throwOnError: true }),
+                        )
+                      }
+                    />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <Icon
+                    className="normal-action table-control"
+                    name={expandedView ? 'compress' : 'expand'}
+                    size={28}
+                    title={expandedView ? 'condense view' : 'expand view'}
+                    onClick={() => setExpandedView((value) => !value)}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <Icon
+                    className="normal-action table-control"
+                    name={asc ? 'sort-alpha-asc' : 'sort-alpha-desc'}
+                    size={28}
+                    title={asc ? 'sort ascending' : 'sort descending'}
+                    onClick={() => setAsc((value) => !value)}
+                  />
+                </div>
+                <div className="group relative min-w-0">
+                  <span className="title normal-action" title="more options">
+                    <Icon className="table-control" name="caret-down" size={28} />
+                  </span>
+                  <ul className="absolute top-full left-0 z-[1000] hidden min-w-[160px] list-none border border-[#55595c] bg-[#373a3c] py-[5px] text-left shadow-lg group-hover:block group-focus-within:block [&>li>a]:block [&>li>a]:whitespace-nowrap [&>li>a]:px-5 [&>li>a]:py-[3px] [&>li>a:hover]:bg-[#434749] [&>li>a:hover]:text-white">
+                    <li>
+                      <a onClick={() => void runAction('selected indices closed', () => overviewCloseIndices<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                        <Icon name="folder" /> close selected
+                      </a>
+                    </li>
+                    <li>
+                      <a onClick={() => void runAction('selected indices opened', () => overviewOpenIndices<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                        <Icon name="folder-open" /> open selected
+                      </a>
+                    </li>
+                    <li>
+                      <a onClick={() => void runAction('force merge started', () => overviewForceMerge<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                        <Icon name="wrench" /> force merge selected
+                      </a>
+                    </li>
+                    <li>
+                      <a onClick={() => void runAction('selected indices refreshed', () => overviewRefreshIndices<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                        <Icon name="refresh" /> refresh selected
+                      </a>
+                    </li>
+                    <li>
+                      <a onClick={() => void runAction('selected indices flushed', () => overviewFlushIndices<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                        <Icon name="gavel" /> flush selected
+                      </a>
+                    </li>
+                    <li>
+                      <a onClick={() => void runAction('selected caches cleared', () => overviewClearIndicesCache<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                        <Icon name="circle" /> clear selected caches
+                      </a>
+                    </li>
+                    <li className="divider" role="separator" />
+                    <li>
+                      <a
+                        onClick={() =>
+                          confirmDelete(
+                            `Delete ${pageElements.length} selected indices?`,
+                            `Delete selected indices: ${selectedIndices}? This operation cannot be undone.`,
+                            () =>
+                              runAction('selected indices deleted', () =>
+                                overviewDeleteIndices<true>({
+                                  body: { ...connection, indices: selectedIndices },
+                                  throwOnError: true,
+                                }),
+                              ),
+                          )
+                        }
+                      >
+                        <Icon className="red" name="trash" /> delete selected
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </td>
+            {pageSlots.map((index, slot) => (
+              <td className={index?.closed ? 'closed-index' : ''} key={index?.name ?? `empty-${slot}`}>
+                {index ? (
+                  <IndexHeader
+                    actions={indexActions}
+                    index={index}
+                    settingsHref={`#/index_settings?host=${encodeURIComponent(connection.host)}&index=${encodeURIComponent(index.name)}`}
+                  />
+                ) : null}
+              </td>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {numberValue(data.unassigned_shards) > 0 ||
+          numberValue(data.relocating_shards) > 0 ||
+          numberValue(data.initializing_shards) > 0 ? (
+            <tr>
+              <td>
+                {numberValue(data.unassigned_shards) > 0 ? (
+                  <div className="subtitle">
+                    <Icon className="alert-warning" name="warning" /> {formatNumber(data.unassigned_shards)} unassigned shards
+                  </div>
+                ) : null}
+                {numberValue(data.relocating_shards) > 0 ? (
+                  <div className="subtitle">
+                    <Icon name="refresh" spin /> {formatNumber(data.relocating_shards)} relocating shards
+                  </div>
+                ) : null}
+                {numberValue(data.initializing_shards) > 0 ? (
+                  <div className="subtitle">
+                    <Icon name="spinner" spin /> {formatNumber(data.initializing_shards)} initializing shards
+                  </div>
+                ) : null}
+                <div>
+                  {!showOnlyAffected ? (
+                    <span className="normal-action" onClick={() => setShowOnlyAffected(true)}>
+                      <i>
+                        <small>show only affected indices</small>
+                      </i>
+                    </span>
+                  ) : (
+                    <span className="normal-action" onClick={() => setShowOnlyAffected(false)}>
+                      <i>
+                        <small>show all indices</small>
+                      </i>
+                    </span>
+                  )}
+                </div>
+              </td>
+              {pageSlots.map((index, slot) => (
+                <td key={index?.name ?? `empty-unassigned-${slot}`}>{index ? renderShards(index.shards?.unassigned) : null}</td>
+              ))}
+            </tr>
+          ) : null}
+          {nodesList.sort(byName).map((node) => (
+            <tr key={node.id}>
+              <td>
+                <OverviewNodeCell expanded={expandedView} node={node} />
+              </td>
+              {pageSlots.map((index, slot) => (
+                <td key={index?.name ?? `empty-${node.id}-${slot}`}>
+                  {index ? renderShards(index.shards?.[node.id], index.closed, shardActions) : null}
+                  {canReceiveShard(index, node) ? (
+                    <span className="shard shard-spot normal-action" onClick={() => void relocateShard(node.id)}>
+                      <Icon name="download" />
+                    </span>
+                  ) : null}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function JsonModal({ dialog, onClose }: { dialog: JsonDialog; onClose: () => void }) {
+  useEscape(onClose);
+
+  return (
+    <ModalFrame onClose={onClose} title={dialog.title}>
+      <div className="modal-body">
+        <LazyJsonEditor height={520} readOnly value={formatJson(dialog.body)} onChange={() => {}} />
+      </div>
+      <div className="modal-footer">
+        <button className="btn btn-default" type="button" onClick={onClose}>
+          close
+        </button>
+      </div>
+    </ModalFrame>
+  );
+}
+
+function ConfirmModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose: () => void }) {
+  useEscape(onClose);
+
+  async function confirm() {
+    onClose();
+    await dialog.onConfirm();
+  }
+
+  return (
+    <ModalFrame onClose={onClose} title={dialog.title}>
+      <div className="modal-body">{dialog.body}</div>
+      <div className="modal-footer">
+        <button className="btn btn-default" type="button" onClick={onClose}>
+          cancel
+        </button>
+        <button className="btn btn-danger" type="button" onClick={() => void confirm()}>
+          {dialog.confirmLabel}
+        </button>
+      </div>
+    </ModalFrame>
+  );
+}
+
+function ModalFrame({
+  children,
+  onClose,
+  title,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  title: string;
+}) {
+  return (
+    <>
+      <div className="modal-backdrop in" onClick={onClose} />
+      <div className="modal in !block" tabIndex={-1}>
+        <div className="modal-dialog modal-lg">
+          <div className="modal-content">
+            <div className="modal-header flex items-center justify-between">
+              <h4 className="modal-title !m-0">{title}</h4>
+              <button
+                aria-label="close"
+                className="close !float-none !text-[#eceeef] !opacity-[.85] [text-shadow:none] hover:!text-white hover:!opacity-100 focus:!text-white focus:!opacity-100"
+                type="button"
+                onClick={onClose}
+              >
+                &times;
+              </button>
+            </div>
+            {children}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function useEscape(onEscape: () => void) {
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onEscape();
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onEscape]);
+}
+
+function getOverviewPageSize(): number {
+  return Math.max(Math.round(window.innerWidth / 280), 1);
+}

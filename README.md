@@ -3,11 +3,11 @@ Cerebro
 [![Docker Pulls](https://img.shields.io/docker/pulls/lmenezes/cerebro.svg)](https://hub.docker.com/r/lmenezes/cerebro)
 ![build](https://github.com/lmenezes/cerebro/workflows/build/badge.svg?branch=master)
 
-cerebro is an open source(MIT License) elasticsearch web admin tool built using Scala, Play Framework, AngularJS and Bootstrap.
+cerebro is an open source (MIT License) Elasticsearch web admin tool. This fork is built with Go, Huma, React and TypeScript.
 
 ### Requirements
 
-cerebro needs Java 11 or newer to run.
+cerebro needs Go and Node.js for development.
 
 ### Installation
 - Download from [https://github.com/lmenezes/cerebro/releases](https://github.com/lmenezes/cerebro/releases)
@@ -97,7 +97,7 @@ There are some examples of configuration in the [examples folder](./examples).
 
 #### Other settings
 
-Other settings are exposed through the **conf/application.conf** file found on the application directory.
+Other settings are exposed through the YAML files in the **conf/** directory.
 
 It is also possible to use an alternate configuration file defined on a different location:
 

@@ -1,0 +1,45 @@
+# Cerebro example configuration. Copy to application.yaml and edit.
+
+# A list of known hosts (Elasticsearch clusters). Each host can have its own auth
+# and a whitelist of HTTP headers forwarded from the user's request to ES.
+hosts:
+  - name: "Local cluster"
+    host: "http://localhost:9200"
+    # auth:
+    #   username: "elastic"
+    #   password: "changeme"
+    headers_whitelist: ["x-proxy-user", "x-proxy-roles", "X-Forwarded-For"]
+
+# Application authentication. type: disabled | basic | ldap.
+auth:
+  type: "${AUTH_TYPE}"
+  settings:
+    # basic auth
+    username: "${BASIC_AUTH_USER}"
+    password: "${BASIC_AUTH_PWD}"
+    # LDAP
+    url: "${LDAP_URL}"
+    base_dn: "${LDAP_BASE_DN}"
+    method: "${LDAP_METHOD}"
+    user_template: "${LDAP_USER_TEMPLATE}"
+    bind_dn: "${LDAP_BIND_DN}"
+    bind_pw: "${LDAP_BIND_PWD}"
+    group_search:
+      base_dn: "${LDAP_GROUP_BASE_DN}"
+      user_attr: "${LDAP_USER_ATTR}"
+      user_attr_template: "${LDAP_USER_ATTR_TEMPLATE}"
+      group: "${LDAP_GROUP}"
+
+server:
+  port: 9000
+  base_path: "/"
+  secret: "${APPLICATION_SECRET}"
+
+es:
+  gzip: true
+
+rest:
+  history_size: 50
+
+data:
+  path: "./cerebro.db"

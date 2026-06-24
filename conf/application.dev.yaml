@@ -1,0 +1,22 @@
+# Development config — used by docker-compose stack.
+
+hosts:
+  - name: "Local cluster"
+    host: "http://elasticsearch:9200"
+
+auth:
+  type: "disabled"
+
+server:
+  port: 9000
+  base_path: "/"
+  secret: "dev-secret-change-me"
+
+es:
+  gzip: true
+
+rest:
+  history_size: 50
+
+data:
+  path: "/workspace/cerebro/cerebro.db"

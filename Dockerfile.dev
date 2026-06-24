@@ -1,0 +1,12 @@
+FROM golang:1.26-alpine
+
+RUN apk add --no-cache build-base sqlite-dev curl
+RUN go install github.com/air-verse/air@latest
+
+WORKDIR /workspace/cerebro
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+EXPOSE 9000
+CMD ["air"]
