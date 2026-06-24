@@ -1,11 +1,13 @@
-version: '3'
 services:
   cerebro:
-    image: lmenezes/cerebro
+    build:
+      context: ../..
+      dockerfile: Dockerfile
     environment:
-      # Basic auth using admin/admin user
-      - AUTH_TYPE=basic
-      - BASIC_AUTH_USER=admin
-      - BASIC_AUTH_PWD=admin
+      APPLICATION_SECRET: "example-secret-change-me"
+      BASIC_AUTH_USER: "admin"
+      BASIC_AUTH_PWD: "admin"
+    volumes:
+      - ./application.yaml:/opt/cerebro/conf/application.yaml:ro
     ports:
-      - 9000:9000
+      - "9000:9000"

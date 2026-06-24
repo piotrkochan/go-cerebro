@@ -1,106 +1,216 @@
-Cerebro
-------------
-[![Docker Pulls](https://img.shields.io/docker/pulls/lmenezes/cerebro.svg)](https://hub.docker.com/r/lmenezes/cerebro)
-![build](https://github.com/lmenezes/cerebro/workflows/build/badge.svg?branch=master)
+# Go Cerebro
 
-cerebro is an open source (MIT License) Elasticsearch web admin tool. This fork is built with Go, Huma, React and TypeScript.
+[![CI](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/piotrkochan/go-cerebro)](./LICENSE)
 
-### Requirements
+Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmenezes/cerebro) Elasticsearch web admin tool. The original application was Java + Angular; this fork is rewritten to Go, Huma, React and TypeScript while keeping the Cerebro user experience.
 
-cerebro needs Go and Node.js for development.
+The backend exposes a Huma/OpenAPI HTTP API. The frontend consumes a generated TypeScript client from `openapi/cerebro.json`; hand-written frontend API wrappers should be avoided.
 
-### Installation
-- Download from [https://github.com/lmenezes/cerebro/releases](https://github.com/lmenezes/cerebro/releases)
-- Extract files
-- Run bin/cerebro(or bin/cerebro.bat if on Windows)
-- Access on http://localhost:9000
+## Status
 
-### Chocolatey (Windows)
+This fork is under active rewrite. Prefer current code and this README over old upstream instructions, especially anything mentioning Play Framework, Angular, `-D...` JVM flags or committed frontend build bundles.
 
-You can install `cerebro` using [Chocolatey](https://chocolatey.org/):
+## Requirements
+
+- Go 1.26.x
+- Node.js 24+ or 26+
+- npm
+- Docker Compose, for the local Elasticsearch development stack
+
+## Quick Start
+
+Run the full development stack:
 
 ```sh
-choco install cerebro-es
+docker compose up --build
 ```
 
-Package creates windows service ```cerebro```.
-Access on http://localhost:9000
+Then open:
 
-### Docker
+- Application served by Go: `http://localhost:9000`
+- Vite dev frontend with live reload: `http://localhost:5173`
+- Local Elasticsearch: `http://localhost:9200`
 
-You can find the official docker images in the official [docker hub repo](https://hub.docker.com/r/lmenezes/cerebro/).
+The development config is [conf/application.dev.yaml](./conf/application.dev.yaml). It connects to the Elasticsearch services defined in [docker-compose.yaml](./docker-compose.yaml) and enables development-only features such as the data explorer.
 
-Visit [cerebro-docker](https://github.com/lmenezes/cerebro-docker) for further information. 
+## Local Development
 
-### Configuration
+Install frontend dependencies:
 
-#### HTTP server address and port
-You can run cerebro listening on a different host and port(defaults to 0.0.0.0:9000):
-
-```
-bin/cerebro -Dhttp.port=1234 -Dhttp.address=127.0.0.1
+```sh
+npm ci
 ```
 
-#### LDAP config
+Generate the OpenAPI document and TypeScript client:
 
-LDAP can be configured using environment variables. If you typically run cerebro using docker,
-you can pass a file with all the env vars. The file would look like:
-
-```bash
-# Set it to ldap to activate ldap authorization
-AUTH_TYPE=ldap
-
-# Your ldap url
-LDAP_URL=ldap://exammple.com:389
-
-LDAP_BASE_DN=OU=users,DC=example,DC=com
-
-# Usually method should  be "simple" otherwise, set it to the SASL mechanisms
-LDAP_METHOD=simple
-
-# user-template executes a string.format() operation where
-# username is passed in first, followed by base-dn. Some examples
-#  - %s => leave user untouched
-#  - %s@domain.com => append "@domain.com" to username
-#  - uid=%s,%s => usual case of OpenLDAP
-LDAP_USER_TEMPLATE=%s@example.com
-
-# User identifier that can perform searches
-LDAP_BIND_DN=admin@example.com
-LDAP_BIND_PWD=adminpass
-
-# Group membership settings (optional)
-
-# If left unset LDAP_BASE_DN will be used
-# LDAP_GROUP_BASE_DN=OU=users,DC=example,DC=com
-
-# Attribute that represent the user, for example uid or mail
-# LDAP_USER_ATTR=mail
-
-# If left unset LDAP_USER_TEMPLATE will be used
-# LDAP_USER_ATTR_TEMPLATE=%s
-
-# Filter that tests membership of the group. If this property is empty then there is no group membership check
-# AD example => memberOf=CN=mygroup,ou=ouofthegroup,DC=domain,DC=com
-# OpenLDAP example => CN=mygroup
-# LDAP_GROUP=memberOf=memberOf=CN=mygroup,ou=ouofthegroup,DC=domain,DC=com
-
+```sh
+npm run api:generate
 ```
 
-You can the pass this file as argument using:
+Run the Go server:
 
-```bash
- docker run -p 9000:9000 --env-file env-ldap  lmenezes/cerebro
+```sh
+go run ./cmd/cerebro serve -config conf/application.dev.yaml
 ```
 
-There are some examples of configuration in the [examples folder](./examples).
+Run the Vite frontend in another terminal:
 
-#### Other settings
-
-Other settings are exposed through the YAML files in the **conf/** directory.
-
-It is also possible to use an alternate configuration file defined on a different location:
-
+```sh
+npm run dev
 ```
-bin/cerebro -Dconfig.file=/some/other/dir/alternate.conf
+
+Useful checks:
+
+```sh
+npm run typecheck
+npm run api:typecheck
+go test ./...
+npm test
 ```
+
+Build everything:
+
+```sh
+npm run build
+go build -o cerebro ./cmd/cerebro
+```
+
+## CLI
+
+Serve the application:
+
+```sh
+cerebro serve -config conf/application.yaml -public public
+```
+
+Generate the OpenAPI spec:
+
+```sh
+cerebro openapi -config conf/application.example.yaml > openapi/cerebro.json
+```
+
+Print the version:
+
+```sh
+cerebro version
+```
+
+Release builds inject the version with:
+
+```sh
+go build -ldflags="-X github.com/lmenezes/cerebro/internal/version.Version=0.10.0" ./cmd/cerebro
+```
+
+## Configuration
+
+Copy [conf/application.example.yaml](./conf/application.example.yaml) to `conf/application.yaml` and edit it for your environment.
+
+Important sections:
+
+- `hosts`: known Elasticsearch clusters. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
+- `auth`: `disabled`, `basic` or `ldap`. Do not expose an instance with `auth.type: disabled`.
+- `server.secret`: required for authenticated deployments. Set it to a strong random value.
+- `server.cookie_secure`: keep `true` behind HTTPS.
+- `es.ca_cert_file`, `es.client_cert_file`, `es.client_key_file`: TLS trust and mutual TLS for Elasticsearch.
+- `auth.settings.ca_cert_file`: custom LDAP CA trust.
+- `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
+- `data.path`: SQLite file used for REST request history.
+
+Environment variables are expanded inside YAML values. These direct overrides are also supported:
+
+- `CEREBRO_PORT`
+- `APPLICATION_SECRET`
+- `AUTH_TYPE`
+
+## Authentication
+
+Basic auth example:
+
+```yaml
+auth:
+  type: "basic"
+  settings:
+    username: "${BASIC_AUTH_USER}"
+    password: "${BASIC_AUTH_PWD}"
+server:
+  secret: "${APPLICATION_SECRET}"
+```
+
+LDAP uses `ldaps://` by default. For a private test-only LDAP server you can set `insecure_ldap: true`, but do not use that in production.
+
+```yaml
+auth:
+  type: "ldap"
+  settings:
+    url: "ldaps://ldap.example.org:636"
+    ca_cert_file: "/etc/cerebro/ldap-ca.pem"
+    base_dn: "ou=people,dc=example,dc=org"
+    method: "simple"
+    user_template: "uid=%s,%s"
+    bind_dn: "cn=readonly,dc=example,dc=org"
+    bind_pw: "${LDAP_BIND_PWD}"
+```
+
+## API And Frontend Client
+
+The API is registered in Go through Huma. OpenAPI is generated from the backend routes:
+
+```sh
+npm run api:openapi
+```
+
+The TypeScript client is generated with `@hey-api/openapi-ts`:
+
+```sh
+npm run api:generate
+```
+
+Generated files live in:
+
+- [openapi/cerebro.json](./openapi/cerebro.json)
+- [src/api/client](./src/api/client)
+
+When a backend API shape changes, regenerate the client and commit the changed OpenAPI/client files. Do not add custom frontend response adapters unless the API contract itself is wrong.
+
+## Docker
+
+The development stack uses:
+
+- `elasticsearch`
+- `elasticsearch-2`
+- `cerebro`
+- `frontend`
+
+Start it with:
+
+```sh
+docker compose up --build
+```
+
+Persistent Elasticsearch data is stored in Docker volumes. To reset only the containers without deleting indices:
+
+```sh
+docker compose down
+docker compose up --build
+```
+
+## Security Notes
+
+Cerebro can manage Elasticsearch clusters. Treat access to this UI as administrative access.
+
+- Prefer a reverse proxy with HTTPS.
+- Keep `auth.type` enabled outside local development.
+- Set `server.secret`.
+- Keep `es.allow_ad_hoc_hosts: false` unless you explicitly need user-supplied ES targets.
+- Use dedicated Elasticsearch users with the minimum required privileges.
+- Use `ldaps://` or `auth.settings.ca_cert_file` for LDAP trust.
+- Do not put Elasticsearch credentials into host URLs; use the `auth` block per host.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
+MIT, same as the original Cerebro project. See [LICENSE](./LICENSE).

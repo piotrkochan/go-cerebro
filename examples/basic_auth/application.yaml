@@ -1,0 +1,17 @@
+hosts: []
+
+auth:
+  type: "basic"
+  settings:
+    username: "${BASIC_AUTH_USER}"
+    password: "${BASIC_AUTH_PWD}"
+
+server:
+  port: 9000
+  base_path: "/"
+  secret: "${APPLICATION_SECRET}"
+  cookie_secure: false
+
+es:
+  allow_ad_hoc_hosts: false
+

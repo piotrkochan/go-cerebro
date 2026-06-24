@@ -1,0 +1,22 @@
+hosts: []
+
+auth:
+  type: "ldap"
+  settings:
+    url: "ldap://ldap:389"
+    base_dn: "DC=example,DC=org"
+    method: "simple"
+    user_template: "uid=%s,%s"
+    # The example LDAP container uses plain ldap:// for local testing.
+    # Production config should use ldaps:// or ca_cert_file.
+    insecure_ldap: true
+
+server:
+  port: 9000
+  base_path: "/"
+  secret: "${APPLICATION_SECRET}"
+  cookie_secure: false
+
+es:
+  allow_ad_hoc_hosts: false
+

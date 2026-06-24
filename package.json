@@ -16,12 +16,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/lmenezes/cerebro.git"
+    "url": "git://github.com/piotrkochan/go-cerebro.git"
   },
   "author": "Leonardo Menezes",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/lmenezes/cerebro/issues"
+    "url": "https://github.com/piotrkochan/go-cerebro/issues"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.99.0",

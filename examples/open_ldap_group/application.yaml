@@ -1,0 +1,26 @@
+hosts: []
+
+auth:
+  type: "ldap"
+  settings:
+    url: "ldap://ldap:389"
+    base_dn: "ou=people,dc=example,dc=org"
+    method: "simple"
+    user_template: "uid=%s,%s"
+    bind_dn: "cn=admin,dc=example,dc=org"
+    bind_pw: "admin"
+    insecure_ldap: true
+    group_search:
+      user_attr: "uid"
+      user_attr_template: "%s"
+      group: "memberof=cn=cerebro,ou=groups,dc=example,dc=org"
+
+server:
+  port: 9000
+  base_path: "/"
+  secret: "${APPLICATION_SECRET}"
+  cookie_secure: false
+
+es:
+  allow_ad_hoc_hosts: false
+
