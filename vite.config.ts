@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 
 import packageJson from './package.json';
 
-const apiTarget = 'http://localhost:9000';
+const apiTarget = process.env.VITE_API_TARGET ?? 'http://localhost:9000';
 const appVersion = process.env.VITE_APP_VERSION ?? packageJson.version;
 
 export default defineConfig({
@@ -35,6 +35,7 @@ export default defineConfig({
       '/commons': apiTarget,
       '/connect': apiTarget,
       '/create_index': apiTarget,
+      '/data_explorer': apiTarget,
       '/docs': apiTarget,
       '/index_settings': apiTarget,
       '/navbar': apiTarget,
@@ -44,6 +45,7 @@ export default defineConfig({
       '/overview': apiTarget,
       '/repositories': apiTarget,
       '/rest': apiTarget,
+      '/schemas': apiTarget,
       '/snapshots': apiTarget,
       '/templates': apiTarget,
     },

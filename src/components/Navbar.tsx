@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 
+import { CerebroLogo } from './CerebroLogo';
 import { Icon } from './Icon';
 import { timeInterval } from '../utils/format';
 
@@ -44,8 +45,8 @@ export function Navbar({
             <span className="icon-bar" />
             <span className="icon-bar" />
           </button>
-          <Link className="flex h-[50px] items-start px-[15px]" search={search} to="/overview">
-            <img src="/img/favicon.png" width="28" style={{ paddingTop: 6 }} />
+          <Link className="flex h-[50px] items-center px-[15px]" search={search} to="/overview">
+            <CerebroLogo size="header" />
           </Link>
         </div>
         <div id="navbar" className="flex flex-1 items-stretch justify-between">

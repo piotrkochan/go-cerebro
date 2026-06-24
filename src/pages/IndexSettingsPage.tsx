@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { indexSettingsGet, indexSettingsUpdate, type HostBodyWritable } from '../api/client';
 import { Icon } from '../components/Icon';
+import { SplitPane } from '../components/SplitPane';
 import type { Notify } from '../types';
 import { errorMessage, textValue } from '../utils/format';
 
@@ -143,90 +144,96 @@ export function IndexSettingsPage({
   }
 
   return (
-    <>
-      <div className="row query-container">
-        <div className="col-lg-4 col-md-6 col-sm-6 col-xs-12">
-          <input
-            className="form-control"
-            placeholder="filter settings by name"
-            value={filter.name}
-            onChange={(event) => setFilter((value) => ({ ...value, name: event.target.value }))}
-          />
-        </div>
-        <div className="col-lg-4 col-md-6 col-sm-6 col-xs-12">
-          <div className="checkbox">
-            <label>
+    <SplitPane
+      storageKey="cerebro.indexSettingsSplitPercent"
+      leftMinWidth={520}
+      left={
+        <>
+          <div className="row query-container">
+            <div className="col-lg-4 col-md-6 col-sm-6 col-xs-12">
               <input
-                checked={filter.showStatic}
-                type="checkbox"
-                onChange={(event) => setFilter((value) => ({ ...value, showStatic: event.target.checked }))}
-              />{' '}
-              show static settings <Icon className="alert-warning" name="lock" />
-            </label>
-          </div>
-        </div>
-      </div>
-      {visibleGroups.map((group) => (
-        <div className="row form-group" key={group.name}>
-          <div className="col-xs-12">
-            <h6>
-              <b>{group.name.toUpperCase()}</b>
-            </h6>
-            <hr className="header" />
-          </div>
-          {group.settings.map((setting) => (
-            <div className="col-lg-4 col-md-4 col-sm-6 col-xs-12" key={setting.name}>
-              <div className="form-group">
-                <label className="form-label">
-                  {setting.name} {setting.static ? <Icon className="alert-warning" name="lock" /> : null}
+                className="form-control"
+                placeholder="filter settings by name"
+                value={filter.name}
+                onChange={(event) => setFilter((value) => ({ ...value, name: event.target.value }))}
+              />
+            </div>
+            <div className="col-lg-4 col-md-6 col-sm-6 col-xs-12">
+              <div className="checkbox">
+                <label>
+                  <input
+                    checked={filter.showStatic}
+                    type="checkbox"
+                    onChange={(event) => setFilter((value) => ({ ...value, showStatic: event.target.checked }))}
+                  />{' '}
+                  show static settings <Icon className="alert-warning" name="lock" />
                 </label>
-                <input
-                  className="form-control"
-                  disabled={setting.static}
-                  type="text"
-                  value={form[setting.name] ?? ''}
-                  onChange={(event) => updateSetting(setting.name, event.target.value)}
-                />
               </div>
             </div>
+          </div>
+          {visibleGroups.map((group) => (
+            <div className="row form-group" key={group.name}>
+              <div className="col-xs-12">
+                <h6>
+                  <b>{group.name.toUpperCase()}</b>
+                </h6>
+                <hr className="header" />
+              </div>
+              {group.settings.map((setting) => (
+                <div className="col-lg-4 col-md-4 col-sm-6 col-xs-12" key={setting.name}>
+                  <div className="form-group">
+                    <label className="form-label">
+                      {setting.name} {setting.static ? <Icon className="alert-warning" name="lock" /> : null}
+                    </label>
+                    <input
+                      className="form-control"
+                      disabled={setting.static}
+                      type="text"
+                      value={form[setting.name] ?? ''}
+                      onChange={(event) => updateSetting(setting.name, event.target.value)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           ))}
-        </div>
-      ))}
-      {pending ? (
-        <div className="row" style={{ paddingTop: pending * 40 + 90 }}>
-          <div className="pending-changes">
-            <div className="col-xs-12">
-              <table className="table">
-                <thead>
-                  <tr className="text-center">
-                    <td>{pending} pending changes</td>
-                  </tr>
-                </thead>
+        </>
+      }
+      right={
+        <>
+          <h4>
+            pending changes <small className="info-text">({pending})</small>
+          </h4>
+          {pending ? (
+            <>
+              <table className="table table-condensed">
                 <tbody>
                   {Object.entries(changes).map(([setting, value]) => (
                     <tr key={setting}>
                       <td>
                         <Icon name="cog" /> {setting} <span className="info-text">updated to</span> {value}
-                        <Icon className="normal-action pull-right" name="undo" onClick={() => updateSetting(setting, settings[setting] ?? '')} />
+                      </td>
+                      <td className="text-right">
+                        <button className="btn btn-default btn-xs" title="undo" type="button" onClick={() => updateSetting(setting, settings[setting] ?? '')}>
+                          <Icon name="undo" />
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-            <div className="col-lg-12 text-right">
-              <div className="form-group">
-                <div className="btn-group">
-                  <button className="btn btn-success" type="button" onClick={() => void save()}>
-                    save
-                  </button>
-                </div>
+              <div className="text-right">
+                <button className="btn btn-success" type="button" onClick={() => void save()}>
+                  save
+                </button>
               </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
+            </>
+          ) : (
+            <div className="info-text">no pending changes</div>
+          )}
+        </>
+      }
+    />
   );
 }
 

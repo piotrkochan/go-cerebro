@@ -27,10 +27,28 @@ func TestAliases_NullForAbsentProps(t *testing.T) {
 	assert.JSONEq(t, `[{"alias":"latest","index":"books","filter":null,"search_routing":null,"index_routing":null}]`, string(b))
 }
 
+func TestAliases_SortsByAliasThenIndex(t *testing.T) {
+	in := json.RawMessage(`{
+		"z-index": {"aliases": {"beta": {}, "alpha": {}}},
+		"a-index": {"aliases": {"beta": {}}}
+	}`)
+	out := Aliases(in)
+	require.Len(t, out, 3)
+	assert.Equal(t, []Alias{
+		{Alias: "alpha", Index: "z-index"},
+		{Alias: "beta", Index: "a-index"},
+		{Alias: "beta", Index: "z-index"},
+	}, []Alias{
+		{Alias: out[0].Alias, Index: out[0].Index},
+		{Alias: out[1].Alias, Index: out[1].Index},
+		{Alias: out[2].Alias, Index: out[2].Index},
+	})
+}
+
 func TestAutocompletionIndices_Distinct(t *testing.T) {
 	in := json.RawMessage(`{
 		"a": {"aliases": {"a-alias": {}}},
 		"b": {"aliases": {}}
 	}`)
-	assert.ElementsMatch(t, []string{"a", "a-alias", "b"}, AutocompletionIndices(in))
+	assert.Equal(t, []string{"a", "a-alias", "b"}, AutocompletionIndices(in))
 }

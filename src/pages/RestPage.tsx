@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useForm } from '@tanstack/react-form';
 
 import { restHistory, restIndex, restRequest, type HostBodyWritable } from '../api/client';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
+import { SplitPane } from '../components/SplitPane';
 import { restRequestFormDefaults, type RestRequestFormValues } from '../forms/restRequestForm';
 import { curl, formatJson, parseJson, textValue } from '../utils/format';
+import { nextSort, sortByText, type SortState } from '../utils/sort';
 
 const restSplitKey = 'cerebro.restSplitPercent';
 
@@ -15,15 +16,17 @@ type RestResponseState = {
   durationMs: number;
   status: number;
 };
+type RestHistoryItem = { body?: unknown; created_at?: unknown; method?: unknown; path?: unknown };
+type RestHistorySortKey = 'created_at' | 'method' | 'path';
 
 export function RestPage({ connection }: { connection: HostBodyWritable }) {
   const [curlCopied, setCurlCopied] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [pathFocused, setPathFocused] = useState(false);
   const [response, setResponse] = useState<RestResponseState>();
-  const [history, setHistory] = useState<Array<{ body?: unknown; created_at?: unknown; method?: unknown; path?: unknown }>>([]);
+  const [history, setHistory] = useState<RestHistoryItem[]>([]);
+  const [historySort, setHistorySort] = useState<SortState<RestHistorySortKey>>({ key: 'created_at', order: 'desc' });
   const [pathSuggestions, setPathSuggestions] = useState<string[]>([]);
-  const [splitPercent, setSplitPercent] = useState(() => savedSplitPercent());
   const [showHistory, setShowHistory] = useState(false);
   const form = useForm({
     defaultValues: restRequestFormDefaults,
@@ -90,34 +93,13 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
     window.setTimeout(() => setCurlCopied(false), 1200);
   }
 
-  function startResize(event: ReactPointerEvent<HTMLDivElement>) {
-    event.preventDefault();
-    const container = event.currentTarget.parentElement;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const pointerId = event.pointerId;
-    event.currentTarget.setPointerCapture(pointerId);
-
-    function move(moveEvent: PointerEvent) {
-      const next = clampSplit(((moveEvent.clientX - rect.left) / rect.width) * 100);
-      setSplitPercent(next);
-      window.localStorage.setItem(restSplitKey, String(Math.round(next)));
-    }
-
-    function stop() {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', stop);
-      window.removeEventListener('pointercancel', stop);
-    }
-
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', stop, { once: true });
-    window.addEventListener('pointercancel', stop, { once: true });
-  }
+  const sortedHistory = sortByText(history, historySort, restHistorySortValue);
 
   return (
-    <div className="flex gap-0">
-      <div className="min-w-[320px] pr-[15px]" style={{ flexBasis: `calc(${splitPercent}% - 5px)` }}>
+    <SplitPane
+      storageKey={restSplitKey}
+      left={
+        <>
         <div className="row">
           <div className="col-lg-10 col-md-9 typeahead-demo form-group">
             <form.Field name="path">
@@ -179,8 +161,27 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
           {showHistory && history.length ? (
             <div className="col-xs-12 panel-collapse collapse in !block !visible" id="restHistory">
               <table className="table table-condensed">
+                <thead>
+                  <tr>
+                    <th style={{ width: 100 }}>
+                      <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setHistorySort((value) => nextSort(value, 'created_at'))}>
+                        created {historySort.key === 'created_at' ? <Icon name={historySort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+                      </button>
+                    </th>
+                    <th style={{ width: 60 }}>
+                      <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setHistorySort((value) => nextSort(value, 'method'))}>
+                        method {historySort.key === 'method' ? <Icon name={historySort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+                      </button>
+                    </th>
+                    <th>
+                      <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setHistorySort((value) => nextSort(value, 'path'))}>
+                        path {historySort.key === 'path' ? <Icon name={historySort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {history.map((item, index) => (
+                  {sortedHistory.map((item, index) => (
                     <tr className="normal-action" key={index} onClick={() => {
                       setRequest({
                         body: textValue(item.body),
@@ -232,15 +233,9 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
             </div>
           </div>
         </div>
-      </div>
-      <div
-        aria-label="Resize REST panels"
-        className="w-[10px] cursor-col-resize border-x border-[#434749] hover:bg-[#434749]"
-        role="separator"
-        tabIndex={0}
-        onPointerDown={startResize}
-      />
-      <div className="min-w-[320px] pl-[15px]" style={{ flexBasis: `calc(${100 - splitPercent}% - 5px)` }}>
+        </>
+      }
+      right={
         <div style={{ border: '1px solid #55595c', minHeight: 647, overflow: 'hidden', display: 'block' }}>
           {response ? (
             <div className="flex min-h-10 items-center justify-between border-b border-[#55595c] px-[15px] py-[7px]">
@@ -257,18 +252,9 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
           ) : null}
           <LazyJsonEditor height={response ? 606 : 647} readOnly value={formatJson(response?.body ?? '')} onChange={() => undefined} />
         </div>
-      </div>
-    </div>
+      }
+    />
   );
-}
-
-function savedSplitPercent() {
-  const value = Number(window.localStorage.getItem(restSplitKey));
-  return clampSplit(Number.isFinite(value) ? value : 50);
-}
-
-function clampSplit(value: number) {
-  return Math.min(75, Math.max(25, value));
 }
 
 async function copyText(value: string) {
@@ -289,6 +275,10 @@ async function copyText(value: string) {
   textarea.select();
   document.execCommand('copy');
   textarea.remove();
+}
+
+function restHistorySortValue(item: RestHistoryItem, key: RestHistorySortKey) {
+  return textValue(item[key]);
 }
 
 function restErrorBody(error: unknown): unknown {

@@ -10,12 +10,15 @@ import {
   type HostBodyWritable,
 } from '../api/client';
 import { Icon } from '../components/Icon';
+import { ConfirmModal } from '../components/Modal';
 import type { Notify } from '../types';
 import { errorMessage, textValue } from '../utils/format';
+import { nextSort, sortByText, type SortState } from '../utils/sort';
 
 type SnapshotIndex = { name: string; special?: boolean };
 type Snapshot = { indices?: string[]; snapshot?: string; start_time?: unknown; state?: unknown; uuid?: string };
 type SnapshotLoad = { indices?: SnapshotIndex[]; repositories?: string[] };
+type SnapshotSortKey = 'name' | 'start_time' | 'state';
 
 export function SnapshotPage({
   connection,
@@ -31,6 +34,8 @@ export function SnapshotPage({
   const [repository, setRepository] = useState('');
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [showSpecial, setShowSpecial] = useState(false);
+  const [deleteSnapshotName, setDeleteSnapshotName] = useState('');
+  const [sort, setSort] = useState<SortState<SnapshotSortKey>>({ key: 'name', order: 'asc' });
   const [createForm, setCreateForm] = useState({ ignoreUnavailable: false, includeGlobalState: true, indices: [] as string[], repository: '', snapshot: '' });
   const [restoreForms, setRestoreForms] = useState<Record<string, RestoreForm>>({});
 
@@ -72,6 +77,7 @@ export function SnapshotPage({
   async function deleteSnapshot(snapshot: string) {
     try {
       await snapshotsDelete<true>({ body: { ...connection, repository, snapshot }, throwOnError: true });
+      setDeleteSnapshotName('');
       notify('info', 'Snapshot successfully deleted');
       await loadSnapshots(repository);
     } catch (error) {
@@ -93,6 +99,23 @@ export function SnapshotPage({
 
   return (
     <div className="row">
+      {deleteSnapshotName ? (
+        <ConfirmModal
+          body={
+            <>
+              Delete snapshot <strong>{deleteSnapshotName}</strong> from repository <strong>{repository}</strong>? This operation cannot be undone.
+            </>
+          }
+          confirmLabel={
+            <>
+              <Icon name="trash" /> delete snapshot
+            </>
+          }
+          onClose={() => setDeleteSnapshotName('')}
+          onConfirm={() => deleteSnapshot(deleteSnapshotName)}
+          title="delete snapshot"
+        />
+      ) : null}
       <div className="col-md-6">
         <h4>
           existing snapshots
@@ -104,18 +127,47 @@ export function SnapshotPage({
           </div>
         </h4>
         <table className="table">
+          <thead>
+            <tr>
+              <th>
+                <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'name'))}>
+                  snapshot {sort.key === 'name' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+                </button>
+              </th>
+              <th>
+                <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'start_time'))}>
+                  created {sort.key === 'start_time' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+                </button>
+              </th>
+              <th>
+                <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'state'))}>
+                  state {sort.key === 'state' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+                </button>
+              </th>
+              <th className="text-right">actions</th>
+            </tr>
+          </thead>
           <tbody>
-            {snapshots.map((snapshot) => {
+            {sortByText(snapshots, sort, snapshotSortValue).map((snapshot) => {
               const snapshotName = textValue(snapshot.snapshot);
               return (
                 <tr key={snapshot.uuid ?? snapshotName}>
-                  <td>
-                    <div>
-                      <Icon name="database" /> {snapshotName}
-                      <span className="info-text"> created at </span> {textValue(snapshot.start_time)}
-                      <span className="info-text"> state </span> {textValue(snapshot.state)}
-                      <Icon className="normal-action alert-danger pull-right" name="trash" onClick={() => void deleteSnapshot(snapshotName)} />
-                      <Icon className="normal-action pull-right" name="download" />
+                  <td colSpan={4}>
+                    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(80px,.5fr)_auto] items-center gap-[10px]">
+                      <div><Icon name="database" /> {snapshotName}</div>
+                      <div>{textValue(snapshot.start_time)}</div>
+                      <div>{textValue(snapshot.state)}</div>
+                      <span className="pull-right inline-flex items-center gap-[10px]">
+                        <button
+                          aria-label={`delete snapshot ${snapshotName}`}
+                          className="btn btn-danger btn-xs"
+                          title="delete snapshot"
+                          type="button"
+                          onClick={() => setDeleteSnapshotName(snapshotName)}
+                        >
+                          <Icon name="trash" />
+                        </button>
+                      </span>
                     </div>
                     <RestoreFormView
                       form={restoreForms[snapshotName] ?? defaultRestoreForm}
@@ -239,4 +291,15 @@ function MultiSelect({ onChange, options, value }: { onChange: (value: string[])
       {options.sort().map((option) => <option key={option}>{option}</option>)}
     </select>
   );
+}
+
+function snapshotSortValue(snapshot: Snapshot, key: SnapshotSortKey) {
+  switch (key) {
+    case 'name':
+      return textValue(snapshot.snapshot);
+    case 'start_time':
+      return textValue(snapshot.start_time);
+    case 'state':
+      return textValue(snapshot.state);
+  }
 }

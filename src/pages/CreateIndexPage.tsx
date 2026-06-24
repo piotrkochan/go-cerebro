@@ -10,6 +10,7 @@ import {
 } from '../api/client';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
+import { SplitPane } from '../components/SplitPane';
 import { createIndexFormDefaults, type CreateIndexFormValues } from '../forms/createIndexForm';
 import type { Notify } from '../types';
 import { errorMessage, formatJson } from '../utils/format';
@@ -97,106 +98,105 @@ export function CreateIndexPage({
   }
 
   return (
-    <div>
-      <div className="content-panel">
-        <div className="row">
-          <div className="col-sm-6">
-            <div className="row">
-              <div className="col-xs-12">
-                <div className="form-group">
-                  <label className="form-label">name</label>
-                  <form.Field name="name">
-                    {(field) => (
-                      <input
-                        className="form-control"
-                        placeholder="index name"
-                        type="text"
-                        value={field.state.value}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                      />
-                    )}
-                  </form.Field>
-                </div>
-              </div>
-            </div>
-            <div className="row">
-              <div className="col-sm-6">
-                <div className="form-group">
-                  <label className="form-label">number of shards</label>
-                  <form.Field name="shards">
-                    {(field) => (
-                      <input
-                        className="form-control"
-                        placeholder="# of shards"
-                        type="number"
-                        value={field.state.value}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                      />
-                    )}
-                  </form.Field>
-                </div>
-              </div>
-              <div className="col-sm-6">
-                <div className="form-group">
-                  <label className="form-label">number of replicas</label>
-                  <form.Field name="replicas">
-                    {(field) => (
-                      <input
-                        className="form-control"
-                        placeholder="# of replicas"
-                        type="number"
-                        value={field.state.value}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                      />
-                    )}
-                  </form.Field>
-                </div>
-              </div>
-            </div>
-            <div className="row">
-              <div className="col-xs-12">
-                <div className="form-group">
-                  <label className="form-label">load settings from existing index</label>
-                  <form.Field name="sourceIndex">
-                    {(field) => (
-                      <select
-                        className="form-control"
-                        value={field.state.value}
-                        onChange={(event) => void loadIndexMetadata(event.target.value)}
-                      >
-                        <option value="" />
-                        {indices.map((index) => (
-                          <option key={index}>{index}</option>
-                        ))}
-                      </select>
-                    )}
-                  </form.Field>
-                </div>
+    <SplitPane
+      storageKey="cerebro.createIndexSplitPercent"
+      left={
+        <>
+          <div className="row">
+            <div className="col-xs-12">
+              <div className="form-group">
+                <label className="form-label">name</label>
+                <form.Field name="name">
+                  {(field) => (
+                    <input
+                      className="form-control"
+                      placeholder="index name"
+                      type="text"
+                      value={field.state.value}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                  )}
+                </form.Field>
               </div>
             </div>
           </div>
-          <div className="col-sm-6">
-            <div className="form-group">
-              <label className="form-label">settings</label>
-              <form.Field name="settings">
-                {(field) => <LazyJsonEditor height={600} value={field.state.value} onChange={field.handleChange} />}
-              </form.Field>
+          <div className="row">
+            <div className="col-sm-6">
+              <div className="form-group">
+                <label className="form-label">number of shards</label>
+                <form.Field name="shards">
+                  {(field) => (
+                    <input
+                      className="form-control"
+                      placeholder="# of shards"
+                      type="number"
+                      value={field.state.value}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                  )}
+                </form.Field>
+              </div>
+            </div>
+            <div className="col-sm-6">
+              <div className="form-group">
+                <label className="form-label">number of replicas</label>
+                <form.Field name="replicas">
+                  {(field) => (
+                    <input
+                      className="form-control"
+                      placeholder="# of replicas"
+                      type="number"
+                      value={field.state.value}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                  )}
+                </form.Field>
+              </div>
             </div>
           </div>
+          <div className="row">
+            <div className="col-xs-12">
+              <div className="form-group">
+                <label className="form-label">load settings from existing index</label>
+                <form.Field name="sourceIndex">
+                  {(field) => (
+                    <select
+                      className="form-control"
+                      value={field.state.value}
+                      onChange={(event) => void loadIndexMetadata(event.target.value)}
+                    >
+                      <option value="" />
+                      {indices.map((index) => (
+                        <option key={index}>{index}</option>
+                      ))}
+                    </select>
+                  )}
+                </form.Field>
+              </div>
+            </div>
+          </div>
+          <div className="row">
+            <div className="col-lg-12">
+              <span className="pull-right">
+                <Link className="btn btn-default" to="/overview">
+                  back
+                </Link>{' '}
+                <button className="btn btn-primary" type="button" onClick={() => void form.handleSubmit()}>
+                  <Icon name="check" /> Create
+                </button>
+              </span>
+            </div>
+          </div>
+        </>
+      }
+      right={
+        <div className="form-group">
+          <label className="form-label">settings</label>
+          <form.Field name="settings">
+            {(field) => <LazyJsonEditor height={600} value={field.state.value} onChange={field.handleChange} />}
+          </form.Field>
         </div>
-        <div className="row">
-          <div className="col-lg-12">
-            <span className="pull-right">
-              <Link className="btn btn-default" to="/overview">
-                back
-              </Link>{' '}
-              <button className="btn btn-primary" type="button" onClick={() => void form.handleSubmit()}>
-                <Icon name="check" /> Create
-              </button>
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
+      }
+    />
   );
 }

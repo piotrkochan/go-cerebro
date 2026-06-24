@@ -11,8 +11,10 @@ import {
 import { Icon } from '../components/Icon';
 import type { Notify } from '../types';
 import { errorMessage, textValue } from '../utils/format';
+import { nextSort, sortByText, type SortState } from '../utils/sort';
 
 type Token = { end_offset?: unknown; position?: unknown; start_offset?: unknown; token?: unknown };
+type TokenSortKey = 'token' | 'position' | 'start_offset' | 'end_offset';
 
 export function AnalysisPage({
   connection,
@@ -165,19 +167,39 @@ function ActionButton({ onClick }: { onClick: () => void }) {
 }
 
 function TokensTable({ tokens }: { tokens?: Token[] }) {
+  const [sort, setSort] = useState<SortState<TokenSortKey>>({ key: 'position', order: 'asc' });
+
   if (!tokens) return null;
+  const sortedTokens = sortByText(tokens, sort, tokenSortValue);
+
   return (
     <table className="table">
       <thead>
         <tr>
-          <th>token</th>
-          <th>position</th>
-          <th>start offset</th>
-          <th>end offset</th>
+          <th>
+            <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'token'))}>
+              token {sort.key === 'token' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+            </button>
+          </th>
+          <th>
+            <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'position'))}>
+              position {sort.key === 'position' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+            </button>
+          </th>
+          <th>
+            <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'start_offset'))}>
+              start offset {sort.key === 'start_offset' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+            </button>
+          </th>
+          <th>
+            <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'end_offset'))}>
+              end offset {sort.key === 'end_offset' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+            </button>
+          </th>
         </tr>
       </thead>
       <tbody>
-        {tokens.map((token, index) => (
+        {sortedTokens.map((token, index) => (
           <tr key={index}>
             <td>{textValue(token.token)}</td>
             <td>{textValue(token.position)}</td>
@@ -188,6 +210,10 @@ function TokensTable({ tokens }: { tokens?: Token[] }) {
       </tbody>
     </table>
   );
+}
+
+function tokenSortValue(token: Token, key: TokenSortKey) {
+  return textValue(token[key]);
 }
 
 function tokens(data: unknown): Token[] {

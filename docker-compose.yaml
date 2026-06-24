@@ -2,7 +2,10 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
     environment:
-      discovery.type: single-node
+      node.name: elasticsearch
+      cluster.name: cerebro-dev
+      discovery.seed_hosts: elasticsearch,elasticsearch-2
+      cluster.initial_master_nodes: elasticsearch,elasticsearch-2
       xpack.security.enabled: "false"
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
     ports:
@@ -14,6 +17,23 @@ services:
       retries: 30
     volumes:
       - es-data:/usr/share/elasticsearch/data
+
+  elasticsearch-2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    environment:
+      node.name: elasticsearch-2
+      cluster.name: cerebro-dev
+      discovery.seed_hosts: elasticsearch,elasticsearch-2
+      cluster.initial_master_nodes: elasticsearch,elasticsearch-2
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - es-data-2:/usr/share/elasticsearch/data
 
   cerebro:
     build:
@@ -31,6 +51,24 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
+      elasticsearch-2:
+        condition: service_healthy
+
+  frontend:
+    image: node:26-alpine
+    working_dir: /workspace/cerebro
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_TARGET: "http://cerebro:9000"
+    volumes:
+      - ./:/workspace/cerebro
+      - node-modules:/workspace/cerebro/node_modules
+    depends_on:
+      - cerebro
 
 volumes:
   es-data:
+  es-data-2:
+  node-modules:

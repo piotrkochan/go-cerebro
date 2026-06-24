@@ -164,6 +164,13 @@ export function IndexHeader({
           {index.name}
         </span>
         <ul className="absolute top-full right-0 z-[1000] hidden min-w-[160px] list-none border border-[#55595c] bg-[#373a3c] py-[5px] text-left shadow-lg group-hover:block group-focus-within:block [&>li>a]:block [&>li>a]:whitespace-nowrap [&>li>a]:px-5 [&>li>a]:py-[3px] [&>li>a:hover]:bg-[#434749] [&>li>a:hover]:text-white">
+          {dataExplorerHref && !index.closed ? (
+            <li>
+              <a href={dataExplorerHref} target="_self">
+                <Icon name="database" /> browse data
+              </a>
+            </li>
+          ) : null}
           <li>
             <a target="_self" onClick={action(actions.showSettings)}>
               <Icon name="info" /> show settings
@@ -179,13 +186,6 @@ export function IndexHeader({
               <Icon name="info" /> show stats
             </a>
           </li>
-          {dataExplorerHref && !index.closed ? (
-            <li>
-              <a href={dataExplorerHref} target="_self">
-                <Icon name="database" /> browse data
-              </a>
-            </li>
-          ) : null}
           {index.closed ? (
             <li>
               <a target="_self" onClick={action(actions.openIndex)}>

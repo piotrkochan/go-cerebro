@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '@tanstack/react-store';
 
 import {
@@ -34,6 +34,7 @@ import {
   byName,
   renderShards,
 } from '../components/LegacyUi';
+import { ConfirmModal, ModalFrame, useEscape } from '../components/Modal';
 import { sessionStore } from '../stores/sessionStore';
 import type { Notify } from '../types';
 import { errorMessage, formatJson, formatNumber, numberValue, textValue } from '../utils/format';
@@ -240,6 +241,10 @@ export function OverviewPage({
   const pageElements = indices.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
   const pageSlots = Array.from({ length: pageSize }, (_, index) => pageElements[index] ?? null);
   const selectedIndices = pageElements.map((index) => index.name).join(',');
+  const hasShardIssues =
+    numberValue(data.unassigned_shards) > 0 ||
+    numberValue(data.relocating_shards) > 0 ||
+    numberValue(data.initializing_shards) > 0;
   const relocationTargets = relocatingShard
     ? pageSlots.some((index) => index && nodesList.some((node) => canReceiveShard(index, node)))
     : false;
@@ -247,7 +252,15 @@ export function OverviewPage({
   return (
     <div>
       {jsonDialog ? <JsonModal dialog={jsonDialog} onClose={() => setJsonDialog(null)} /> : null}
-      {confirmDialog ? <ConfirmModal dialog={confirmDialog} onClose={() => setConfirmDialog(null)} /> : null}
+      {confirmDialog ? (
+        <ConfirmModal
+          body={confirmDialog.body}
+          confirmLabel={confirmDialog.confirmLabel}
+          onClose={() => setConfirmDialog(null)}
+          onConfirm={confirmDialog.onConfirm}
+          title={confirmDialog.title}
+        />
+      ) : null}
       <Stats data={data} />
       {relocatingShard && !relocationTargets ? (
         <div className="alert alert-info flex items-center justify-between">
@@ -448,9 +461,7 @@ export function OverviewPage({
           </tr>
         </thead>
         <tbody>
-          {numberValue(data.unassigned_shards) > 0 ||
-          numberValue(data.relocating_shards) > 0 ||
-          numberValue(data.initializing_shards) > 0 ? (
+          {hasShardIssues || showOnlyAffected ? (
             <tr>
               <td>
                 {numberValue(data.unassigned_shards) > 0 ? (
@@ -466,6 +477,11 @@ export function OverviewPage({
                 {numberValue(data.initializing_shards) > 0 ? (
                   <div className="subtitle">
                     <Icon name="spinner" spin /> {formatNumber(data.initializing_shards)} initializing shards
+                  </div>
+                ) : null}
+                {!hasShardIssues && showOnlyAffected ? (
+                  <div className="subtitle">
+                    <Icon name="check" /> no affected indices
                   </div>
                 ) : null}
                 <div>
@@ -531,74 +547,6 @@ function JsonModal({ dialog, onClose }: { dialog: JsonDialog; onClose: () => voi
       </div>
     </ModalFrame>
   );
-}
-
-function ConfirmModal({ dialog, onClose }: { dialog: ConfirmDialog; onClose: () => void }) {
-  useEscape(onClose);
-
-  async function confirm() {
-    onClose();
-    await dialog.onConfirm();
-  }
-
-  return (
-    <ModalFrame onClose={onClose} title={dialog.title}>
-      <div className="modal-body">{dialog.body}</div>
-      <div className="modal-footer">
-        <button className="btn btn-default" type="button" onClick={onClose}>
-          cancel
-        </button>
-        <button className="btn btn-danger" type="button" onClick={() => void confirm()}>
-          {dialog.confirmLabel}
-        </button>
-      </div>
-    </ModalFrame>
-  );
-}
-
-function ModalFrame({
-  children,
-  onClose,
-  title,
-}: {
-  children: ReactNode;
-  onClose: () => void;
-  title: string;
-}) {
-  return (
-    <>
-      <div className="modal-backdrop in" onClick={onClose} />
-      <div className="modal in !block" tabIndex={-1}>
-        <div className="modal-dialog modal-lg">
-          <div className="modal-content">
-            <div className="modal-header flex items-center justify-between">
-              <h4 className="modal-title !m-0">{title}</h4>
-              <button
-                aria-label="close"
-                className="close !float-none !text-[#eceeef] !opacity-[.85] [text-shadow:none] hover:!text-white hover:!opacity-100 focus:!text-white focus:!opacity-100"
-                type="button"
-                onClick={onClose}
-              >
-                &times;
-              </button>
-            </div>
-            {children}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function useEscape(onEscape: () => void) {
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onEscape();
-    }
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onEscape]);
 }
 
 function getOverviewPageSize(): number {

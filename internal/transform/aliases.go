@@ -2,6 +2,7 @@ package transform
 
 import (
 	"encoding/json"
+	"sort"
 )
 
 // Alias is one flattened alias entry of an index.
@@ -39,6 +40,12 @@ func Aliases(raw json.RawMessage) []Alias {
 			})
 		}
 	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Alias == out[j].Alias {
+			return out[i].Index < out[j].Index
+		}
+		return out[i].Alias < out[j].Alias
+	})
 	return out
 }
 
@@ -65,5 +72,6 @@ func AutocompletionIndices(raw json.RawMessage) []string {
 			}
 		}
 	}
+	sort.Strings(out)
 	return out
 }
