@@ -65,6 +65,32 @@ func TestExecuteRequest_NDJSONForString(t *testing.T) {
 	assert.Equal(t, "{\"index\":{}}\n{\"foo\":\"bar\"}\n", string(gotBody))
 }
 
+func TestExecuteRequest_RejectsUnsupportedMethod(t *testing.T) {
+	c := NewHTTPClient(nil)
+	target := Server{Host: config.Host{Host: "http://example.com"}}
+
+	_, err := c.ExecuteRequest(context.Background(), "CONNECT", "_cluster/health", nil, target)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported REST method")
+}
+
+func TestExecuteRequest_NormalizesSupportedMethod(t *testing.T) {
+	var gotMethod string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		w.Header().Set("X-Elastic-Product", "Elasticsearch")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	c := NewHTTPClient(nil)
+	target := Server{Host: config.Host{Host: srv.URL}}
+
+	_, err := c.ExecuteRequest(context.Background(), " post ", "_search", nil, target)
+	require.NoError(t, err)
+	assert.Equal(t, http.MethodPost, gotMethod)
+}
+
 func readAll(rc interface {
 	Read(p []byte) (int, error)
 	Close() error

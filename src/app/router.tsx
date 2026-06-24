@@ -51,10 +51,7 @@ const connectRoute = createRoute({
 function appRoute<TPath extends string>(path: TPath, component: () => ReactNode) {
   return createRoute({
     beforeLoad: ({ search }) => {
-      if (search.host && search.host !== sessionStore.state.host) {
-        sessionActions.connect(search.host);
-      }
-      if (!sessionStore.state.connected) {
+      if (!sessionStore.state.connected || (search.host && search.host !== sessionStore.state.host)) {
         throw redirect({ search: search.host ? { host: search.host } : {}, to: '/connect' });
       }
     },

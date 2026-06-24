@@ -502,6 +502,10 @@ func (c *HTTPClient) SaveIndexDocument(ctx context.Context, index, id string, do
 }
 
 func (c *HTTPClient) ExecuteRequest(ctx context.Context, method, path string, data json.RawMessage, t Server) (Response, error) {
+	method, err := restMethod(method)
+	if err != nil {
+		return Response{}, err
+	}
 	uri, err := restPath(path)
 	if err != nil {
 		return Response{}, err
@@ -520,6 +524,23 @@ func (c *HTTPClient) ExecuteRequest(ctx context.Context, method, path string, da
 		}
 	}
 	return c.execute(ctx, uri, method, body, t, headers)
+}
+
+func restMethod(method string) (string, error) {
+	switch strings.ToUpper(strings.TrimSpace(method)) {
+	case http.MethodGet:
+		return http.MethodGet, nil
+	case http.MethodPost:
+		return http.MethodPost, nil
+	case http.MethodPut:
+		return http.MethodPut, nil
+	case http.MethodDelete:
+		return http.MethodDelete, nil
+	case http.MethodHead:
+		return http.MethodHead, nil
+	default:
+		return "", fmt.Errorf("unsupported REST method: %s", method)
+	}
 }
 
 func catPath(api string) (string, error) {
