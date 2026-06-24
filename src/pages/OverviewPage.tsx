@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { useStore } from '@tanstack/react-store';
 
 import {
   commonsGetIndexMapping,
@@ -33,6 +34,7 @@ import {
   byName,
   renderShards,
 } from '../components/LegacyUi';
+import { sessionStore } from '../stores/sessionStore';
 import type { Notify } from '../types';
 import { errorMessage, formatJson, formatNumber, numberValue, textValue } from '../utils/format';
 
@@ -72,6 +74,7 @@ export function OverviewPage({
   const [jsonDialog, setJsonDialog] = useState<JsonDialog | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
   const [relocatingShard, setRelocatingShard] = useState<ShardRef | null>(null);
+  const dataExplorerEnabled = useStore(sessionStore, (state) => state.features.dataExplorer);
 
   useEffect(() => {
     let ignore = false;
@@ -179,7 +182,21 @@ export function OverviewPage({
       ),
   };
 
+  function canReceiveShard(index: OverviewIndex | null, node: OverviewNode, shard = relocatingShard) {
+    if (!index || !shard) return false;
+    if (shard.index !== index.name || shard.node === node.id) return false;
+    const nodeShards = index.shards?.[node.id];
+    const shards = Array.isArray(nodeShards) ? nodeShards : [];
+    return !shards.some((raw) => numberValue((raw as { shard?: unknown }).shard) === shard.shard);
+  }
+
+  function canRelocateShard(shard: ShardRef) {
+    const index = pageElements.find((item) => item.name === shard.index) ?? null;
+    return nodesList.some((node) => canReceiveShard(index, node, shard));
+  }
+
   const shardActions = {
+    canRelocate: canRelocateShard,
     select: (shard?: ShardRef) => setRelocatingShard(shard ?? null),
     selected: relocatingShard,
     showStats: (shard: ShardRef) =>
@@ -190,14 +207,6 @@ export function OverviewPage({
         }),
       ),
   };
-
-  function canReceiveShard(index: OverviewIndex | null, node: OverviewNode) {
-    if (!index || !relocatingShard) return false;
-    if (relocatingShard.index !== index.name || relocatingShard.node === node.id) return false;
-    const nodeShards = index.shards?.[node.id];
-    const shards = Array.isArray(nodeShards) ? nodeShards : [];
-    return !shards.some((raw) => numberValue((raw as { shard?: unknown }).shard) === relocatingShard.shard);
-  }
 
   async function relocateShard(to: string) {
     if (!relocatingShard) return;
@@ -231,12 +240,25 @@ export function OverviewPage({
   const pageElements = indices.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
   const pageSlots = Array.from({ length: pageSize }, (_, index) => pageElements[index] ?? null);
   const selectedIndices = pageElements.map((index) => index.name).join(',');
+  const relocationTargets = relocatingShard
+    ? pageSlots.some((index) => index && nodesList.some((node) => canReceiveShard(index, node)))
+    : false;
 
   return (
     <div>
       {jsonDialog ? <JsonModal dialog={jsonDialog} onClose={() => setJsonDialog(null)} /> : null}
       {confirmDialog ? <ConfirmModal dialog={confirmDialog} onClose={() => setConfirmDialog(null)} /> : null}
       <Stats data={data} />
+      {relocatingShard && !relocationTargets ? (
+        <div className="alert alert-info flex items-center justify-between">
+          <span>
+            shard {relocatingShard.index}/{relocatingShard.shard} selected for relocation, but there is no eligible target slot on this page
+          </span>
+          <button className="btn btn-default btn-xs" type="button" onClick={() => setRelocatingShard(null)}>
+            cancel
+          </button>
+        </div>
+      ) : null}
       <div className="row">
         <div className="col-lg-4">
           <div className="row">
@@ -412,6 +434,11 @@ export function OverviewPage({
                 {index ? (
                   <IndexHeader
                     actions={indexActions}
+                    dataExplorerHref={
+                      dataExplorerEnabled
+                        ? `#/data_explorer?host=${encodeURIComponent(connection.host)}&index=${encodeURIComponent(index.name)}`
+                        : undefined
+                    }
                     index={index}
                     settingsHref={`#/index_settings?host=${encodeURIComponent(connection.host)}&index=${encodeURIComponent(index.name)}`}
                   />
@@ -471,7 +498,11 @@ export function OverviewPage({
                 <td key={index?.name ?? `empty-${node.id}-${slot}`}>
                   {index ? renderShards(index.shards?.[node.id], index.closed, shardActions) : null}
                   {canReceiveShard(index, node) ? (
-                    <span className="shard shard-spot normal-action" onClick={() => void relocateShard(node.id)}>
+                    <span
+                      className="shard shard-spot normal-action"
+                      title={`relocate shard to ${node.name}`}
+                      onClick={() => void relocateShard(node.id)}
+                    >
                       <Icon name="download" />
                     </span>
                   ) : null}

@@ -70,17 +70,22 @@ type Rest struct {
 	HistorySize int `yaml:"history_size"`
 }
 
+type Features struct {
+	DataExplorer bool `yaml:"data_explorer"`
+}
+
 type Data struct {
 	Path string `yaml:"path"`
 }
 
 type Config struct {
-	Hosts  []Host `yaml:"hosts"`
-	Auth   Auth   `yaml:"auth"`
-	Server Server `yaml:"server"`
-	ES     ES     `yaml:"es"`
-	Rest   Rest   `yaml:"rest"`
-	Data   Data   `yaml:"data"`
+	Hosts    []Host   `yaml:"hosts"`
+	Auth     Auth     `yaml:"auth"`
+	Server   Server   `yaml:"server"`
+	ES       ES       `yaml:"es"`
+	Rest     Rest     `yaml:"rest"`
+	Features Features `yaml:"features"`
+	Data     Data     `yaml:"data"`
 }
 
 func Load(path string) (*Config, error) {

@@ -16,6 +16,7 @@ import {
   ClusterSettingsRoute,
   ConnectRoute,
   CreateIndexRoute,
+  DataExplorerRoute,
   IndexSettingsRoute,
   NodesRoute,
   OverviewRoute,
@@ -83,6 +84,7 @@ const snapshotRoute = appRoute('/snapshot', SnapshotRoute);
 const clusterSettingsRoute = appRoute('/cluster_settings', ClusterSettingsRoute);
 const createRoutePage = appRoute('/create', CreateIndexRoute);
 const indexSettingsRoute = appRoute('/index_settings', IndexSettingsRoute);
+const dataExplorerRoute = appRoute('/data_explorer', DataExplorerRoute);
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -100,6 +102,7 @@ const routeTree = rootRoute.addChildren([
   clusterSettingsRoute,
   createRoutePage,
   indexSettingsRoute,
+  dataExplorerRoute,
 ]);
 
 export const router = createRouter({

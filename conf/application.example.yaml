@@ -48,5 +48,10 @@ es:
 rest:
   history_size: 50
 
+features:
+  # Read-only browser for documents inside an index. Disabled by default because
+  # it exposes document contents to every authenticated Cerebro user.
+  data_explorer: false
+
 data:
   path: "./cerebro.db"

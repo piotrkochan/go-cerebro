@@ -35,7 +35,11 @@ export function AppShell() {
     async function loadStatus() {
       try {
         const result = await navbar<true>({ body: getConnection(), throwOnError: true });
-        if (!ignore) sessionActions.setStatus(textValue((result.data.data as { status?: unknown } | undefined)?.status));
+        if (!ignore) {
+          const data = result.data.data as { features?: { data_explorer?: unknown }; status?: unknown } | undefined;
+          sessionActions.setFeatures({ dataExplorer: data?.features?.data_explorer === true });
+          sessionActions.setStatus(textValue(data?.status));
+        }
       } catch {
         if (!ignore) sessionActions.setStatus('');
       }

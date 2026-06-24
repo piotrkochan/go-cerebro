@@ -38,9 +38,18 @@ func (d *Deps) RegisterNavbar(api huma.API) {
 			if err := json.Unmarshal(resp.Body, &m); err == nil {
 				name, _ := json.Marshal(user)
 				m["username"] = name
+				features, _ := json.Marshal(map[string]bool{"data_explorer": d.Cfg.Features.DataExplorer})
+				m["features"] = features
 				newBody, _ := json.Marshal(m)
 				return raw(resp.Status, newBody)
 			}
+		}
+		var m map[string]json.RawMessage
+		if err := json.Unmarshal(resp.Body, &m); err == nil {
+			features, _ := json.Marshal(map[string]bool{"data_explorer": d.Cfg.Features.DataExplorer})
+			m["features"] = features
+			newBody, _ := json.Marshal(m)
+			return raw(resp.Status, newBody)
 		}
 		return raw(resp.Status, resp.Body)
 	})

@@ -69,6 +69,7 @@ func New(opts Options) *Server {
 	deps.RegisterClusterSettings(humaAPI)
 	deps.RegisterIndexSettings(humaAPI)
 	deps.RegisterCreateIndex(humaAPI)
+	deps.RegisterDataExplorer(humaAPI)
 	deps.RegisterClusterChanges(humaAPI)
 	deps.RegisterConnect(humaAPI)
 	deps.RegisterOverview(humaAPI)

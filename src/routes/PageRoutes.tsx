@@ -8,6 +8,7 @@ import { CatPage } from '../pages/CatPage';
 import { ClusterSettingsPage } from '../pages/ClusterSettingsPage';
 import { ConnectPage } from '../pages/ConnectPage';
 import { CreateIndexPage } from '../pages/CreateIndexPage';
+import { DataExplorerPage } from '../pages/DataExplorerPage';
 import { IndexSettingsPage } from '../pages/IndexSettingsPage';
 import { NodesPage } from '../pages/NodesPage';
 import { OverviewPage } from '../pages/OverviewPage';
@@ -110,4 +111,18 @@ export function IndexSettingsRoute() {
   const { connection, notify } = usePageContext();
   const search = useSearch({ strict: false });
   return <IndexSettingsPage connection={connection} index={typeof search.index === 'string' ? search.index : ''} notify={notify} />;
+}
+
+export function DataExplorerRoute() {
+  const { connection, notify } = usePageContext();
+  const enabled = useStore(sessionStore, (state) => state.features.dataExplorer);
+  const search = useSearch({ strict: false });
+  return (
+    <DataExplorerPage
+      connection={connection}
+      enabled={enabled}
+      index={typeof search.index === 'string' ? search.index : ''}
+      notify={notify}
+    />
+  );
 }

@@ -22,5 +22,8 @@ es:
 rest:
   history_size: 50
 
+features:
+  data_explorer: true
+
 data:
   path: "/workspace/cerebro/cerebro.db"

@@ -296,6 +296,105 @@ export type CreateIndexGetMetaInBody = {
     username?: string;
 };
 
+export type DataExplorerResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Columns discovered from the current result page.
+     */
+    columns: Array<string> | null;
+    /**
+     * Flattened documents for tabular display.
+     */
+    rows: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Total matching documents reported by Elasticsearch.
+     */
+    total: number;
+};
+
+export type DataExplorerSaveInBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Document _source JSON object.
+     */
+    document: unknown;
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Optional document id. Empty creates a new document id.
+     */
+    id?: string;
+    /**
+     * Index name.
+     */
+    index: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataExplorerSearchInBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Index name.
+     */
+    index: string;
+    /**
+     * Zero-based page number.
+     */
+    page?: number;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional simple query string.
+     */
+    query?: string;
+    /**
+     * Query language mode. KQL is the Kibana-like default; Lucene maps to Elasticsearch query_string syntax.
+     */
+    query_mode?: 'kql' | 'lucene';
+    /**
+     * Rows per page.
+     */
+    size?: number;
+    /**
+     * Optional field to sort by.
+     */
+    sort_field?: string;
+    /**
+     * Sort direction.
+     */
+    sort_order?: 'asc' | 'desc';
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
 export type ErrorDetail = {
     /**
      * Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
@@ -1341,6 +1440,93 @@ export type CreateIndexGetMetaInBodyWritable = {
     username?: string;
 };
 
+export type DataExplorerResultWritable = {
+    /**
+     * Columns discovered from the current result page.
+     */
+    columns: Array<string> | null;
+    /**
+     * Flattened documents for tabular display.
+     */
+    rows: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Total matching documents reported by Elasticsearch.
+     */
+    total: number;
+};
+
+export type DataExplorerSaveInBodyWritable = {
+    /**
+     * Document _source JSON object.
+     */
+    document: unknown;
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Optional document id. Empty creates a new document id.
+     */
+    id?: string;
+    /**
+     * Index name.
+     */
+    index: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataExplorerSearchInBodyWritable = {
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Index name.
+     */
+    index: string;
+    /**
+     * Zero-based page number.
+     */
+    page?: number;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional simple query string.
+     */
+    query?: string;
+    /**
+     * Query language mode. KQL is the Kibana-like default; Lucene maps to Elasticsearch query_string syntax.
+     */
+    query_mode?: 'kql' | 'lucene';
+    /**
+     * Rows per page.
+     */
+    size?: number;
+    /**
+     * Optional field to sort by.
+     */
+    sort_field?: string;
+    /**
+     * Sort direction.
+     */
+    sort_order?: 'asc' | 'desc';
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
 export type ErrorModelWritable = {
     /**
      * A human-readable explanation specific to this occurrence of the problem.
@@ -2322,6 +2508,56 @@ export type CreateIndexGetMetadataResponses = {
 };
 
 export type CreateIndexGetMetadataResponse = CreateIndexGetMetadataResponses[keyof CreateIndexGetMetadataResponses];
+
+export type DataExplorerSaveData = {
+    body: DataExplorerSaveInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/data_explorer/save';
+};
+
+export type DataExplorerSaveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataExplorerSaveError = DataExplorerSaveErrors[keyof DataExplorerSaveErrors];
+
+export type DataExplorerSaveResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataExplorerSaveResponse = DataExplorerSaveResponses[keyof DataExplorerSaveResponses];
+
+export type DataExplorerSearchData = {
+    body: DataExplorerSearchInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/data_explorer/search';
+};
+
+export type DataExplorerSearchErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataExplorerSearchError = DataExplorerSearchErrors[keyof DataExplorerSearchErrors];
+
+export type DataExplorerSearchResponses = {
+    /**
+     * OK
+     */
+    200: DataExplorerResult;
+};
+
+export type DataExplorerSearchResponse = DataExplorerSearchResponses[keyof DataExplorerSearchResponses];
 
 export type IndexSettingsGetData = {
     body: IndexSettingsGetInBodyWritable;

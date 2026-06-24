@@ -6,6 +6,9 @@ import { createStore } from '@tanstack/react-store';
 type SessionState = {
   auth: ConnectionAuth;
   connected: boolean;
+  features: {
+    dataExplorer: boolean;
+  };
   host: string;
   status: string;
 };
@@ -15,6 +18,7 @@ const initialHost = window.localStorage.getItem(savedHostKey) ?? '';
 export const sessionStore = createStore<SessionState>({
   auth: {},
   connected: Boolean(initialHost),
+  features: { dataExplorer: false },
   host: initialHost,
   status: '',
 });
@@ -26,7 +30,10 @@ export const sessionActions = {
   },
   disconnect() {
     window.localStorage.removeItem(savedHostKey);
-    sessionStore.setState(() => ({ auth: {}, connected: false, host: '', status: '' }));
+    sessionStore.setState(() => ({ auth: {}, connected: false, features: { dataExplorer: false }, host: '', status: '' }));
+  },
+  setFeatures(features: Partial<SessionState['features']>) {
+    sessionStore.setState((state) => ({ ...state, features: { ...state.features, ...features } }));
   },
   setStatus(status: string) {
     sessionStore.setState((state) => (state.status === status ? state : { ...state, status }));

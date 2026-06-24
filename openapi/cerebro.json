@@ -447,6 +447,170 @@
         ],
         "type": "object"
       },
+      "DataExplorerResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataExplorerResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "columns": {
+            "description": "Columns discovered from the current result page.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "rows": {
+            "description": "Flattened documents for tabular display.",
+            "items": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "description": "Total matching documents reported by Elasticsearch.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "columns",
+          "rows",
+          "total"
+        ],
+        "type": "object"
+      },
+      "DataExplorerSaveInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataExplorerSaveInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "document": {
+            "description": "Document _source JSON object."
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host as configured.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Optional document id. Empty creates a new document id.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "document",
+          "host"
+        ],
+        "type": "object"
+      },
+      "DataExplorerSearchInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataExplorerSearchInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host as configured.",
+            "type": "string"
+          },
+          "index": {
+            "description": "Index name.",
+            "type": "string"
+          },
+          "page": {
+            "description": "Zero-based page number.",
+            "format": "int64",
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "query": {
+            "description": "Optional simple query string.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "query_mode": {
+            "description": "Query language mode. KQL is the Kibana-like default; Lucene maps to Elasticsearch query_string syntax.",
+            "enum": [
+              "kql",
+              "lucene"
+            ],
+            "type": "string"
+          },
+          "size": {
+            "description": "Rows per page.",
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "sort_field": {
+            "description": "Optional field to sort by.",
+            "type": "string"
+          },
+          "sort_order": {
+            "description": "Sort direction.",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "host"
+        ],
+        "type": "object"
+      },
       "ErrorDetail": {
         "additionalProperties": false,
         "properties": {
@@ -2726,6 +2890,90 @@
         "summary": "Get index metadata",
         "tags": [
           "create_index"
+        ]
+      }
+    },
+    "/data_explorer/save": {
+      "post": {
+        "description": "Feature-flagged document insert/update for one Elasticsearch index.",
+        "operationId": "data-explorer-save",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataExplorerSaveInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Save index document",
+        "tags": [
+          "data-explorer"
+        ]
+      }
+    },
+    "/data_explorer/search": {
+      "post": {
+        "description": "Read-only, feature-flagged document browser for one Elasticsearch index.",
+        "operationId": "data-explorer-search",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataExplorerSearchInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataExplorerResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Browse index documents",
+        "tags": [
+          "data-explorer"
         ]
       }
     },

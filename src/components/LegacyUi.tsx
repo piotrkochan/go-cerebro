@@ -132,6 +132,7 @@ export type ShardRef = {
 };
 
 export type ShardActions = {
+  canRelocate?: (shard: ShardRef) => boolean;
   select: (shard?: ShardRef) => void;
   selected?: ShardRef | null;
   showStats: (shard: ShardRef) => void;
@@ -139,10 +140,12 @@ export type ShardActions = {
 
 export function IndexHeader({
   actions,
+  dataExplorerHref,
   index,
   settingsHref,
 }: {
   actions: IndexHeaderActions;
+  dataExplorerHref?: string;
   index: OverviewIndex;
   settingsHref: string;
 }) {
@@ -176,6 +179,13 @@ export function IndexHeader({
               <Icon name="info" /> show stats
             </a>
           </li>
+          {dataExplorerHref && !index.closed ? (
+            <li>
+              <a href={dataExplorerHref} target="_self">
+                <Icon name="database" /> browse data
+              </a>
+            </li>
+          ) : null}
           {index.closed ? (
             <li>
               <a target="_self" onClick={action(actions.openIndex)}>
@@ -397,11 +407,11 @@ export function renderShards(input: unknown, closed = false, actions?: ShardActi
       actions.selected.shard === shardRef.shard;
 
     return (
-      <span className="group relative inline-block" key={index}>
+      <span className="group relative inline-block mr-[4px] mb-[4px]" key={index}>
         <span
           className={`shard shard-${state || 'unassigned'} ${replica ? 'shard-replica' : ''} ${
             closed ? 'shard-closed' : 'normal-action'
-          }`}
+          } ${selected ? '!border-[#e4d836] !bg-[#2f3023] !text-[#e4d836]' : ''}`}
         >
           <small>{textValue(shard.shard)}</small>
         </span>
@@ -420,10 +430,13 @@ export function renderShards(input: unknown, closed = false, actions?: ShardActi
             </li>
             <li>
               <a
+                className={!actions?.canRelocate?.(shardRef) ? 'cursor-not-allowed opacity-40' : ''}
                 target="_self"
+                title={!actions?.canRelocate?.(shardRef) ? 'no eligible target node' : undefined}
                 onClick={(event) => {
                   event.preventDefault();
-                  actions?.select(selected ? undefined : shardRef);
+                  if (!actions?.canRelocate?.(shardRef)) return;
+                  actions.select(selected ? undefined : shardRef);
                 }}
               >
                 <Icon name="arrows" /> {selected ? 'unselect for relocation' : 'select for relocation'}

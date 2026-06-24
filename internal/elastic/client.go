@@ -81,6 +81,8 @@ type Client interface {
 	UpdateIndexSettings(ctx context.Context, index string, settings json.RawMessage, t Server) (Response, error)
 	CatRequest(ctx context.Context, api string, t Server) (Response, error)
 	CatMaster(ctx context.Context, t Server) (Response, error)
+	SearchIndexDocuments(ctx context.Context, index string, query json.RawMessage, t Server) (Response, error)
+	SaveIndexDocument(ctx context.Context, index, id string, document json.RawMessage, t Server) (Response, error)
 	ExecuteRequest(ctx context.Context, method, path string, data json.RawMessage, t Server) (Response, error)
 }
 
@@ -486,6 +488,17 @@ func (c *HTTPClient) CatRequest(ctx context.Context, api string, t Server) (Resp
 
 func (c *HTTPClient) CatMaster(ctx context.Context, t Server) (Response, error) {
 	return c.execute(ctx, "/_cat/master?format=json", http.MethodGet, nil, t, nil)
+}
+
+func (c *HTTPClient) SearchIndexDocuments(ctx context.Context, index string, query json.RawMessage, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/%s/_search", encoded(index)), http.MethodPost, query, t, [][2]string{jsonHeader})
+}
+
+func (c *HTTPClient) SaveIndexDocument(ctx context.Context, index, id string, document json.RawMessage, t Server) (Response, error) {
+	if strings.TrimSpace(id) == "" {
+		return c.execute(ctx, fmt.Sprintf("/%s/_doc?refresh=true", encoded(index)), http.MethodPost, document, t, [][2]string{jsonHeader})
+	}
+	return c.execute(ctx, fmt.Sprintf("/%s/_doc/%s?refresh=true", encoded(index), encoded(id)), http.MethodPut, document, t, [][2]string{jsonHeader})
 }
 
 func (c *HTTPClient) ExecuteRequest(ctx context.Context, method, path string, data json.RawMessage, t Server) (Response, error) {
