@@ -30,9 +30,9 @@ export function Navbar({
         : status === 'red'
           ? 'border-[#E64759]'
           : 'border-[#55595c]';
-  const navLink = 'flex h-[50px] items-center px-[15px] text-[#eceeef] hover:bg-[#434749] hover:text-white';
+  const navLink = 'flex h-[50px] items-center gap-1.5 px-[15px] text-[#eceeef] hover:bg-[#434749] hover:text-white';
   const menu =
-    'absolute top-full left-0 z-[1000] hidden min-w-[160px] list-none border border-[#55595c] bg-[#373a3c] py-[5px] text-left shadow-lg group-hover:block group-focus-within:block [&>li>a]:block [&>li>a]:whitespace-nowrap [&>li>a]:px-5 [&>li>a]:py-[3px] [&>li>a:hover]:bg-[#434749] [&>li>a:hover]:text-white';
+    'absolute top-full left-0 z-[1000] hidden min-w-[160px] list-none border border-[#55595c] bg-[#373a3c] py-[5px] text-left shadow-lg group-hover:block group-focus-within:block [&>li>a]:flex [&>li>a]:items-center [&>li>a]:gap-1.5 [&>li>a]:whitespace-nowrap [&>li>a]:px-5 [&>li>a]:py-[3px] [&>li>a:hover]:bg-[#434749] [&>li>a:hover]:text-white';
 
   return (
     <nav className={`fixed top-0 right-0 left-0 z-[1030] min-h-[50px] border-b-[5px] bg-[#373a3c] ${statusBorder}`}>
