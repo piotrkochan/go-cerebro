@@ -112,10 +112,30 @@ Important sections:
 - `auth`: `disabled`, `basic` or `ldap`. Do not expose an instance with `auth.type: disabled`.
 - `server.secret`: required for authenticated deployments. Set it to a strong random value.
 - `server.cookie_secure`: keep `true` behind HTTPS.
+- `server.hsts_enabled`, `server.hsts_max_age_seconds`, `server.hsts_include_subdomains`: HTTPS Strict Transport Security settings. Enable only for domains that should always use HTTPS.
 - `es.ca_cert_file`, `es.client_cert_file`, `es.client_key_file`: TLS trust and mutual TLS for Elasticsearch.
 - `auth.settings.ca_cert_file`: custom LDAP CA trust.
 - `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
 - `data.path`: SQLite file used for REST request history.
+
+Elasticsearch HTTPS with a custom CA and client certificate:
+
+```yaml
+hosts:
+  - name: "Secure cluster"
+    host: "https://elasticsearch.example.org:9200"
+    auth:
+      username: "${ES_USERNAME}"
+      password: "${ES_PASSWORD}"
+
+es:
+  ca_cert_file: "/etc/cerebro/certs/es-ca.pem"
+  client_cert_file: "/etc/cerebro/certs/cerebro-client.pem"
+  client_key_file: "/etc/cerebro/certs/cerebro-client-key.pem"
+  allow_ad_hoc_hosts: false
+```
+
+The Elasticsearch TLS settings are global for the Cerebro process and apply to all configured Elasticsearch hosts.
 
 Environment variables are expanded inside YAML values. These direct overrides are also supported:
 
@@ -194,6 +214,8 @@ Persistent Elasticsearch data is stored in Docker volumes. To reset only the con
 docker compose down
 docker compose up --build
 ```
+
+More configuration examples are in [examples](./examples), including basic auth, LDAP and Elasticsearch mutual TLS.
 
 ## Security Notes
 

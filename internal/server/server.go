@@ -39,7 +39,7 @@ func New(opts Options) *Server {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(securityHeaders)
+	r.Use(securityHeaders(opts.Cfg.Server))
 	r.Use(maxRequestBody(opts.Cfg.Server.MaxRequestBytes))
 	r.Use(middleware.Compress(5))
 	r.Use(injectHTTPRequest)
@@ -146,19 +146,25 @@ func injectHTTPRequest(next http.Handler) http.Handler {
 	})
 }
 
-func securityHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h := w.Header()
-		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'")
-		h.Set("Referrer-Policy", "no-referrer")
-		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
-		h.Set("X-Content-Type-Options", "nosniff")
-		h.Set("X-Frame-Options", "DENY")
-		if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
-			h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		}
-		next.ServeHTTP(w, r)
-	})
+func securityHeaders(serverCfg config.Server) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := w.Header()
+			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'")
+			h.Set("Referrer-Policy", "no-referrer")
+			h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+			h.Set("X-Content-Type-Options", "nosniff")
+			h.Set("X-Frame-Options", "DENY")
+			if serverCfg.HSTSEnabled && (r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")) {
+				value := fmt.Sprintf("max-age=%d", serverCfg.HSTSMaxAgeSeconds)
+				if serverCfg.HSTSIncludeSubDomains {
+					value += "; includeSubDomains"
+				}
+				h.Set("Strict-Transport-Security", value)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func maxRequestBody(maxBytes int64) func(http.Handler) http.Handler {

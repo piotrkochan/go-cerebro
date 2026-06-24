@@ -15,6 +15,7 @@ server:
   secret: "dev-secret-change-me"
   cookie_secure: false
   max_request_bytes: 5242880
+  hsts_enabled: false
 
 es:
   gzip: true

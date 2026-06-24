@@ -47,6 +47,11 @@ server:
   # Keep true when served through HTTPS. Set false only for local HTTP dev.
   cookie_secure: true
   max_request_bytes: 5242880
+  # HSTS is emitted only for HTTPS requests, including requests behind a proxy
+  # that sets X-Forwarded-Proto: https.
+  hsts_enabled: true
+  hsts_max_age_seconds: 31536000
+  hsts_include_subdomains: true
 
 es:
   gzip: true

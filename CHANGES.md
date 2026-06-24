@@ -73,7 +73,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Added LDAP `ldaps://` requirement by default.
 - Added `auth.settings.ca_cert_file` for custom LDAP CA trust.
 - Added explicit `insecure_ldap` development escape hatch.
-- Added HSTS when served through HTTPS.
+- Added configurable HSTS when served through HTTPS.
 - Added `Permissions-Policy`.
 - Kept CSP, referrer policy, frame and content-type protection headers.
 - Added REST history body redaction for sensitive keys.
@@ -85,7 +85,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Replaced old JVM-style configuration examples with YAML config examples.
 - Added `conf/application.dev.yaml` for Docker Compose development.
 - Updated `conf/application.example.yaml` with current auth, Elasticsearch TLS, REST, feature flag and data settings.
-- Added example configs for basic auth, OpenLDAP auth and OpenLDAP group auth.
+- Added example configs for basic auth, OpenLDAP auth, OpenLDAP group auth and Elasticsearch mutual TLS.
 - Updated README and CONTRIBUTING for the Go/React fork.
 
 ### CI and Release

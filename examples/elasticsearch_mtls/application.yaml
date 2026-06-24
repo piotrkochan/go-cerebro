@@ -1,0 +1,38 @@
+hosts:
+  - name: "Secure cluster"
+    host: "https://elasticsearch.example.org:9200"
+    auth:
+      username: "${ES_USERNAME}"
+      password: "${ES_PASSWORD}"
+
+auth:
+  type: "basic"
+  settings:
+    username: "${BASIC_AUTH_USER}"
+    password: "${BASIC_AUTH_PWD}"
+
+server:
+  port: 9000
+  base_path: "/"
+  secret: "${APPLICATION_SECRET}"
+  cookie_secure: true
+  hsts_enabled: true
+  hsts_max_age_seconds: 31536000
+  hsts_include_subdomains: true
+
+es:
+  gzip: true
+  allow_ad_hoc_hosts: false
+  max_response_bytes: 26214400
+  ca_cert_file: "/etc/cerebro/certs/es-ca.pem"
+  client_cert_file: "/etc/cerebro/certs/cerebro-client.pem"
+  client_key_file: "/etc/cerebro/certs/cerebro-client-key.pem"
+
+rest:
+  history_size: 50
+
+features:
+  data_explorer: false
+
+data:
+  path: "./cerebro.db"

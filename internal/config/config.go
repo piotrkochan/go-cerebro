@@ -54,11 +54,14 @@ type Auth struct {
 }
 
 type Server struct {
-	Port            int    `yaml:"port"`
-	BasePath        string `yaml:"base_path"`
-	Secret          string `yaml:"secret"`
-	CookieSecure    bool   `yaml:"cookie_secure"`
-	MaxRequestBytes int64  `yaml:"max_request_bytes"`
+	Port                  int    `yaml:"port"`
+	BasePath              string `yaml:"base_path"`
+	Secret                string `yaml:"secret"`
+	CookieSecure          bool   `yaml:"cookie_secure"`
+	MaxRequestBytes       int64  `yaml:"max_request_bytes"`
+	HSTSEnabled           bool   `yaml:"hsts_enabled"`
+	HSTSMaxAgeSeconds     int    `yaml:"hsts_max_age_seconds"`
+	HSTSIncludeSubDomains bool   `yaml:"hsts_include_subdomains"`
 }
 
 type ES struct {
@@ -113,11 +116,20 @@ func Load(path string) (*Config, error) {
 
 func defaults() *Config {
 	return &Config{
-		Server: Server{Port: 9000, BasePath: "/", Secret: "change-me", CookieSecure: true, MaxRequestBytes: DefaultMaxRequestBytes},
-		ES:     ES{Gzip: true, MaxResponseBytes: DefaultMaxResponseBytes},
-		Rest:   Rest{HistorySize: 50},
-		Data:   Data{Path: "./cerebro.db"},
-		Auth:   Auth{Type: "disabled"},
+		Server: Server{
+			Port:                  9000,
+			BasePath:              "/",
+			Secret:                "change-me",
+			CookieSecure:          true,
+			MaxRequestBytes:       DefaultMaxRequestBytes,
+			HSTSEnabled:           true,
+			HSTSMaxAgeSeconds:     31536000,
+			HSTSIncludeSubDomains: true,
+		},
+		ES:   ES{Gzip: true, MaxResponseBytes: DefaultMaxResponseBytes},
+		Rest: Rest{HistorySize: 50},
+		Data: Data{Path: "./cerebro.db"},
+		Auth: Auth{Type: "disabled"},
 	}
 }
 
@@ -147,6 +159,9 @@ func (c *Config) normalize() {
 	}
 	if c.Server.MaxRequestBytes <= 0 {
 		c.Server.MaxRequestBytes = DefaultMaxRequestBytes
+	}
+	if c.Server.HSTSEnabled && c.Server.HSTSMaxAgeSeconds <= 0 {
+		c.Server.HSTSMaxAgeSeconds = 31536000
 	}
 	if c.ES.MaxResponseBytes <= 0 {
 		c.ES.MaxResponseBytes = DefaultMaxResponseBytes
