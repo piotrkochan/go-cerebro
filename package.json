@@ -1,6 +1,6 @@
 {
   "name": "cerebro",
-  "version": "0.9.4",
+  "version": "0.10.0",
   "description": "cerebro - elasticsearch admin",
   "type": "module",
   "scripts": {
@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.99.0",
+    "@types/node": "26.0.0",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",

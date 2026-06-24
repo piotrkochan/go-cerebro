@@ -62,12 +62,15 @@ jobs:
         run: go test -race -shuffle=on ./cmd/... ./internal/...
 
       - name: Build frontend
-        run: npm run build
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          VITE_APP_VERSION="${VERSION}" npm run build
 
       - name: Build release package
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p dist/package
-          CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o dist/package/cerebro ./cmd/cerebro
+          CGO_ENABLED=1 go build -trimpath -ldflags="-s -w -X github.com/lmenezes/cerebro/internal/version.Version=${VERSION}" -o dist/package/cerebro ./cmd/cerebro
           cp -R public conf README.md LICENSE dist/package/
           tar -C dist/package -czf "dist/cerebro-${GITHUB_REF_NAME}-linux-amd64.tar.gz" .
           sha256sum dist/*.tar.gz > dist/checksums.txt

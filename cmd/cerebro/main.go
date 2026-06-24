@@ -17,6 +17,7 @@ import (
 	"github.com/lmenezes/cerebro/internal/elastic"
 	"github.com/lmenezes/cerebro/internal/history"
 	"github.com/lmenezes/cerebro/internal/server"
+	"github.com/lmenezes/cerebro/internal/version"
 )
 
 func main() {
@@ -32,7 +33,7 @@ func main() {
 	case "openapi":
 		runOpenAPI(args)
 	case "version":
-		fmt.Println("cerebro")
+		fmt.Println(version.Version)
 	default:
 		runServe(os.Args[1:])
 	}

@@ -2,7 +2,10 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
+import packageJson from './package.json';
+
 const apiTarget = 'http://localhost:9000';
+const appVersion = process.env.VITE_APP_VERSION ?? packageJson.version;
 
 export default defineConfig({
   build: {
@@ -15,6 +18,9 @@ export default defineConfig({
         entryFileNames: 'assets/[name].js',
       },
     },
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
   },
   plugins: [react(), tailwindcss()],
   publicDir: false,

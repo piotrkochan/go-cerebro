@@ -7,6 +7,7 @@ import { authFormDefaults, connectFormDefaults } from '../forms/connectForm';
 import type { ConnectionAuth } from '../types';
 import { cleanConnection } from '../utils/connection';
 import { errorMessage } from '../utils/format';
+import { APP_VERSION } from '../version';
 
 export function ConnectPage({
   currentHost,
@@ -71,11 +72,16 @@ export function ConnectPage({
 
   return (
     <>
-      <div className="row" style={{ paddingTop: 80, paddingBottom: 60 }}>
-        <div className="col-xs-12 text-center">
-          <img src="/img/logo.png" height="160" />
+      <div className="flex flex-col items-center pb-[60px] pt-20 text-center">
+        <div className="relative inline-block">
+          <img alt="Cerebro" className="block h-40 w-auto" src="/img/logo.png" />
+          <span className="absolute bottom-1 right-0 rounded border border-[#00d494]/70 bg-[#2b2f31]/95 px-2 py-0.5 text-[13px] font-bold tracking-[0.16em] text-[#00d494] shadow-[0_0_10px_rgba(0,212,148,0.45)]">
+            GO
+          </span>
+        </div>
+        <div className="text-center">
           <h4>
-            Cerebro <small>v0.9.4</small>
+            Cerebro <small>v{APP_VERSION}</small>
           </h4>
         </div>
       </div>
