@@ -2,10 +2,17 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
+)
+
+const (
+	DefaultMaxResponseBytes = int64(25 << 20)
+	DefaultMaxRequestBytes  = int64(5 << 20)
 )
 
 type ESAuth struct {
@@ -14,9 +21,9 @@ type ESAuth struct {
 }
 
 type Host struct {
-	Name             string  `yaml:"name"`
-	Host             string  `yaml:"host"`
-	Auth             *ESAuth `yaml:"auth,omitempty"`
+	Name             string   `yaml:"name"`
+	Host             string   `yaml:"host"`
+	Auth             *ESAuth  `yaml:"auth,omitempty"`
 	HeadersWhitelist []string `yaml:"headers_whitelist,omitempty"`
 }
 
@@ -36,6 +43,7 @@ type AuthSettings struct {
 	UserTemplate string       `yaml:"user_template"`
 	BindDN       string       `yaml:"bind_dn"`
 	BindPW       string       `yaml:"bind_pw"`
+	InsecureLDAP bool         `yaml:"insecure_ldap"`
 	GroupSearch  *GroupSearch `yaml:"group_search,omitempty"`
 }
 
@@ -45,13 +53,17 @@ type Auth struct {
 }
 
 type Server struct {
-	Port     int    `yaml:"port"`
-	BasePath string `yaml:"base_path"`
-	Secret   string `yaml:"secret"`
+	Port            int    `yaml:"port"`
+	BasePath        string `yaml:"base_path"`
+	Secret          string `yaml:"secret"`
+	CookieSecure    bool   `yaml:"cookie_secure"`
+	MaxRequestBytes int64  `yaml:"max_request_bytes"`
 }
 
 type ES struct {
-	Gzip bool `yaml:"gzip"`
+	Gzip             bool  `yaml:"gzip"`
+	AllowAdHocHosts  bool  `yaml:"allow_ad_hoc_hosts"`
+	MaxResponseBytes int64 `yaml:"max_response_bytes"`
 }
 
 type Rest struct {
@@ -72,7 +84,7 @@ type Config struct {
 }
 
 func Load(path string) (*Config, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) // #nosec G304 -- config path is local operator input, not request-controlled data.
 	if err != nil {
 		return nil, fmt.Errorf("read config %s: %w", path, err)
 	}
@@ -84,13 +96,16 @@ func Load(path string) (*Config, error) {
 	}
 	cfg.applyEnvOverrides()
 	cfg.normalize()
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
 	return cfg, nil
 }
 
 func defaults() *Config {
 	return &Config{
-		Server: Server{Port: 9000, BasePath: "/", Secret: "change-me"},
-		ES:     ES{Gzip: true},
+		Server: Server{Port: 9000, BasePath: "/", Secret: "change-me", CookieSecure: true, MaxRequestBytes: DefaultMaxRequestBytes},
+		ES:     ES{Gzip: true, MaxResponseBytes: DefaultMaxResponseBytes},
 		Rest:   Rest{HistorySize: 50},
 		Data:   Data{Path: "./cerebro.db"},
 		Auth:   Auth{Type: "disabled"},
@@ -121,6 +136,12 @@ func (c *Config) normalize() {
 	if c.Server.Port == 0 {
 		c.Server.Port = 9000
 	}
+	if c.Server.MaxRequestBytes <= 0 {
+		c.Server.MaxRequestBytes = DefaultMaxRequestBytes
+	}
+	if c.ES.MaxResponseBytes <= 0 {
+		c.ES.MaxResponseBytes = DefaultMaxResponseBytes
+	}
 	if c.Rest.HistorySize == 0 {
 		c.Rest.HistorySize = 50
 	}
@@ -134,9 +155,54 @@ func (c *Config) normalize() {
 	}
 }
 
+func (c *Config) validate() error {
+	for _, h := range c.Hosts {
+		if err := validateHostURL(h.Host); err != nil {
+			return fmt.Errorf("invalid host %q: %w", h.Name, err)
+		}
+	}
+	switch c.Auth.Type {
+	case "disabled", "none":
+		return nil
+	case "basic", "ldap":
+		if isDefaultSecret(c.Server.Secret) {
+			return fmt.Errorf("server.secret must be set to a strong non-default value when auth.type is %q", c.Auth.Type)
+		}
+		return nil
+	default:
+		return fmt.Errorf("unknown auth type: %s", c.Auth.Type)
+	}
+}
+
+func validateHostURL(raw string) error {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return err
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("scheme must be http or https")
+	}
+	if u.Host == "" {
+		return fmt.Errorf("host is required")
+	}
+	if u.User != nil {
+		return fmt.Errorf("credentials in host URL are not allowed")
+	}
+	return nil
+}
+
+func isDefaultSecret(secret string) bool {
+	switch strings.TrimSpace(secret) {
+	case "", "change-me", "dev-secret-change-me":
+		return true
+	default:
+		return false
+	}
+}
+
 func (c *Config) HostByName(name string) (Host, bool) {
 	for _, h := range c.Hosts {
-		if h.Name == name {
+		if h.Name == name || h.Host == name {
 			return h, true
 		}
 	}

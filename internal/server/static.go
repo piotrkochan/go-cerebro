@@ -44,7 +44,7 @@ func loginHandler(authMod *auth.Module) http.HandlerFunc {
 			if redirect == "" {
 				redirect = "/"
 			}
-			http.Redirect(w, r, redirect, http.StatusSeeOther)
+			http.Redirect(w, r, redirect, http.StatusSeeOther) // #nosec G710 -- redirect comes from auth.ConsumeRedirect, which accepts only same-origin absolute paths.
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -22,16 +22,26 @@ func (d *Deps) RegisterAuth(api huma.API, mux interface {
 
 func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var user, password string
+	r.Body = http.MaxBytesReader(w, r.Body, d.Cfg.Server.MaxRequestBytes)
 	ct := r.Header.Get("Content-Type")
 	if strings.HasPrefix(ct, "application/x-www-form-urlencoded") || strings.HasPrefix(ct, "multipart/form-data") {
-		_ = r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "invalid login form data", http.StatusBadRequest)
+			return
+		}
 		user = r.FormValue("user")
 		password = r.FormValue("password")
 	} else {
-		// JSON: {"user": "...", "password": "..."}
-		_ = r.ParseForm() // best effort
-		user = r.FormValue("user")
-		password = r.FormValue("password")
+		var payload struct {
+			User     string `json:"user"`
+			Password string `json:"password"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			http.Error(w, "invalid login json data", http.StatusBadRequest)
+			return
+		}
+		user = payload.User
+		password = payload.Password
 	}
 	if user == "" || password == "" {
 		http.Error(w, "invalid login form data", http.StatusBadRequest)
@@ -50,7 +60,7 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if redirect == "" {
 		redirect = basePathFor(d, "/")
 	}
-	http.Redirect(w, r, redirect, http.StatusSeeOther)
+	http.Redirect(w, r, redirect, http.StatusSeeOther) // #nosec G710 -- redirect comes from auth.ConsumeRedirect, which accepts only same-origin absolute paths.
 }
 
 func (d *Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +75,3 @@ func basePathFor(d *Deps, suffix string) string {
 	}
 	return prefix + suffix
 }
-
-// silence unused import warnings if context not used elsewhere in this file
-var _ = context.Background

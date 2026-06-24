@@ -36,7 +36,9 @@ function usePageContext() {
 }
 
 export function ConnectRoute() {
-  const host = useStore(sessionStore, (state) => state.host);
+  const savedHost = useStore(sessionStore, (state) => state.host);
+  const search = useSearch({ strict: false });
+  const host = typeof search.host === 'string' ? search.host : savedHost;
   const navigate = useNavigate();
   return (
     <ConnectPage

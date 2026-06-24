@@ -59,6 +59,9 @@ hosts:
 	require.NotNil(t, h.Auth)
 	assert.Equal(t, "u", h.Auth.Username)
 	assert.Contains(t, h.HeadersWhitelist, "X-Forwarded-For")
+	h, ok = cfg.HostByName("https://prod:9200")
+	require.True(t, ok)
+	assert.Equal(t, "Prod", h.Name)
 	_, ok = cfg.HostByName("Missing")
 	assert.False(t, ok)
 }

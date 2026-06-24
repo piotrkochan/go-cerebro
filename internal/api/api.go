@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/lmenezes/cerebro/internal/auth"
@@ -82,7 +84,7 @@ func raw(status int, body json.RawMessage) (*RawOutput, error) {
 
 // HostBody is embedded by every request body — the host name field that selects the cluster target.
 type HostBody struct {
-	Host     string `json:"host" required:"true" doc:"Name of the target Elasticsearch host (as configured, or an ad-hoc URL)."`
+	Host     string `json:"host" required:"true" doc:"Name of the target Elasticsearch host as configured."`
 	Username string `json:"username,omitempty" doc:"Optional per-request basic auth username override."`
 	Password string `json:"password,omitempty" doc:"Optional per-request basic auth password override."`
 }
@@ -95,7 +97,12 @@ func (d *Deps) resolveTarget(r *http.Request, hb HostBody) (elastic.Server, erro
 	}
 	host, ok := d.Cfg.HostByName(hb.Host)
 	if !ok {
-		// Allow ad-hoc hosts (used by /connect screen) — original Cerebro accepts unknown host names too.
+		if !d.Cfg.ES.AllowAdHocHosts {
+			return elastic.Server{}, errors.New("unknown elasticsearch host; add it to configuration or enable es.allow_ad_hoc_hosts")
+		}
+		if err := validateAdHocHost(hb.Host); err != nil {
+			return elastic.Server{}, err
+		}
 		host = config.Host{Name: hb.Host, Host: hb.Host}
 	}
 	if host.Auth == nil && hb.Username != "" && hb.Password != "" {
@@ -103,11 +110,36 @@ func (d *Deps) resolveTarget(r *http.Request, hb HostBody) (elastic.Server, erro
 	}
 	headers := [][2]string{}
 	for _, h := range host.HeadersWhitelist {
-		if v := r.Header.Get(h); v != "" {
-			headers = append(headers, [2]string{h, v})
+		if r != nil {
+			if v := r.Header.Get(h); v != "" {
+				headers = append(headers, [2]string{h, v})
+			}
 		}
 	}
 	return elastic.Server{Host: host, Headers: headers}, nil
+}
+
+func validateAdHocHost(raw string) error {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return err
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return errors.New("elasticsearch host must use http or https")
+	}
+	if u.Host == "" {
+		return errors.New("elasticsearch host must include a host")
+	}
+	if u.User != nil {
+		return errors.New("credentials in elasticsearch host URL are not allowed")
+	}
+	if u.RawQuery != "" || u.Fragment != "" {
+		return errors.New("elasticsearch host URL must not include query or fragment")
+	}
+	if strings.TrimRight(u.Path, "/") != "" {
+		return errors.New("elasticsearch host URL must not include a path")
+	}
+	return nil
 }
 
 // httpRequest extracts the underlying http.Request from a Huma context (for header forwarding).

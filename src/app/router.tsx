@@ -53,7 +53,9 @@ function appRoute<TPath extends string>(path: TPath, component: () => ReactNode)
       if (search.host && search.host !== sessionStore.state.host) {
         sessionActions.connect(search.host);
       }
-      if (!sessionStore.state.connected) throw redirect({ to: '/connect' });
+      if (!sessionStore.state.connected) {
+        throw redirect({ search: search.host ? { host: search.host } : {}, to: '/connect' });
+      }
     },
     component,
     getParentRoute: () => rootRoute,

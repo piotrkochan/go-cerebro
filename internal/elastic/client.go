@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
+	elasticsearch "github.com/elastic/go-elasticsearch/v8"
 	"github.com/lmenezes/cerebro/internal/config"
 )
 
@@ -82,14 +85,35 @@ type Client interface {
 }
 
 type HTTPClient struct {
-	hc *http.Client
+	transport        http.RoundTripper
+	timeout          time.Duration
+	maxResponseBytes int64
 }
 
 func NewHTTPClient(hc *http.Client) *HTTPClient {
+	timeout := 60 * time.Second
+	var transport http.RoundTripper
 	if hc == nil {
 		hc = http.DefaultClient
+	} else {
+		timeout = hc.Timeout
 	}
-	return &HTTPClient{hc: hc}
+	if hc.Transport != nil {
+		transport = hc.Transport
+	}
+	return &HTTPClient{
+		transport:        transport,
+		timeout:          timeout,
+		maxResponseBytes: config.DefaultMaxResponseBytes,
+	}
+}
+
+func NewHTTPClientWithConfig(hc *http.Client, cfg config.ES) *HTTPClient {
+	c := NewHTTPClient(hc)
+	if cfg.MaxResponseBytes > 0 {
+		c.maxResponseBytes = cfg.MaxResponseBytes
+	}
+	return c
 }
 
 const (
@@ -100,15 +124,33 @@ const (
 func encoded(s string) string { return url.QueryEscape(s) }
 
 func (c *HTTPClient) execute(ctx context.Context, uri, method string, body []byte, t Server, headers [][2]string) (Response, error) {
-	base := strings.TrimRight(t.Host.Host, "/")
-	full := base + uri
+	base, err := normalizeBaseURL(t.Host.Host)
+	if err != nil {
+		return Response{}, err
+	}
+	if uri == "" {
+		uri = "/"
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if _, ok := ctx.Deadline(); !ok && c.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.timeout)
+		defer cancel()
+	}
+
+	es, err := c.elasticsearchClient(base, t.Host.Auth)
+	if err != nil {
+		return Response{}, err
+	}
 
 	var reader io.Reader
 	if body != nil {
 		reader = bytes.NewReader(body)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, full, reader)
+	req, err := http.NewRequestWithContext(ctx, method, uri, reader)
 	if err != nil {
 		return Response{}, err
 	}
@@ -118,16 +160,13 @@ func (c *HTTPClient) execute(ctx context.Context, uri, method string, body []byt
 	for _, h := range t.Headers {
 		req.Header.Set(h[0], h[1])
 	}
-	if t.Host.Auth != nil {
-		req.SetBasicAuth(t.Host.Auth.Username, t.Host.Auth.Password)
-	}
 
-	resp, err := c.hc.Do(req)
+	resp, err := es.Perform(req)
 	if err != nil {
 		return Response{}, err
 	}
 	defer resp.Body.Close()
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := readLimited(resp.Body, c.maxResponseBytes)
 	if err != nil {
 		return Response{}, err
 	}
@@ -138,6 +177,57 @@ func (c *HTTPClient) execute(ctx context.Context, uri, method string, body []byt
 		raw, _ = json.Marshal(map[string]string{"error": string(raw)})
 	}
 	return Response{Status: resp.StatusCode, Body: raw}, nil
+}
+
+func (c *HTTPClient) elasticsearchClient(base string, auth *config.ESAuth) (*elasticsearch.Client, error) {
+	cfg := elasticsearch.Config{
+		Addresses:         []string{base},
+		DisableRetry:      true,
+		DisableMetaHeader: true,
+	}
+	if c.transport != nil {
+		cfg.Transport = c.transport
+	}
+	if auth != nil {
+		cfg.Username = auth.Username
+		cfg.Password = auth.Password
+	}
+	return elasticsearch.NewClient(cfg)
+}
+
+func normalizeBaseURL(raw string) (string, error) {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return "", fmt.Errorf("invalid elasticsearch host: %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return "", errors.New("elasticsearch host must use http or https")
+	}
+	if u.Host == "" {
+		return "", errors.New("elasticsearch host must include a host")
+	}
+	if u.User != nil {
+		return "", errors.New("credentials in elasticsearch host URL are not allowed")
+	}
+	u.Path = strings.TrimRight(u.Path, "/")
+	u.RawQuery = ""
+	u.Fragment = ""
+	return u.String(), nil
+}
+
+func readLimited(r io.Reader, maxBytes int64) ([]byte, error) {
+	if maxBytes <= 0 {
+		return io.ReadAll(r)
+	}
+	limited := io.LimitReader(r, maxBytes+1)
+	raw, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(raw)) > maxBytes {
+		return nil, fmt.Errorf("elasticsearch response exceeds configured limit of %d bytes", maxBytes)
+	}
+	return raw, nil
 }
 
 func (c *HTTPClient) Main(ctx context.Context, t Server) (Response, error) {
@@ -387,7 +477,11 @@ func (c *HTTPClient) UpdateIndexSettings(ctx context.Context, index string, sett
 }
 
 func (c *HTTPClient) CatRequest(ctx context.Context, api string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/_cat/%s?format=json", api), http.MethodGet, nil, t, nil)
+	path, err := catPath(api)
+	if err != nil {
+		return Response{}, err
+	}
+	return c.execute(ctx, path, http.MethodGet, nil, t, nil)
 }
 
 func (c *HTTPClient) CatMaster(ctx context.Context, t Server) (Response, error) {
@@ -395,6 +489,10 @@ func (c *HTTPClient) CatMaster(ctx context.Context, t Server) (Response, error) 
 }
 
 func (c *HTTPClient) ExecuteRequest(ctx context.Context, method, path string, data json.RawMessage, t Server) (Response, error) {
+	uri, err := restPath(path)
+	if err != nil {
+		return Response{}, err
+	}
 	var body []byte
 	var headers [][2]string
 	if data != nil {
@@ -408,5 +506,62 @@ func (c *HTTPClient) ExecuteRequest(ctx context.Context, method, path string, da
 			headers = [][2]string{jsonHeader}
 		}
 	}
-	return c.execute(ctx, "/"+path, method, body, t, headers)
+	return c.execute(ctx, uri, method, body, t, headers)
+}
+
+func catPath(api string) (string, error) {
+	switch strings.TrimSpace(api) {
+	case "aliases":
+		return "/_cat/aliases?format=json", nil
+	case "allocation":
+		return "/_cat/allocation?format=json", nil
+	case "count":
+		return "/_cat/count?format=json", nil
+	case "fielddata":
+		return "/_cat/fielddata?format=json", nil
+	case "health":
+		return "/_cat/health?format=json", nil
+	case "indices":
+		return "/_cat/indices?format=json", nil
+	case "master":
+		return "/_cat/master?format=json", nil
+	case "nodes":
+		return "/_cat/nodes?format=json", nil
+	case "pending tasks", "pending_tasks":
+		return "/_cat/pending_tasks?format=json", nil
+	case "plugins":
+		return "/_cat/plugins?format=json", nil
+	case "recovery":
+		return "/_cat/recovery?format=json", nil
+	case "repositories":
+		return "/_cat/repositories?format=json", nil
+	case "shards":
+		return "/_cat/shards?format=json", nil
+	case "segments":
+		return "/_cat/segments?format=json", nil
+	case "thread pool", "thread_pool":
+		return "/_cat/thread_pool?format=json", nil
+	default:
+		return "", fmt.Errorf("unsupported cat API: %s", api)
+	}
+}
+
+func restPath(path string) (string, error) {
+	p := strings.TrimSpace(path)
+	if p == "" {
+		return "", errors.New("missing request path")
+	}
+	if strings.ContainsAny(p, "\x00\r\n") {
+		return "", errors.New("request path contains invalid characters")
+	}
+	if strings.HasPrefix(p, "http://") || strings.HasPrefix(p, "https://") || strings.HasPrefix(p, "//") {
+		return "", errors.New("request path must be relative to the selected Elasticsearch host")
+	}
+	for strings.HasPrefix(p, "/") {
+		p = strings.TrimPrefix(p, "/")
+	}
+	if p == "" {
+		return "/", nil
+	}
+	return "/" + p, nil
 }

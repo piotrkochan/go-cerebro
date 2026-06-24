@@ -39,6 +39,8 @@ func New(opts Options) *Server {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(securityHeaders)
+	r.Use(maxRequestBody(opts.Cfg.Server.MaxRequestBytes))
 	r.Use(middleware.Compress(5))
 	r.Use(injectHTTPRequest)
 	// Auth gate for API endpoints: requires a session cookie when auth is enabled.
@@ -141,6 +143,31 @@ func injectHTTPRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r.WithContext(api.WithHTTPRequest(r.Context(), r)))
 	})
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func maxRequestBody(maxBytes int64) func(http.Handler) http.Handler {
+	if maxBytes <= 0 {
+		maxBytes = config.DefaultMaxRequestBytes
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Body != nil {
+				r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // apiAuthGate runs the auth check only for combinations of method+path that the Cerebro API

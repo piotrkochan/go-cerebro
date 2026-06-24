@@ -2,11 +2,13 @@ package history
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"embed"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pressly/goose/v3"
@@ -68,6 +70,7 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) Save(ctx context.Context, username, path, method, body string) error {
+	body = RedactBody(body)
 	req := RestRequest{
 		Username:  username,
 		Path:      path,
@@ -122,6 +125,61 @@ func (s *Store) Clear(ctx context.Context, username string) (int64, error) {
 }
 
 func hashSig(path, method, body, username string) string {
-	h := md5.Sum([]byte(path + method + body + username))
+	h := sha256.Sum256([]byte(path + method + body + username))
 	return hex.EncodeToString(h[:])
+}
+
+const maxStoredBodyBytes = 32 << 10
+
+var sensitiveKeys = map[string]bool{
+	"access_key":    true,
+	"access_token":  true,
+	"api_key":       true,
+	"authorization": true,
+	"bind_pw":       true,
+	"client_secret": true,
+	"credentials":   true,
+	"key":           true,
+	"pass":          true,
+	"password":      true,
+	"refresh_token": true,
+	"secret":        true,
+	"service_token": true,
+	"token":         true,
+}
+
+func RedactBody(body string) string {
+	body = strings.TrimSpace(body)
+	if body == "" || body == "{}" {
+		return "{}"
+	}
+	var value any
+	if err := json.Unmarshal([]byte(body), &value); err == nil {
+		redactJSON(value)
+		raw, err := json.Marshal(value)
+		if err == nil {
+			body = string(raw)
+		}
+	}
+	if len(body) > maxStoredBodyBytes {
+		return body[:maxStoredBodyBytes] + "...<truncated>"
+	}
+	return body
+}
+
+func redactJSON(value any) {
+	switch v := value.(type) {
+	case map[string]any:
+		for k, child := range v {
+			if sensitiveKeys[strings.ToLower(k)] {
+				v[k] = "<redacted>"
+				continue
+			}
+			redactJSON(child)
+		}
+	case []any:
+		for _, child := range v {
+			redactJSON(child)
+		}
+	}
 }

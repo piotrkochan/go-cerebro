@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
+	"strings"
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/lmenezes/cerebro/internal/config"
@@ -13,6 +15,7 @@ type LDAPService struct {
 	url          string
 	userTemplate string
 	baseDN       string
+	insecureLDAP bool
 	groupSearch  *config.GroupSearch
 	bindDN       string
 	bindPW       string
@@ -22,10 +25,18 @@ func NewLDAPService(s config.AuthSettings) (*LDAPService, error) {
 	if s.URL == "" || s.UserTemplate == "" || s.BaseDN == "" {
 		return nil, errors.New("ldap auth requires url, user_template and base_dn")
 	}
+	ldapURL, err := url.Parse(s.URL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ldap url: %w", err)
+	}
+	if ldapURL.Scheme != "ldaps" && !s.InsecureLDAP {
+		return nil, errors.New("ldap auth requires ldaps:// unless insecure_ldap is explicitly enabled")
+	}
 	svc := &LDAPService{
 		url:          s.URL,
 		userTemplate: s.UserTemplate,
 		baseDN:       s.BaseDN,
+		insecureLDAP: s.InsecureLDAP,
 		bindDN:       s.BindDN,
 		bindPW:       s.BindPW,
 	}
@@ -62,6 +73,10 @@ func (l *LDAPService) dial() (*ldap.Conn, error) {
 }
 
 func (l *LDAPService) checkUserAuth(username, password string) bool {
+	if !safeLDAPTemplateValue(username) {
+		slog.Info("ldap rejected unsafe username")
+		return false
+	}
 	conn, err := l.dial()
 	if err != nil {
 		slog.Error("ldap dial failed", "err", err)
@@ -77,6 +92,10 @@ func (l *LDAPService) checkUserAuth(username, password string) bool {
 }
 
 func (l *LDAPService) checkGroupMembership(username string) bool {
+	if !safeLDAPTemplateValue(username) {
+		slog.Info("ldap rejected unsafe username")
+		return false
+	}
 	conn, err := l.dial()
 	if err != nil {
 		slog.Error("ldap dial failed", "err", err)
@@ -106,4 +125,16 @@ func (l *LDAPService) checkGroupMembership(username string) bool {
 		return false
 	}
 	return len(res.Entries) > 0
+}
+
+func safeLDAPTemplateValue(value string) bool {
+	if value == "" || strings.ContainsAny(value, ",=+<>#;\"\\\x00") {
+		return false
+	}
+	for _, r := range value {
+		if r < 0x20 || r == 0x7f {
+			return false
+		}
+	}
+	return true
 }

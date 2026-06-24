@@ -37,7 +37,7 @@ export type AliasesUpdateInBody = {
      */
     changes?: Array<unknown> | null;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -60,7 +60,7 @@ export type AnalysisAnalyzerInBody = {
      */
     analyzer: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -91,7 +91,7 @@ export type AnalysisFieldInBody = {
      */
     field: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -118,7 +118,7 @@ export type AnalysisIndexInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -145,7 +145,7 @@ export type CatInBody = {
      */
     api: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -183,7 +183,7 @@ export type ClusterSettingsSaveInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -206,7 +206,7 @@ export type CommonsIndexInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -229,7 +229,7 @@ export type CommonsNodeInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -252,7 +252,7 @@ export type CreateIndexCreateInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -279,7 +279,7 @@ export type CreateIndexGetMetaInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -348,7 +348,7 @@ export type HostBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -367,7 +367,7 @@ export type IndexSettingsGetInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -390,7 +390,7 @@ export type IndexSettingsUpdateInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -697,7 +697,7 @@ export type OverviewIndicesInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -776,7 +776,7 @@ export type OverviewRelocateInBody = {
      */
     from: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -807,7 +807,7 @@ export type OverviewShardKindInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -830,7 +830,7 @@ export type OverviewShardStatsInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -872,7 +872,7 @@ export type RepositoriesCreateInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -903,7 +903,7 @@ export type RepositoriesDeleteInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -942,7 +942,7 @@ export type RestRequestInBody = {
     readonly $schema?: string;
     data?: unknown;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     method: string;
@@ -963,7 +963,7 @@ export type SnapshotsCreateInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     ignoreUnavailable: boolean;
@@ -987,7 +987,7 @@ export type SnapshotsDeleteInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1008,7 +1008,7 @@ export type SnapshotsLoadInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1028,7 +1028,7 @@ export type SnapshotsRestoreInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     ignoreUnavailable: boolean;
@@ -1066,7 +1066,7 @@ export type TemplatesCreateInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     name: string;
@@ -1087,7 +1087,7 @@ export type TemplatesDeleteInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     name: string;
@@ -1107,7 +1107,7 @@ export type AliasesUpdateInBodyWritable = {
      */
     changes?: Array<unknown> | null;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1126,7 +1126,7 @@ export type AnalysisAnalyzerInBodyWritable = {
      */
     analyzer: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1153,7 +1153,7 @@ export type AnalysisFieldInBodyWritable = {
      */
     field: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1176,7 +1176,7 @@ export type AnalysisFieldInBodyWritable = {
 
 export type AnalysisIndexInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1199,7 +1199,7 @@ export type CatInBodyWritable = {
      */
     api: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1229,7 +1229,7 @@ export type ChangesWritable = {
 
 export type ClusterSettingsSaveInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1248,7 +1248,7 @@ export type ClusterSettingsSaveInBodyWritable = {
 
 export type CommonsIndexInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1267,7 +1267,7 @@ export type CommonsIndexInBodyWritable = {
 
 export type CommonsNodeInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1286,7 +1286,7 @@ export type CommonsNodeInBodyWritable = {
 
 export type CreateIndexCreateInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1309,7 +1309,7 @@ export type CreateIndexCreateInBodyWritable = {
 
 export type CreateIndexGetMetaInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1355,7 +1355,7 @@ export type ErrorModelWritable = {
 
 export type HostBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1370,7 +1370,7 @@ export type HostBodyWritable = {
 
 export type IndexSettingsGetInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1389,7 +1389,7 @@ export type IndexSettingsGetInBodyWritable = {
 
 export type IndexSettingsUpdateInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1498,7 +1498,7 @@ export type OverviewWritable = {
 
 export type OverviewIndicesInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1521,7 +1521,7 @@ export type OverviewRelocateInBodyWritable = {
      */
     from: string;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1548,7 +1548,7 @@ export type OverviewRelocateInBodyWritable = {
 
 export type OverviewShardKindInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1567,7 +1567,7 @@ export type OverviewShardKindInBodyWritable = {
 
 export type OverviewShardStatsInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1601,7 +1601,7 @@ export type RawResponseWritable = {
 
 export type RepositoriesCreateInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1628,7 +1628,7 @@ export type RepositoriesCreateInBodyWritable = {
 
 export type RepositoriesDeleteInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1648,7 +1648,7 @@ export type RepositoriesDeleteInBodyWritable = {
 export type RestRequestInBodyWritable = {
     data?: unknown;
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     method: string;
@@ -1665,7 +1665,7 @@ export type RestRequestInBodyWritable = {
 
 export type SnapshotsCreateInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     ignoreUnavailable: boolean;
@@ -1685,7 +1685,7 @@ export type SnapshotsCreateInBodyWritable = {
 
 export type SnapshotsDeleteInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1702,7 +1702,7 @@ export type SnapshotsDeleteInBodyWritable = {
 
 export type SnapshotsLoadInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     /**
@@ -1718,7 +1718,7 @@ export type SnapshotsLoadInBodyWritable = {
 
 export type SnapshotsRestoreInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     ignoreUnavailable: boolean;
@@ -1741,7 +1741,7 @@ export type SnapshotsRestoreInBodyWritable = {
 
 export type TemplatesCreateInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     name: string;
@@ -1758,7 +1758,7 @@ export type TemplatesCreateInBodyWritable = {
 
 export type TemplatesDeleteInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host (as configured, or an ad-hoc URL).
+     * Name of the target Elasticsearch host as configured.
      */
     host: string;
     name: string;

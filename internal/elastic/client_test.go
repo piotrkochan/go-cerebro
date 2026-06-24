@@ -21,6 +21,7 @@ func TestExecute_BasicAuthAndHeaders(t *testing.T) {
 		gotHeader = r.Header.Get("X-Proxy-User")
 		gotPath = r.URL.Path
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Elastic-Product", "Elasticsearch")
 		_, _ = w.Write([]byte(`{"hello":"world"}`))
 	}))
 	defer srv.Close()
@@ -49,6 +50,7 @@ func TestExecuteRequest_NDJSONForString(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotCT = r.Header.Get("Content-type")
 		gotBody, _ = readAll(r.Body)
+		w.Header().Set("X-Elastic-Product", "Elasticsearch")
 		_, _ = w.Write([]byte(`{}`))
 	}))
 	defer srv.Close()

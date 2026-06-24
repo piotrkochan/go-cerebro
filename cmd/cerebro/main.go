@@ -55,7 +55,7 @@ func runServe(args []string) {
 		os.Exit(1)
 	}
 	hc := &http.Client{Timeout: 60 * time.Second}
-	client := elastic.NewHTTPClient(hc)
+	client := elastic.NewHTTPClientWithConfig(hc, cfg.ES)
 
 	store, err := history.Open(cfg.Data.Path, cfg.Rest.HistorySize)
 	if err != nil {
@@ -105,7 +105,7 @@ func runOpenAPI(args []string) {
 	}
 	srv := server.New(server.Options{
 		Cfg:    cfg,
-		Client: elastic.NewHTTPClient(nil),
+		Client: elastic.NewHTTPClientWithConfig(nil, cfg.ES),
 		Auth:   authMod,
 	})
 	out, _ := json.MarshalIndent(srv.HumaAPI().OpenAPI(), "", "  ")

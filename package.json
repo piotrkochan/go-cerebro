@@ -24,7 +24,7 @@
     "url": "https://github.com/lmenezes/cerebro/issues"
   },
   "devDependencies": {
-    "@hey-api/openapi-ts": "0.97.3",
+    "@hey-api/openapi-ts": "0.99.0",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",

@@ -12,7 +12,8 @@ hosts:
 
 # Application authentication. type: disabled | basic | ldap.
 auth:
-  type: "${AUTH_TYPE}"
+  # Set to "basic" or "ldap" before exposing Cerebro outside a trusted local network.
+  type: "disabled"
   settings:
     # basic auth
     username: "${BASIC_AUTH_USER}"
@@ -24,6 +25,8 @@ auth:
     user_template: "${LDAP_USER_TEMPLATE}"
     bind_dn: "${LDAP_BIND_DN}"
     bind_pw: "${LDAP_BIND_PWD}"
+    # LDAP requires ldaps:// by default. Set this only for isolated development tests.
+    insecure_ldap: false
     group_search:
       base_dn: "${LDAP_GROUP_BASE_DN}"
       user_attr: "${LDAP_USER_ATTR}"
@@ -34,9 +37,13 @@ server:
   port: 9000
   base_path: "/"
   secret: "${APPLICATION_SECRET}"
+  cookie_secure: true
+  max_request_bytes: 5242880
 
 es:
   gzip: true
+  allow_ad_hoc_hosts: false
+  max_response_bytes: 26214400
 
 rest:
   history_size: 50

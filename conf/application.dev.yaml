@@ -11,9 +11,13 @@ server:
   port: 9000
   base_path: "/"
   secret: "dev-secret-change-me"
+  cookie_secure: false
+  max_request_bytes: 5242880
 
 es:
   gzip: true
+  allow_ad_hoc_hosts: false
+  max_response_bytes: 26214400
 
 rest:
   history_size: 50

@@ -64,6 +64,10 @@ export function timeInterval(value: unknown): string {
 }
 
 export function curl(method: string, path: string, body: string): string {
-  const data = body.trim() ? ` -d '${body.trim()}'` : '';
-  return `curl -X${method} '${path}'${data}`;
+  const data = body.trim() ? ` -H ${shellQuote('content-type: application/json')} -d ${shellQuote(body.trim())}` : '';
+  return `curl -X${shellQuote(method)} ${shellQuote(path)}${data}`;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`;
 }

@@ -51,6 +51,7 @@ func NewModule(cfg *config.Config) (*Module, error) {
 		HttpOnly: true,
 		MaxAge:   0,
 		SameSite: http.SameSiteLaxMode,
+		Secure:   cfg.Server.CookieSecure,
 	}
 	if store.Options.Path == "" {
 		store.Options.Path = "/"

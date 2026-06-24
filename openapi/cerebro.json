@@ -52,7 +52,7 @@
             ]
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "password": {
@@ -86,7 +86,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -131,7 +131,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -172,7 +172,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -211,7 +211,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "password": {
@@ -283,7 +283,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "password": {
@@ -317,7 +317,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -352,7 +352,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "node": {
@@ -387,7 +387,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -425,7 +425,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -541,7 +541,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "password": {
@@ -571,7 +571,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -606,7 +606,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -1160,7 +1160,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "indices": {
@@ -1273,7 +1273,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -1320,7 +1320,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "kind": {
@@ -1355,7 +1355,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "index": {
@@ -1422,7 +1422,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "name": {
@@ -1466,7 +1466,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "name": {
@@ -1524,7 +1524,7 @@
           },
           "data": {},
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "method": {
@@ -1562,7 +1562,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "ignoreUnavailable": {
@@ -1617,7 +1617,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "password": {
@@ -1655,7 +1655,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "password": {
@@ -1689,7 +1689,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "ignoreUnavailable": {
@@ -1771,7 +1771,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "name": {
@@ -1807,7 +1807,7 @@
             "type": "string"
           },
           "host": {
-            "description": "Name of the target Elasticsearch host (as configured, or an ad-hoc URL).",
+            "description": "Name of the target Elasticsearch host as configured.",
             "type": "string"
           },
           "name": {
