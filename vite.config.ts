@@ -10,7 +10,7 @@ const appVersion = process.env.VITE_APP_VERSION ?? packageJson.version;
 export default defineConfig({
   build: {
     emptyOutDir: false,
-    outDir: 'public',
+    outDir: 'internal/server/static',
     rollupOptions: {
       output: {
         assetFileNames: 'assets/[name][extname]',

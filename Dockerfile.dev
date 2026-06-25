@@ -1,6 +1,6 @@
 FROM golang:1.26-alpine
 
-RUN apk add --no-cache build-base sqlite-dev curl
+RUN apk add --no-cache curl
 RUN go install github.com/air-verse/air@latest
 
 WORKDIR /workspace/cerebro

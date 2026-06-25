@@ -26,11 +26,10 @@ type Server struct {
 }
 
 type Options struct {
-	Cfg       *config.Config
-	Client    elastic.Client
-	History   *history.Store
-	Auth      *auth.Module
-	PublicDir string
+	Cfg     *config.Config
+	Client  elastic.Client
+	History *history.Store
+	Auth    *auth.Module
 }
 
 func New(opts Options) *Server {
@@ -76,18 +75,13 @@ func New(opts Options) *Server {
 	deps.RegisterRest(humaAPI)
 	deps.RegisterAuth(humaAPI, &chiMux{r: r})
 
-	publicDir := opts.PublicDir
-	if publicDir == "" {
-		publicDir = "public"
-	}
-
 	// Static + login screen — served outside Huma.
 	r.Get("/login", loginHandler(opts.Auth))
-	r.Get("/", indexHandler(opts.Auth, publicDir))
+	r.Get("/", indexHandler(opts.Auth))
 
 	// Wildcard GET fallback — chi only reaches here when no specific route matched.
 	// We let http.FileServer answer 404 for missing files; no need to second-guess paths.
-	publicHandler := publicAssets(publicDir)
+	publicHandler := publicAssets()
 	r.Get("/*", publicHandler.ServeHTTP)
 
 	return &Server{

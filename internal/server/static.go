@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/lmenezes/cerebro/internal/auth"
@@ -15,10 +14,16 @@ import (
 //go:embed templates/login.html
 var templatesFS embed.FS
 
+//go:embed all:static
+var staticFS embed.FS
+
+var embeddedStatic = mustSub(staticFS, "static")
+
 var loginTmpl = template.Must(template.ParseFS(templatesFS, "templates/login.html"))
 
 // indexHandler enforces auth (when enabled, redirects to /login) and serves the React shell.
-func indexHandler(authMod *auth.Module, publicDir string) http.HandlerFunc {
+func indexHandler(authMod *auth.Module) http.HandlerFunc {
+	assets := publicAssets()
 	return func(w http.ResponseWriter, r *http.Request) {
 		if authMod.Enabled() {
 			if _, ok := authMod.SessionUser(r); !ok {
@@ -27,7 +32,9 @@ func indexHandler(authMod *auth.Module, publicDir string) http.HandlerFunc {
 				return
 			}
 		}
-		http.ServeFile(w, r, filepath.Join(publicDir, "index.html"))
+		request := r.Clone(r.Context())
+		request.URL.Path = "/index.html"
+		assets.ServeHTTP(w, request)
 	}
 }
 
@@ -52,10 +59,9 @@ func loginHandler(authMod *auth.Module) http.HandlerFunc {
 	}
 }
 
-// publicAssets serves files from the public/ directory at the project root with sensible MIME guessing.
-// We mount the OS filesystem (not embedded) so dev hot-reload of JS/CSS doesn't require rebuilds.
-func publicAssets(publicDir string) http.Handler {
-	root := http.FileServer(http.Dir(publicDir))
+// publicAssets serves embedded frontend assets.
+func publicAssets() http.Handler {
+	root := http.FileServer(http.FS(embeddedStatic))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Strip any query string for mime detection.
 		path := strings.TrimPrefix(r.URL.Path, "/")
@@ -67,5 +73,12 @@ func publicAssets(publicDir string) http.Handler {
 	})
 }
 
-// embeddedFS exposes the embedded templates/static files; reserved for future use if we choose to embed public/.
-func embeddedFS() fs.FS { return templatesFS }
+func mustSub(root fs.FS, dir string) fs.FS {
+	sub, err := fs.Sub(root, dir)
+	if err != nil {
+		panic(err)
+	}
+	return sub
+}
+
+func embeddedFS() fs.FS { return embeddedStatic }

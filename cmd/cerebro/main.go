@@ -42,7 +42,6 @@ func main() {
 func runServe(args []string) {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 	configPath := fs.String("config", "conf/application.yaml", "path to config file")
-	publicDir := fs.String("public", "public", "directory with static frontend assets")
 	_ = fs.Parse(args)
 
 	cfg, err := config.Load(*configPath)
@@ -70,11 +69,10 @@ func runServe(args []string) {
 	defer store.Close()
 
 	srv := server.New(server.Options{
-		Cfg:       cfg,
-		Client:    client,
-		History:   store,
-		Auth:      authMod,
-		PublicDir: *publicDir,
+		Cfg:     cfg,
+		Client:  client,
+		History: store,
+		Auth:    authMod,
 	})
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

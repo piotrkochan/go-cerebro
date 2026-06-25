@@ -94,18 +94,38 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.docker-meta.outputs.tags }}
           labels: ${{ steps.docker-meta.outputs.labels }}
 
-      - name: Build release package
+      - name: Build release binaries
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          mkdir -p dist/package
-          CGO_ENABLED=1 go build -trimpath -ldflags="-s -w -X github.com/lmenezes/cerebro/internal/version.Version=${VERSION}" -o dist/package/cerebro ./cmd/cerebro
-          cp -R public conf README.md LICENSE dist/package/
-          tar -C dist/package -czf "dist/cerebro-${GITHUB_REF_NAME}-linux-amd64.tar.gz" .
-          sha256sum dist/*.tar.gz > dist/checksums.txt
+          mkdir -p dist
+          build() {
+            local goos="$1"
+            local goarch="$2"
+            local goarm="${3:-}"
+            local ext=""
+            if [ "${goos}" = "windows" ]; then
+              ext=".exe"
+            fi
+            local arm_suffix=""
+            if [ -n "${goarm}" ]; then
+              arm_suffix="v${goarm}"
+            fi
+            local out="dist/cerebro-${GITHUB_REF_NAME}-${goos}-${goarch}${arm_suffix}${ext}"
+            GOOS="${goos}" GOARCH="${goarch}" GOARM="${goarm}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/lmenezes/cerebro/internal/version.Version=${VERSION}" -o "${out}" ./cmd/cerebro
+          }
+          build linux amd64
+          build linux arm64
+          build linux arm 7
+          build darwin amd64
+          build darwin arm64
+          build windows amd64
+          build windows arm64
+          sha256sum dist/cerebro-* > dist/checksums.txt
 
       - name: Publish GitHub release
         env:
@@ -116,7 +136,7 @@ jobs:
             RELEASE_FLAGS+=(--prerelease)
           fi
           gh release create "${GITHUB_REF_NAME}" \
-            dist/*.tar.gz \
+            dist/cerebro-* \
             dist/checksums.txt \
             --title "Cerebro ${GITHUB_REF_NAME}" \
             "${RELEASE_FLAGS[@]}" \

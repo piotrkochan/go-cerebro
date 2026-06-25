@@ -18,3 +18,5 @@ conf/application.yaml
 /public/assets/index.css
 /public/assets/index.js
 /public/assets/JsonEditor.js
+/internal/server/static/*
+!/internal/server/static/.gitkeep

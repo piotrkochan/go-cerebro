@@ -9,3 +9,5 @@ cerebro.db
 cerebro.db-*
 *.test
 *.out
+internal/server/static/*
+!internal/server/static/.gitkeep
