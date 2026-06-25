@@ -78,3 +78,33 @@ es:
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "client_cert_file")
 }
+
+func TestLoad_RequiresAWSRegionWhenSigningEnabled(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+es:
+  aws:
+    enabled: true
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "es.aws.region")
+}
+
+func TestLoad_RequiresAWSStaticCredentialsTogether(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+es:
+  aws:
+    enabled: true
+    region: eu-central-1
+    access_key_id: key
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "es.aws.access_key_id")
+}

@@ -62,6 +62,15 @@ es:
   # ca_cert_file: "/etc/cerebro/es-ca.pem"
   # client_cert_file: "/etc/cerebro/es-client.pem"
   # client_key_file: "/etc/cerebro/es-client-key.pem"
+  # Optional AWS SigV4 signing for Amazon OpenSearch Service.
+  # aws:
+  #   enabled: false
+  #   region: "eu-central-1"
+  #   service: "es" # use "aoss" for OpenSearch Serverless
+  #   profile: ""
+  #   access_key_id: "${AWS_ACCESS_KEY_ID}"
+  #   secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+  #   session_token: "${AWS_SESSION_TOKEN}"
 
 rest:
   history_size: 50

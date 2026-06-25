@@ -1,0 +1,40 @@
+hosts:
+  - name: "AWS OpenSearch"
+    host: "https://search-domain.eu-central-1.es.amazonaws.com"
+
+auth:
+  type: "basic"
+  settings:
+    username: "${BASIC_AUTH_USER}"
+    password: "${BASIC_AUTH_PWD}"
+
+server:
+  port: 9000
+  base_path: "/"
+  secret: "${APPLICATION_SECRET}"
+  cookie_secure: true
+  hsts_enabled: true
+  hsts_max_age_seconds: 31536000
+  hsts_include_subdomains: true
+
+es:
+  gzip: true
+  allow_ad_hoc_hosts: false
+  max_response_bytes: 26214400
+  aws:
+    enabled: true
+    region: "eu-central-1"
+    service: "es"
+    # profile: "default"
+    # access_key_id: "${AWS_ACCESS_KEY_ID}"
+    # secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+    # session_token: "${AWS_SESSION_TOKEN}"
+
+rest:
+  history_size: 50
+
+features:
+  data_explorer: false
+
+data:
+  path: "./cerebro.db"

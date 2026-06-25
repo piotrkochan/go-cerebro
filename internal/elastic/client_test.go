@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -113,6 +116,70 @@ func TestNewHTTPClientWithConfig_UsesCustomCA(t *testing.T) {
 	resp, err := c.ExecuteRequest(context.Background(), http.MethodGet, "_cluster/health", nil, Server{Host: config.Host{Host: srv.URL}})
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.Status)
+}
+
+func TestAWSSigningTransport_SignsRequest(t *testing.T) {
+	next := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		assert.Contains(t, req.Header.Get("Authorization"), "AWS4-HMAC-SHA256")
+		assert.Contains(t, req.Header.Get("Authorization"), "Credential=test/")
+		assert.NotEmpty(t, req.Header.Get("X-Amz-Date"))
+		assert.Equal(t, emptySHA256, req.Header.Get("X-Amz-Content-Sha256"))
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`{"ok":true}`)),
+			Request:    req,
+		}, nil
+	})
+
+	transport := awsSigningTransport(next, config.AWS{
+		Enabled: true,
+		Region:  "us-east-1",
+		Service: "es",
+	}, mustAWSCredentialsProvider(t, config.AWS{AccessKeyID: "test", SecretAccessKey: "secret"}))
+
+	req := httptest.NewRequest(http.MethodGet, "https://search.example.us-east-1.es.amazonaws.com/_cluster/health", nil)
+	resp, err := transport.RoundTrip(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestAWSSigningTransport_RestoresRequestBody(t *testing.T) {
+	next := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"query":{"match_all":{}}}`, string(body))
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`{"ok":true}`)),
+			Request:    req,
+		}, nil
+	})
+
+	transport := awsSigningTransport(next, config.AWS{
+		Enabled: true,
+		Region:  "us-east-1",
+		Service: "es",
+	}, mustAWSCredentialsProvider(t, config.AWS{AccessKeyID: "test", SecretAccessKey: "secret"}))
+
+	req := httptest.NewRequest(http.MethodPost, "https://search.example.us-east-1.es.amazonaws.com/test/_search", strings.NewReader(`{"query":{"match_all":{}}}`))
+	resp, err := transport.RoundTrip(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func mustAWSCredentialsProvider(t *testing.T, cfg config.AWS) aws.CredentialsProvider {
+	t.Helper()
+	provider, err := awsCredentialsProvider(context.Background(), cfg)
+	require.NoError(t, err)
+	return provider
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
 
 func readAll(rc interface {

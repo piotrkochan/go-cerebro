@@ -3,8 +3,10 @@ package elastic
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +17,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	elasticsearch "github.com/elastic/go-elasticsearch/v8"
 	"github.com/lmenezes/cerebro/internal/config"
 )
@@ -93,6 +99,8 @@ type HTTPClient struct {
 	transport        http.RoundTripper
 	timeout          time.Duration
 	maxResponseBytes int64
+	awsSigning       config.AWS
+	awsCredentials   aws.CredentialsProvider
 }
 
 func NewHTTPClient(hc *http.Client) *HTTPClient {
@@ -124,6 +132,15 @@ func NewHTTPClientWithConfig(hc *http.Client, cfg config.ES) (*HTTPClient, error
 	}
 	if transport != nil {
 		c.transport = transport
+	}
+	if cfg.AWS.Enabled {
+		provider, err := awsCredentialsProvider(context.Background(), cfg.AWS)
+		if err != nil {
+			return nil, err
+		}
+		c.awsSigning = cfg.AWS
+		c.awsCredentials = provider
+		c.transport = awsSigningTransport(c.transport, c.awsSigning, c.awsCredentials)
 	}
 	return c, nil
 }
@@ -298,6 +315,83 @@ func mergeTLSConfig(base, override *tls.Config) *tls.Config {
 	}
 	return clone
 }
+
+func awsCredentialsProvider(ctx context.Context, cfg config.AWS) (aws.CredentialsProvider, error) {
+	if cfg.AccessKeyID != "" || cfg.SecretAccessKey != "" {
+		if cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" {
+			return nil, errors.New("es.aws.access_key_id and es.aws.secret_access_key must be configured together")
+		}
+		return aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(cfg.AccessKeyID, cfg.SecretAccessKey, cfg.SessionToken)), nil
+	}
+	options := []func(*awsconfig.LoadOptions) error{awsconfig.WithRegion(cfg.Region)}
+	if cfg.Profile != "" {
+		options = append(options, awsconfig.WithSharedConfigProfile(cfg.Profile))
+	}
+	awsCfg, err := awsconfig.LoadDefaultConfig(ctx, options...)
+	if err != nil {
+		return nil, fmt.Errorf("load AWS config for Elasticsearch signing: %w", err)
+	}
+	return awsCfg.Credentials, nil
+}
+
+func awsSigningTransport(next http.RoundTripper, cfg config.AWS, provider aws.CredentialsProvider) http.RoundTripper {
+	if next == nil {
+		next = http.DefaultTransport
+	}
+	service := cfg.Service
+	if service == "" {
+		service = "es"
+	}
+	return &awsSignerTransport{
+		next:        next,
+		credentials: provider,
+		region:      cfg.Region,
+		service:     service,
+		signer:      awsv4.NewSigner(),
+	}
+}
+
+type awsSignerTransport struct {
+	next        http.RoundTripper
+	credentials aws.CredentialsProvider
+	region      string
+	service     string
+	signer      *awsv4.Signer
+}
+
+func (t *awsSignerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	payloadHash, err := requestPayloadHash(req)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Amz-Content-Sha256", payloadHash)
+	creds, err := t.credentials.Retrieve(req.Context())
+	if err != nil {
+		return nil, fmt.Errorf("retrieve AWS credentials for Elasticsearch signing: %w", err)
+	}
+	if err := t.signer.SignHTTP(req.Context(), creds, req, payloadHash, t.service, t.region, time.Now().UTC()); err != nil {
+		return nil, fmt.Errorf("sign Elasticsearch request with AWS SigV4: %w", err)
+	}
+	return t.next.RoundTrip(req)
+}
+
+func requestPayloadHash(req *http.Request) (string, error) {
+	if req.Body == nil {
+		return emptySHA256, nil
+	}
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return "", fmt.Errorf("read request body for AWS signing: %w", err)
+	}
+	if err := req.Body.Close(); err != nil {
+		return "", fmt.Errorf("close request body after AWS signing read: %w", err)
+	}
+	req.Body = io.NopCloser(bytes.NewReader(body))
+	sum := sha256.Sum256(body)
+	return hex.EncodeToString(sum[:]), nil
+}
+
+const emptySHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 func (c *HTTPClient) Main(ctx context.Context, t Server) (Response, error) {
 	return c.execute(ctx, "", http.MethodGet, nil, t, nil)

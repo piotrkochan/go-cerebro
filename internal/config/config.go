@@ -71,6 +71,17 @@ type ES struct {
 	CACertFile       string `yaml:"ca_cert_file"`
 	ClientCertFile   string `yaml:"client_cert_file"`
 	ClientKeyFile    string `yaml:"client_key_file"`
+	AWS              AWS    `yaml:"aws"`
+}
+
+type AWS struct {
+	Enabled         bool   `yaml:"enabled"`
+	Region          string `yaml:"region"`
+	Service         string `yaml:"service"`
+	Profile         string `yaml:"profile"`
+	AccessKeyID     string `yaml:"access_key_id"`
+	SecretAccessKey string `yaml:"secret_access_key"`
+	SessionToken    string `yaml:"session_token"`
 }
 
 type Rest struct {
@@ -166,6 +177,9 @@ func (c *Config) normalize() {
 	if c.ES.MaxResponseBytes <= 0 {
 		c.ES.MaxResponseBytes = DefaultMaxResponseBytes
 	}
+	if c.ES.AWS.Enabled && c.ES.AWS.Service == "" {
+		c.ES.AWS.Service = "es"
+	}
 	if c.Rest.HistorySize == 0 {
 		c.Rest.HistorySize = 50
 	}
@@ -182,6 +196,14 @@ func (c *Config) normalize() {
 func (c *Config) validate() error {
 	if (c.ES.ClientCertFile == "") != (c.ES.ClientKeyFile == "") {
 		return fmt.Errorf("es.client_cert_file and es.client_key_file must be configured together")
+	}
+	if c.ES.AWS.Enabled {
+		if strings.TrimSpace(c.ES.AWS.Region) == "" {
+			return fmt.Errorf("es.aws.region is required when es.aws.enabled is true")
+		}
+		if (c.ES.AWS.AccessKeyID == "") != (c.ES.AWS.SecretAccessKey == "") {
+			return fmt.Errorf("es.aws.access_key_id and es.aws.secret_access_key must be configured together")
+		}
 	}
 	for _, h := range c.Hosts {
 		if err := validateHostURL(h.Host); err != nil {
