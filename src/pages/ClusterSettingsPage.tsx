@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useStore } from '@tanstack/react-store';
 
 import { clusterSettingsGet, clusterSettingsSave, type HostBodyWritable } from '../api/client';
 import { Icon } from '../components/Icon';
+import { clusterSettingsActions, clusterSettingsStore } from '../stores/clusterSettingsStore';
 import type { Notify } from '../types';
 import { errorMessage, textValue } from '../utils/format';
 
-type Change = { transient: boolean; value: string };
 type Setting = { name: string; static: boolean };
 
 const dynamicSettings = new Set([
@@ -90,38 +91,22 @@ export function ClusterSettingsPage({
   notify: Notify;
   refreshTick: number;
 }) {
-  const [settings, setSettings] = useState<Record<string, string>>({});
-  const [form, setForm] = useState<Record<string, string>>({});
-  const [changes, setChanges] = useState<Record<string, Change>>({});
-  const [filter, setFilter] = useState({ name: '', showStatic: false });
+  const { changes, filter, form, settings } = useStore(clusterSettingsStore);
+  const hostKey = connection.host;
 
   useEffect(() => {
+    clusterSettingsActions.resetForHost(hostKey);
     void load();
-  }, [connection, refreshTick]);
+  }, [connection, hostKey, refreshTick]);
 
   async function load() {
     try {
       const result = await clusterSettingsGet<true>({ body: connection, throwOnError: true });
       const flat = flattenSettings(result.data.data);
-      setSettings(flat);
-      setForm(flat);
-      setChanges({});
+      clusterSettingsActions.applyLoaded(hostKey, flat);
     } catch (error) {
       notify('danger', `Error loading cluster settings: ${errorMessage(error)}`);
     }
-  }
-
-  function updateSetting(name: string, value: string) {
-    setForm((current) => ({ ...current, [name]: value }));
-    setChanges((current) => {
-      const next = { ...current };
-      if (value === settings[name]) {
-        delete next[name];
-      } else {
-        next[name] = { transient: current[name]?.transient ?? true, value };
-      }
-      return next;
-    });
   }
 
   async function save() {
@@ -132,6 +117,7 @@ export function ClusterSettingsPage({
     try {
       await clusterSettingsSave<true>({ body: { ...connection, settings: body }, throwOnError: true });
       notify('info', 'Settings successfully saved');
+      clusterSettingsActions.clearChanges();
       await load();
     } catch (error) {
       notify('danger', `Error while saving settings: ${errorMessage(error)}`);
@@ -151,12 +137,12 @@ export function ClusterSettingsPage({
     <>
       <div className="row query-container">
         <div className="col-lg-4 col-md-6 col-sm-6 col-xs-12">
-          <input className="form-control" placeholder="filter settings by name" value={filter.name} onChange={(event) => setFilter((value) => ({ ...value, name: event.target.value }))} />
+          <input className="form-control" placeholder="filter settings by name" value={filter.name} onChange={(event) => clusterSettingsActions.setFilter({ name: event.target.value })} />
         </div>
         <div className="col-lg-4 col-md-6 col-sm-6 col-xs-12">
           <div className="checkbox">
             <label>
-              <input checked={filter.showStatic} type="checkbox" onChange={(event) => setFilter((value) => ({ ...value, showStatic: event.target.checked }))} /> show static settings <Icon className="alert-warning" name="lock" />
+              <input checked={filter.showStatic} type="checkbox" onChange={(event) => clusterSettingsActions.setFilter({ showStatic: event.target.checked })} /> show static settings <Icon className="alert-warning" name="lock" />
             </label>
           </div>
         </div>
@@ -173,7 +159,7 @@ export function ClusterSettingsPage({
                 <label className="form-label">
                   {setting.name} {setting.static ? <Icon className="alert-warning" name="lock" /> : null}
                 </label>
-                <input className="form-control" disabled={setting.static} type="text" value={form[setting.name] ?? ''} onChange={(event) => updateSetting(setting.name, event.target.value)} />
+                <input className="form-control" disabled={setting.static} type="text" value={form[setting.name] ?? ''} onChange={(event) => clusterSettingsActions.updateSetting(setting.name, event.target.value)} />
               </div>
             </div>
           ))}
@@ -193,10 +179,10 @@ export function ClusterSettingsPage({
                       <td>
                         <Icon name="cog" /> {setting} <span className="info-text">updated to</span> {change.value}{' '}
                         <span className="info-text">as</span>{' '}
-                        <u className="normal-action" onClick={() => setChanges((value) => ({ ...value, [setting]: { ...change, transient: !change.transient } }))}>
+                        <u className="normal-action" onClick={() => clusterSettingsActions.toggleTransient(setting)}>
                           {change.transient ? 'transient' : 'persistent'}
                         </u>
-                        <Icon className="normal-action pull-right" name="undo" onClick={() => updateSetting(setting, settings[setting] ?? '')} />
+                        <Icon className="normal-action pull-right" name="undo" onClick={() => clusterSettingsActions.undoSetting(setting)} />
                       </td>
                     </tr>
                   ))}
