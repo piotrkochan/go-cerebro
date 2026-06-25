@@ -1,0 +1,11 @@
+.git
+.github
+.air.tmp
+node_modules
+dist
+tmp
+cerebro
+cerebro.db
+cerebro.db-*
+*.test
+*.out
