@@ -97,6 +97,28 @@ func TestExecuteRequest_NormalizesSupportedMethod(t *testing.T) {
 	assert.Equal(t, http.MethodPost, gotMethod)
 }
 
+func TestSaveIndexDocument_UsesLegacyTypeForElasticsearch5(t *testing.T) {
+	paths := []string{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.RequestURI())
+		w.Header().Set("X-Elastic-Product", "Elasticsearch")
+		if r.URL.Path == "/" {
+			_, _ = w.Write([]byte(`{"version":{"number":"5.6.16"}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"result":"updated"}`))
+	}))
+	defer srv.Close()
+
+	c := NewHTTPClient(nil)
+	target := Server{Host: config.Host{Host: srv.URL}}
+
+	resp, err := c.SaveIndexDocument(context.Background(), "test", "1", json.RawMessage(`{"name":"a"}`), target)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.Status)
+	assert.Equal(t, []string{"/", "/test/doc/1?refresh=true"}, paths)
+}
+
 func TestNewHTTPClientWithConfig_UsesCustomCA(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

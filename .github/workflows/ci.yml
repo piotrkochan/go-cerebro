@@ -69,3 +69,25 @@ jobs:
 
       - name: Build Go binary
         run: go build -v ./cmd/cerebro
+
+  elasticsearch-compatibility:
+    name: Elasticsearch compatibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.4"
+
+      - name: Configure Elasticsearch host limits
+        run: sudo sysctl -w vm.max_map_count=262144
+
+      - name: Download Go dependencies
+        run: go mod download
+
+      - name: Run Elasticsearch compatibility tests
+        run: bash scripts/e2e-elasticsearch-compat.sh

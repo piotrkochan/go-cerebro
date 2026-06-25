@@ -70,6 +70,18 @@ go test ./...
 npm test
 ```
 
+Elasticsearch compatibility e2e tests are separate from the normal unit suite because they start real Docker containers for Elasticsearch 5, 6, 7, 8 and 9. The default matrix is defined in [scripts/e2e-elasticsearch-compat.sh](./scripts/e2e-elasticsearch-compat.sh):
+
+```sh
+npm run test:e2e:elasticsearch
+```
+
+To run only selected versions:
+
+```sh
+CEREBRO_E2E_ES_VERSIONS="8:8.15.0 9:9.3.6" npm run test:e2e:elasticsearch
+```
+
 For security-sensitive changes, also run:
 
 ```sh

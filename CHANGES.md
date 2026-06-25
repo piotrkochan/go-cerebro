@@ -17,6 +17,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 
 ### Elasticsearch
 - Replaced ad hoc Elasticsearch HTTP usage with the official Go Elasticsearch client transport.
+- Updated the Elasticsearch Go client to v9 and routed low-level requests through the official transport interface.
 - Added configurable Elasticsearch TLS trust with `es.ca_cert_file`.
 - Added configurable Elasticsearch mutual TLS with `es.client_cert_file` and `es.client_key_file`.
 - Added optional AWS SigV4 request signing for Amazon OpenSearch Service.
@@ -91,6 +92,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 
 ### CI and Release
 - Added GitHub Actions CI for Go tests, frontend typechecks, OpenAPI client generation checks and builds.
+- Added Docker-backed Elasticsearch compatibility e2e tests across Elasticsearch 5.x, 6.x, 7.x, 8.x and 9.x.
 - Added tag-based release workflow.
 - Added release package build with version linker flag.
 - Added generated frontend build during release packaging.

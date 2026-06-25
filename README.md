@@ -7,33 +7,70 @@ Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmene
 
 ## Requirements
 
-- Go 1.26.x
-- Node.js 24+ or 26+
-- npm
-- Docker Compose, for the local Elasticsearch development stack
+- Go Cerebro binary or Docker image
+- configuration file
+- reachable Elasticsearch or OpenSearch cluster
+
+## Installation
+
+Download a binary for your platform from [GitHub Releases](https://github.com/piotrkochan/go-cerebro/releases), make it executable and run it with a config file:
+
+```sh
+chmod +x cerebro-linux-amd64
+./cerebro-linux-amd64 serve -config conf/application.yaml
+```
+
+You can also run the Docker image:
+
+```sh
+docker run --rm -p 9000:9000 \
+  -v ./conf/application.yaml:/etc/cerebro/application.yaml:ro \
+  ghcr.io/piotrkochan/go-cerebro:latest \
+  serve -config /etc/cerebro/application.yaml
+```
 
 ## Quick Start
 
-Run the full development stack:
+Create a minimal `conf/application.yaml`:
 
-```sh
-docker compose up --build
+```yaml
+hosts:
+  - name: "Local cluster"
+    host: "http://localhost:9200"
+
+auth:
+  type: "disabled"
+
+server:
+  port: 9000
+  secret: "local-dev-secret"
+  cookie_secure: false
+
+es:
+  allow_ad_hoc_hosts: false
+
+features:
+  data_explorer: false
 ```
 
-Then open:
+Then run Cerebro:
 
-- Application served by Go: `http://localhost:9000`
-- Vite dev frontend with live reload: `http://localhost:5173`
-- Local Elasticsearch: `http://localhost:9200`
+```sh
+cerebro serve -config conf/application.yaml
+```
 
-The development config is [conf/application.dev.yaml](./conf/application.dev.yaml). Development and contribution details are in [CONTRIBUTING.md](./CONTRIBUTING.md).
+Then open `http://localhost:9000`.
+
+The development stack and live-reload setup are described in [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+For local development with Elasticsearch, use [conf/application.dev.yaml](./conf/application.dev.yaml).
 
 ## CLI
 
 Serve the application:
 
 ```sh
-cerebro serve -config conf/application.yaml -public public
+cerebro serve -config conf/application.yaml
 ```
 
 Generate the OpenAPI spec:
@@ -46,12 +83,6 @@ Print the version:
 
 ```sh
 cerebro version
-```
-
-Release builds inject the version with:
-
-```sh
-go build -ldflags="-X github.com/lmenezes/cerebro/internal/version.Version=0.10.0" ./cmd/cerebro
 ```
 
 ## Configuration
@@ -69,6 +100,34 @@ Important sections:
 - `auth.settings.ca_cert_file`: custom LDAP CA trust.
 - `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
 - `data.path`: SQLite file used for REST request history.
+
+Production baseline:
+
+```yaml
+hosts:
+  - name: "Production"
+    host: "https://elasticsearch.example.org:9200"
+    auth:
+      username: "${ES_USERNAME}"
+      password: "${ES_PASSWORD}"
+
+auth:
+  type: "basic"
+  settings:
+    username: "${CEREBRO_USER}"
+    password: "${CEREBRO_PASSWORD}"
+
+server:
+  port: 9000
+  secret: "${APPLICATION_SECRET}"
+  cookie_secure: true
+  hsts_enabled: true
+  hsts_max_age_seconds: 31536000
+  hsts_include_subdomains: true
+
+es:
+  allow_ad_hoc_hosts: false
+```
 
 Elasticsearch HTTPS with a custom CA and client certificate:
 
@@ -111,6 +170,16 @@ Environment variables are expanded inside YAML values. These direct overrides ar
 - `APPLICATION_SECRET`
 - `AUTH_TYPE`
 
+## Feature Flags
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `features.data_explorer` | `false` | Enables the index document browser/editor. Keep disabled unless Cerebro users are allowed to read and modify index documents. |
+
+## Compatibility
+
+Go Cerebro targets Elasticsearch and OpenSearch clusters through the official Elasticsearch Go client v9 transport path. Docker-backed e2e compatibility tests cover Elasticsearch major versions from 5 to 9 for the core APIs used by Cerebro.
+
 ## Authentication
 
 Basic auth example:
@@ -141,6 +210,15 @@ auth:
 ```
 
 ## Docker
+
+Runtime image:
+
+```sh
+docker run --rm -p 9000:9000 \
+  -v ./conf/application.yaml:/etc/cerebro/application.yaml:ro \
+  ghcr.io/piotrkochan/go-cerebro:latest \
+  serve -config /etc/cerebro/application.yaml
+```
 
 The development stack uses:
 

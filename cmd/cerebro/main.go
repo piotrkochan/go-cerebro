@@ -28,6 +28,8 @@ func main() {
 	cmd := os.Args[1]
 	args := os.Args[2:]
 	switch cmd {
+	case "-h", "--help", "help":
+		printRootHelp()
 	case "serve":
 		runServe(args)
 	case "openapi":
@@ -35,8 +37,29 @@ func main() {
 	case "version":
 		fmt.Println(version.Version)
 	default:
-		runServe(os.Args[1:])
+		if len(cmd) > 0 && cmd[0] == '-' {
+			runServe(os.Args[1:])
+			return
+		}
+		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", cmd)
+		printRootHelp()
+		os.Exit(2)
 	}
+}
+
+func printRootHelp() {
+	fmt.Fprintf(os.Stdout, `Cerebro web admin for Elasticsearch and OpenSearch.
+
+Usage:
+  cerebro [command]
+
+Commands:
+  serve      Run the web application
+  openapi    Generate the OpenAPI document
+  version    Print the version
+
+Run "cerebro [command] -h" for command-specific flags.
+`)
 }
 
 func runServe(args []string) {

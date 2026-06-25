@@ -14,14 +14,17 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	elasticsearch "github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/elastic-transport-go/v8/elastictransport"
+	elasticsearch "github.com/elastic/go-elasticsearch/v9"
 	"github.com/lmenezes/cerebro/internal/config"
 )
 
@@ -101,6 +104,8 @@ type HTTPClient struct {
 	maxResponseBytes int64
 	awsSigning       config.AWS
 	awsCredentials   aws.CredentialsProvider
+	versionMu        sync.RWMutex
+	majorVersions    map[string]int
 }
 
 func NewHTTPClient(hc *http.Client) *HTTPClient {
@@ -118,6 +123,7 @@ func NewHTTPClient(hc *http.Client) *HTTPClient {
 		transport:        transport,
 		timeout:          timeout,
 		maxResponseBytes: config.DefaultMaxResponseBytes,
+		majorVersions:    map[string]int{},
 	}
 }
 
@@ -169,7 +175,7 @@ func (c *HTTPClient) execute(ctx context.Context, uri, method string, body []byt
 		defer cancel()
 	}
 
-	es, err := c.elasticsearchClient(base, t.Host.Auth)
+	es, err := c.elasticsearchTransport(base, t.Host.Auth)
 	if err != nil {
 		return Response{}, err
 	}
@@ -208,20 +214,26 @@ func (c *HTTPClient) execute(ctx context.Context, uri, method string, body []byt
 	return Response{Status: resp.StatusCode, Body: raw}, nil
 }
 
-func (c *HTTPClient) elasticsearchClient(base string, auth *config.ESAuth) (*elasticsearch.Client, error) {
-	cfg := elasticsearch.Config{
-		Addresses:         []string{base},
-		DisableRetry:      true,
-		DisableMetaHeader: true,
+func (c *HTTPClient) elasticsearchTransport(base string, auth *config.ESAuth) (elastictransport.Interface, error) {
+	transportOpts := []elastictransport.Option{
+		elastictransport.WithDisableRetry(),
 	}
 	if c.transport != nil {
-		cfg.Transport = c.transport
+		transportOpts = append(transportOpts, elastictransport.WithTransport(c.transport))
+	}
+	opts := []elasticsearch.Option{
+		elasticsearch.WithAddresses(base),
+		elasticsearch.WithDisableMetaHeader(),
+		elasticsearch.WithTransportOptions(transportOpts...),
 	}
 	if auth != nil {
-		cfg.Username = auth.Username
-		cfg.Password = auth.Password
+		opts = append(opts, elasticsearch.WithBasicAuth(auth.Username, auth.Password))
 	}
-	return elasticsearch.NewClient(cfg)
+	baseClient, err := elasticsearch.NewBase(opts...)
+	if err != nil {
+		return nil, err
+	}
+	return baseClient.Transport, nil
 }
 
 func normalizeBaseURL(raw string) (string, error) {
@@ -656,10 +668,74 @@ func (c *HTTPClient) SearchIndexDocuments(ctx context.Context, index string, que
 }
 
 func (c *HTTPClient) SaveIndexDocument(ctx context.Context, index, id string, document json.RawMessage, t Server) (Response, error) {
-	if strings.TrimSpace(id) == "" {
-		return c.execute(ctx, fmt.Sprintf("/%s/_doc?refresh=true", encoded(index)), http.MethodPost, document, t, [][2]string{jsonHeader})
+	docType := "_doc"
+	major, err := c.elasticsearchMajorVersion(ctx, t)
+	if err != nil {
+		return Response{}, err
 	}
-	return c.execute(ctx, fmt.Sprintf("/%s/_doc/%s?refresh=true", encoded(index), encoded(id)), http.MethodPut, document, t, [][2]string{jsonHeader})
+	if major == 5 {
+		docType = "doc"
+	}
+	return c.saveIndexDocument(ctx, index, docType, id, document, t)
+}
+
+func (c *HTTPClient) saveIndexDocument(ctx context.Context, index, docType, id string, document json.RawMessage, t Server) (Response, error) {
+	if strings.TrimSpace(id) == "" {
+		return c.execute(ctx, fmt.Sprintf("/%s/%s?refresh=true", encoded(index), encoded(docType)), http.MethodPost, document, t, [][2]string{jsonHeader})
+	}
+	return c.execute(ctx, fmt.Sprintf("/%s/%s/%s?refresh=true", encoded(index), encoded(docType), encoded(id)), http.MethodPut, document, t, [][2]string{jsonHeader})
+}
+
+func (c *HTTPClient) elasticsearchMajorVersion(ctx context.Context, t Server) (int, error) {
+	base, err := normalizeBaseURL(t.Host.Host)
+	if err != nil {
+		return 0, err
+	}
+	cacheKey := base
+	if t.Host.Auth != nil {
+		cacheKey += "|" + t.Host.Auth.Username
+	}
+	c.versionMu.RLock()
+	major, ok := c.majorVersions[cacheKey]
+	c.versionMu.RUnlock()
+	if ok {
+		return major, nil
+	}
+	resp, err := c.Main(ctx, t)
+	if err != nil {
+		return 0, err
+	}
+	if !resp.IsSuccess() {
+		return 0, fmt.Errorf("read elasticsearch version: status %d: %s", resp.Status, string(resp.Body))
+	}
+	major, err = parseMajorVersion(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+	c.versionMu.Lock()
+	c.majorVersions[cacheKey] = major
+	c.versionMu.Unlock()
+	return major, nil
+}
+
+func parseMajorVersion(raw json.RawMessage) (int, error) {
+	var root struct {
+		Version struct {
+			Number string `json:"number"`
+		} `json:"version"`
+	}
+	if err := json.Unmarshal(raw, &root); err != nil {
+		return 0, fmt.Errorf("parse elasticsearch version: %w", err)
+	}
+	majorRaw, _, ok := strings.Cut(root.Version.Number, ".")
+	if !ok || majorRaw == "" {
+		return 0, fmt.Errorf("parse elasticsearch major version from %q", root.Version.Number)
+	}
+	major, err := strconv.Atoi(majorRaw)
+	if err != nil {
+		return 0, fmt.Errorf("parse elasticsearch major version from %q: %w", root.Version.Number, err)
+	}
+	return major, nil
 }
 
 func (c *HTTPClient) ExecuteRequest(ctx context.Context, method, path string, data json.RawMessage, t Server) (Response, error) {
