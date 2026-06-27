@@ -33,6 +33,13 @@ func (d *Deps) RegisterNavbar(api huma.API) {
 		if !resp.IsSuccess() {
 			return fail[RawResponse](resp.Status, resp.Body)
 		}
+		version := json.RawMessage(nil)
+		if versionResp, err := d.Client.Main(ctx, t); err == nil && versionResp.IsSuccess() {
+			var info map[string]json.RawMessage
+			if err := json.Unmarshal(versionResp.Body, &info); err == nil {
+				version = info["version"]
+			}
+		}
 		if user := auth.UserFrom(ctx); user != "" {
 			var m map[string]json.RawMessage
 			if err := json.Unmarshal(resp.Body, &m); err == nil {
@@ -40,6 +47,9 @@ func (d *Deps) RegisterNavbar(api huma.API) {
 				m["username"] = name
 				features, _ := json.Marshal(map[string]bool{"data_explorer": d.Cfg.Features.DataExplorer})
 				m["features"] = features
+				if len(version) > 0 {
+					m["version"] = version
+				}
 				newBody, _ := json.Marshal(m)
 				return raw(resp.Status, newBody)
 			}
@@ -48,6 +58,9 @@ func (d *Deps) RegisterNavbar(api huma.API) {
 		if err := json.Unmarshal(resp.Body, &m); err == nil {
 			features, _ := json.Marshal(map[string]bool{"data_explorer": d.Cfg.Features.DataExplorer})
 			m["features"] = features
+			if len(version) > 0 {
+				m["version"] = version
+			}
 			newBody, _ := json.Marshal(m)
 			return raw(resp.Status, newBody)
 		}

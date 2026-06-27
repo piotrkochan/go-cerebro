@@ -323,4 +323,26 @@
   .red {
     @apply border-[#e64759] text-[#e64759];
   }
+
+  .settings-group-nav {
+    scrollbar-color: #6f7579 transparent;
+    scrollbar-width: thin;
+  }
+
+  .settings-group-nav::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .settings-group-nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .settings-group-nav::-webkit-scrollbar-thumb {
+    background-color: #6f7579;
+    border-radius: 999px;
+  }
+
+  .settings-group-nav::-webkit-scrollbar-thumb:hover {
+    background-color: #8b8f95;
+  }
 }

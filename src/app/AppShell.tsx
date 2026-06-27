@@ -36,12 +36,16 @@ export function AppShell() {
       try {
         const result = await navbar<true>({ body: getConnection(), throwOnError: true });
         if (!ignore) {
-          const data = result.data.data as { features?: { data_explorer?: unknown }; status?: unknown } | undefined;
+          const data = result.data.data as { features?: { data_explorer?: unknown }; status?: unknown; version?: { number?: unknown } } | undefined;
           sessionActions.setFeatures({ dataExplorer: data?.features?.data_explorer === true });
           sessionActions.setStatus(textValue(data?.status));
+          sessionActions.setVersion(textValue(data?.version?.number));
         }
       } catch {
-        if (!ignore) sessionActions.setStatus('');
+        if (!ignore) {
+          sessionActions.setStatus('');
+          sessionActions.setVersion('');
+        }
       }
     }
     void loadStatus();

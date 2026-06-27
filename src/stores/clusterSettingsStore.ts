@@ -45,7 +45,7 @@ export const clusterSettingsActions = {
     clusterSettingsStore.setState((state) => {
       const form = { ...state.form, [name]: value };
       const changes = { ...state.changes };
-      if (value === state.settings[name]) {
+      if (value === (state.settings[name] ?? '')) {
         delete changes[name];
       } else {
         changes[name] = { transient: changes[name]?.transient ?? true, value };

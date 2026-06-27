@@ -11,6 +11,7 @@ type SessionState = {
   };
   host: string;
   status: string;
+  version: string;
 };
 
 const initialHost = window.localStorage.getItem(savedHostKey) ?? '';
@@ -21,6 +22,7 @@ export const sessionStore = createStore<SessionState>({
   features: { dataExplorer: false },
   host: initialHost,
   status: '',
+  version: '',
 });
 
 export const sessionActions = {
@@ -30,13 +32,16 @@ export const sessionActions = {
   },
   disconnect() {
     window.localStorage.removeItem(savedHostKey);
-    sessionStore.setState(() => ({ auth: {}, connected: false, features: { dataExplorer: false }, host: '', status: '' }));
+    sessionStore.setState(() => ({ auth: {}, connected: false, features: { dataExplorer: false }, host: '', status: '', version: '' }));
   },
   setFeatures(features: Partial<SessionState['features']>) {
     sessionStore.setState((state) => ({ ...state, features: { ...state.features, ...features } }));
   },
   setStatus(status: string) {
     sessionStore.setState((state) => (state.status === status ? state : { ...state, status }));
+  },
+  setVersion(version: string) {
+    sessionStore.setState((state) => (state.version === version ? state : { ...state, version }));
   },
 };
 

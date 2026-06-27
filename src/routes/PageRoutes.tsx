@@ -18,6 +18,7 @@ import { SnapshotPage } from '../pages/SnapshotPage';
 import { TemplatesPage } from '../pages/TemplatesPage';
 import { alertsActions } from '../stores/alertsStore';
 import { refreshStore } from '../stores/refreshStore';
+import { parseMajorVersion } from '../settingsCatalog';
 import { getConnection, sessionActions, sessionStore } from '../stores/sessionStore';
 
 function usePageContext() {
@@ -30,6 +31,7 @@ function usePageContext() {
 
   return {
     connection,
+    majorVersion: parseMajorVersion(session.version),
     notify: alertsActions.notify,
     refreshTick,
     setStatus: sessionActions.setStatus,
@@ -98,8 +100,8 @@ export function SnapshotRoute() {
 }
 
 export function ClusterSettingsRoute() {
-  const { connection, notify, refreshTick } = usePageContext();
-  return <ClusterSettingsPage connection={connection} notify={notify} refreshTick={refreshTick} />;
+  const { connection, majorVersion, notify, refreshTick } = usePageContext();
+  return <ClusterSettingsPage connection={connection} majorVersion={majorVersion} notify={notify} refreshTick={refreshTick} />;
 }
 
 export function CreateIndexRoute() {
@@ -108,9 +110,9 @@ export function CreateIndexRoute() {
 }
 
 export function IndexSettingsRoute() {
-  const { connection, notify } = usePageContext();
+  const { connection, majorVersion, notify } = usePageContext();
   const search = useSearch({ strict: false });
-  return <IndexSettingsPage connection={connection} index={typeof search.index === 'string' ? search.index : ''} notify={notify} />;
+  return <IndexSettingsPage connection={connection} index={typeof search.index === 'string' ? search.index : ''} majorVersion={majorVersion} notify={notify} />;
 }
 
 export function DataExplorerRoute() {

@@ -1,93 +1,26 @@
 import { useEffect, useMemo } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useStore } from '@tanstack/react-store';
 
 import { clusterSettingsGet, clusterSettingsSave, type HostBodyWritable } from '../api/client';
 import { Icon } from '../components/Icon';
+import { SettingsPageLayout } from '../components/SettingsPageLayout';
+import { SettingValueInput } from '../components/SettingValueInput';
+import { isDynamicSetting, normalizeSettingValue, settingInput, settingSuggestions, type SettingInput } from '../settingsCatalog';
 import { clusterSettingsActions, clusterSettingsStore } from '../stores/clusterSettingsStore';
 import type { Notify } from '../types';
 import { errorMessage, textValue } from '../utils/format';
 
-type Setting = { name: string; static: boolean };
-
-const dynamicSettings = new Set([
-  'action.auto_create_index',
-  'action.destructive_requires_name',
-  'action.search.shard_count.limit',
-  'cluster.blocks.read_only',
-  'cluster.blocks.read_only_allow_delete',
-  'cluster.indices.close.enable',
-  'cluster.info.update.interval',
-  'cluster.info.update.timeout',
-  'cluster.routing.allocation.allow_rebalance',
-  'cluster.routing.allocation.awareness.attributes',
-  'cluster.routing.allocation.balance.index',
-  'cluster.routing.allocation.balance.shard',
-  'cluster.routing.allocation.balance.threshold',
-  'cluster.routing.allocation.cluster_concurrent_rebalance',
-  'cluster.routing.allocation.disk.include_relocations',
-  'cluster.routing.allocation.disk.reroute_interval',
-  'cluster.routing.allocation.disk.threshold_enabled',
-  'cluster.routing.allocation.disk.watermark.high',
-  'cluster.routing.allocation.disk.watermark.low',
-  'cluster.routing.allocation.enable',
-  'cluster.routing.allocation.node_concurrent_incoming_recoveries',
-  'cluster.routing.allocation.node_concurrent_outgoing_recoveries',
-  'cluster.routing.allocation.node_concurrent_recoveries',
-  'cluster.routing.allocation.node_initial_primaries_recoveries',
-  'cluster.routing.allocation.same_shard.host',
-  'cluster.routing.allocation.snapshot.relocation_enabled',
-  'cluster.routing.allocation.total_shards_per_node',
-  'cluster.routing.rebalance.enable',
-  'cluster.service.slow_task_logging_threshold',
-  'discovery.zen.commit_timeout',
-  'discovery.zen.minimum_master_nodes',
-  'discovery.zen.no_master_block',
-  'discovery.zen.publish_diff.enable',
-  'discovery.zen.publish_timeout',
-  'gateway.initial_shards',
-  'indices.breaker.fielddata.limit',
-  'indices.breaker.fielddata.overhead',
-  'indices.breaker.request.limit',
-  'indices.breaker.request.overhead',
-  'indices.breaker.total.limit',
-  'indices.mapping.dynamic_timeout',
-  'indices.recovery.internal_action_long_timeout',
-  'indices.recovery.internal_action_timeout',
-  'indices.recovery.max_bytes_per_sec',
-  'indices.recovery.recovery_activity_timeout',
-  'indices.recovery.retry_delay_network',
-  'indices.recovery.retry_delay_state_sync',
-  'indices.store.throttle.max_bytes_per_sec',
-  'indices.store.throttle.type',
-  'indices.ttl.interval',
-  'ingest.new_date_format',
-  'network.breaker.inflight_requests.limit',
-  'network.breaker.inflight_requests.overhead',
-  'script.max_compilations_per_minute',
-  'search.default_search_timeout',
-  'search.low_level_cancellation',
-  'transport.tracer.exclude.0',
-  'transport.tracer.exclude.1',
-  'xpack.ml.node_concurrent_job_allocations',
-  'xpack.monitoring.collection.cluster.state.timeout',
-  'xpack.monitoring.collection.cluster.stats.timeout',
-  'xpack.monitoring.collection.index.recovery.active_only',
-  'xpack.monitoring.collection.index.recovery.timeout',
-  'xpack.monitoring.collection.index.stats.timeout',
-  'xpack.monitoring.collection.interval',
-  'xpack.monitoring.collection.ml.job.stats.timeout',
-  'xpack.monitoring.history.duration',
-  'xpack.security.http.filter.enabled',
-  'xpack.security.transport.filter.enabled',
-  'xpack.watcher.history.cleaner_service.enabled',
-]);
+type Setting = { input: SettingInput; name: string; static: boolean };
 
 export function ClusterSettingsPage({
   connection,
+  majorVersion,
   notify,
   refreshTick,
 }: {
   connection: HostBodyWritable;
+  majorVersion?: number;
   notify: Notify;
   refreshTick: number;
 }) {
@@ -102,7 +35,7 @@ export function ClusterSettingsPage({
   async function load() {
     try {
       const result = await clusterSettingsGet<true>({ body: connection, throwOnError: true });
-      const flat = flattenSettings(result.data.data);
+      const flat = flattenSettings(result.data.data, majorVersion);
       clusterSettingsActions.applyLoaded(hostKey, flat);
     } catch (error) {
       notify('danger', `Error loading cluster settings: ${errorMessage(error)}`);
@@ -124,7 +57,18 @@ export function ClusterSettingsPage({
     }
   }
 
-  const groups = useMemo(() => groupSettings(Object.keys(form).map((name) => ({ name, static: !dynamicSettings.has(name) }))), [form]);
+  const suggestions = useMemo(() => settingSuggestions('cluster', majorVersion), [majorVersion]);
+  const groups = useMemo(
+    () =>
+      groupSettings(
+        settingNames(form, suggestions).map((name) => ({
+          input: settingInput('cluster', name, majorVersion),
+          name,
+          static: !isDynamicSetting('cluster', name, majorVersion),
+        })),
+      ),
+    [form, majorVersion, suggestions],
+  );
   const visibleGroups = groups
     .map((group) => ({
       ...group,
@@ -134,97 +78,111 @@ export function ClusterSettingsPage({
   const pending = Object.keys(changes).length;
 
   return (
-    <>
-      <div className="row query-container">
-        <div className="col-lg-4 col-md-6 col-sm-6 col-xs-12">
-          <input className="form-control" placeholder="filter settings by name" value={filter.name} onChange={(event) => clusterSettingsActions.setFilter({ name: event.target.value })} />
-        </div>
-        <div className="col-lg-4 col-md-6 col-sm-6 col-xs-12">
-          <div className="checkbox">
-            <label>
-              <input checked={filter.showStatic} type="checkbox" onChange={(event) => clusterSettingsActions.setFilter({ showStatic: event.target.checked })} /> show static settings <Icon className="alert-warning" name="lock" />
-            </label>
+    <SettingsPageLayout
+      actions={
+        <Link className="btn btn-default whitespace-nowrap" search={{ host: connection.host }} to="/overview">
+          <Icon name="undo" /> back to overview
+        </Link>
+      }
+      filterName={filter.name}
+      groupAriaLabel="Cluster settings groups"
+      groupPrefix="cluster-setting"
+      groups={visibleGroups}
+      label="cluster settings"
+      pendingCount={pending}
+      pendingContent={Object.entries(changes).map(([setting, change]) => (
+        <div className="px-3 py-2" key={setting}>
+          <div className="break-all"><Icon name="cog" /> {setting}</div>
+          <div className="mt-1 break-all text-[#d0d0d0]">
+            <span className="info-text">updated to</span> {change.value || <span className="info-text">null</span>}
           </div>
-        </div>
-      </div>
-      {visibleGroups.map((group) => (
-        <div className="row form-group" key={group.name}>
-          <div className="col-xs-12">
-            <h6><b>{group.name.toUpperCase()}</b></h6>
-            <hr className="header" />
+          <div className="mt-2 flex items-center justify-between">
+            <button className="btn btn-default btn-xs" type="button" onClick={() => clusterSettingsActions.toggleTransient(setting)}>
+              {change.transient ? 'transient' : 'persistent'}
+            </button>
+            <button className="btn btn-default btn-xs" title="undo" type="button" onClick={() => clusterSettingsActions.undoSetting(setting)}>
+              <Icon name="undo" />
+            </button>
           </div>
-          {group.settings.map((setting) => (
-            <div className="col-lg-4 col-md-4 col-sm-6 col-xs-12" key={setting.name}>
-              <div className="form-group">
-                <label className="form-label">
-                  {setting.name} {setting.static ? <Icon className="alert-warning" name="lock" /> : null}
-                </label>
-                <input className="form-control" disabled={setting.static} type="text" value={form[setting.name] ?? ''} onChange={(event) => clusterSettingsActions.updateSetting(setting.name, event.target.value)} />
-              </div>
-            </div>
-          ))}
         </div>
       ))}
-      {pending ? (
-        <div className="row" style={{ paddingTop: (pending * 40) + 90 }}>
-          <div className="pending-changes">
-            <div className="col-xs-12">
-              <table className="table">
-                <thead>
-                  <tr className="text-center"><td>{pending} pending changes</td></tr>
-                </thead>
-                <tbody>
-                  {Object.entries(changes).map(([setting, change]) => (
-                    <tr key={setting}>
-                      <td>
-                        <Icon name="cog" /> {setting} <span className="info-text">updated to</span> {change.value}{' '}
-                        <span className="info-text">as</span>{' '}
-                        <u className="normal-action" onClick={() => clusterSettingsActions.toggleTransient(setting)}>
-                          {change.transient ? 'transient' : 'persistent'}
-                        </u>
-                        <Icon className="normal-action pull-right" name="undo" onClick={() => clusterSettingsActions.undoSetting(setting)} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="col-lg-12 text-right">
-              <div className="form-group">
-                <div className="btn-group">
-                  <button className="btn btn-success" onClick={() => void save()}>save</button>
-                </div>
-              </div>
-            </div>
-          </div>
+      pendingFooter={<button className="btn btn-success" type="button" onClick={() => void save()}>save</button>}
+      renderSetting={(setting) => (
+        <div className="grid gap-2 px-3 py-2 lg:grid-cols-[minmax(260px,42%)_minmax(220px,1fr)] lg:items-center" key={setting.name}>
+          <label className="mb-0 min-w-0 font-normal text-[#d0d0d0]">
+            <span className="break-all">{setting.name}</span>{' '}
+            {setting.static ? <Icon className="alert-warning" name="lock" /> : <span className="text-[#6f7579]">dynamic</span>}
+          </label>
+          <SettingValueInput
+            disabled={setting.static}
+            input={setting.input}
+            value={form[setting.name] ?? ''}
+            onChange={(value) => clusterSettingsActions.updateSetting(setting.name, value)}
+          />
         </div>
-      ) : null}
-    </>
+      )}
+      showStatic={filter.showStatic}
+      title={connection.host}
+      onFilterNameChange={(name) => clusterSettingsActions.setFilter({ name })}
+      onShowStaticChange={(showStatic) => clusterSettingsActions.setFilter({ showStatic })}
+    />
   );
 }
 
-function flattenSettings(raw: unknown): Record<string, string> {
+function settingNames(form: Record<string, string>, suggestions: string[]) {
+  return Array.from(new Set([...Object.keys(form), ...suggestions])).filter((name) => !name.includes('<') && !name.includes('>'));
+}
+
+function flattenSettings(raw: unknown, majorVersion?: number): Record<string, string> {
   const result: Record<string, string> = {};
   const root = raw as { defaults?: unknown; persistent?: unknown; transient?: unknown };
-  ['defaults', 'persistent', 'transient'].forEach((section) => flatten(root?.[section as keyof typeof root], '', result));
+  ['defaults', 'persistent', 'transient'].forEach((section) => flatten(root?.[section as keyof typeof root], '', result, majorVersion));
   return result;
 }
 
-function flatten(value: unknown, prefix: string, out: Record<string, string>) {
+function flatten(value: unknown, prefix: string, out: Record<string, string>, majorVersion?: number) {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     Object.entries(value as Record<string, unknown>).forEach(([key, nested]) => {
-      flatten(nested, prefix ? `${prefix}.${key}` : key, out);
+      flatten(nested, prefix ? `${prefix}.${key}` : key, out, majorVersion);
     });
     return;
   }
-  if (prefix) out[prefix] = textValue(value);
+  if (prefix) out[prefix] = normalizeSettingValue('cluster', prefix, textValue(value), majorVersion);
 }
 
 function groupSettings(settings: Setting[]) {
   const groups = new Map<string, Setting[]>();
   settings.forEach((setting) => {
-    const group = setting.name.split('.')[1] || setting.name.split('.')[0] || 'settings';
+    const group = clusterSettingGroup(setting.name);
     groups.set(group, [...(groups.get(group) ?? []), setting]);
   });
   return Array.from(groups, ([name, groupSettings]) => ({ name, settings: groupSettings.sort((a, b) => a.name.localeCompare(b.name)) })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function clusterSettingGroup(name: string) {
+  if (name.startsWith('action.')) return 'actions';
+  if (name.startsWith('cluster.blocks.')) return 'blocks';
+  if (name.startsWith('cluster.info.')) return 'cluster info';
+  if (name.startsWith('cluster.max_')) return 'limits';
+  if (name.startsWith('cluster.persistent_tasks.')) return 'persistent tasks';
+  if (name.startsWith('cluster.remote.')) return 'remote clusters';
+  if (name.startsWith('cluster.routing.allocation.')) return 'allocation';
+  if (name.startsWith('cluster.routing.rebalance.')) return 'rebalance';
+  if (name.startsWith('cluster.service.')) return 'cluster service';
+  if (name.startsWith('discovery.')) return 'discovery';
+  if (name.startsWith('gateway.')) return 'gateway';
+  if (name.startsWith('indices.breaker.') || name.startsWith('network.breaker.')) return 'breakers';
+  if (name.startsWith('indices.lifecycle.')) return 'lifecycle';
+  if (name.startsWith('indices.mapping.')) return 'mapping';
+  if (name.startsWith('indices.recovery.')) return 'recovery';
+  if (name.startsWith('indices.store.') || name.startsWith('indices.ttl.') || name.startsWith('indices.id_field_data.')) return 'indices';
+  if (name.startsWith('ingest.')) return 'ingest';
+  if (name.startsWith('script.')) return 'scripts';
+  if (name.startsWith('search.')) return 'search';
+  if (name.startsWith('transport.')) return 'transport';
+  if (name.startsWith('xpack.ml.')) return 'machine learning';
+  if (name.startsWith('xpack.monitoring.')) return 'monitoring';
+  if (name.startsWith('xpack.security.')) return 'security';
+  if (name.startsWith('xpack.watcher.')) return 'watcher';
+  return 'general';
 }
