@@ -48,6 +48,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Standardized modals, close buttons, ESC handling and delete confirmations.
 - Added JSON syntax highlighting in read-only/editing modals.
 - Improved sorting for aliases and similar list pages.
+- Fixed repository form error reporting and type-specific settings templates.
 - Preserved the original Cerebro overview behavior more closely, including shard controls, affected-index filtering and relocation flow.
 
 ### REST Console

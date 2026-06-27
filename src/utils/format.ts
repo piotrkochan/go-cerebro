@@ -1,8 +1,22 @@
 export function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'object' && error !== null) {
-    const candidate = error as { detail?: unknown; message?: unknown; title?: unknown };
-    return textValue(candidate.detail ?? candidate.message ?? candidate.title ?? error);
+    const candidate = error as {
+      data?: { error?: { reason?: unknown; root_cause?: Array<{ reason?: unknown }> }; status?: unknown };
+      detail?: unknown;
+      error?: { reason?: unknown; root_cause?: Array<{ reason?: unknown }> };
+      message?: unknown;
+      title?: unknown;
+    };
+    const upstream = candidate.data?.error ?? candidate.error;
+    return textValue(
+      upstream?.reason
+      ?? upstream?.root_cause?.[0]?.reason
+      ?? candidate.detail
+      ?? candidate.message
+      ?? candidate.title
+      ?? error,
+    );
   }
   return textValue(error);
 }

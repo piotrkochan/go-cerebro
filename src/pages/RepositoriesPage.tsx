@@ -14,10 +14,44 @@ import { ConfirmModal } from '../components/Modal';
 import { SplitPane } from '../components/SplitPane';
 import { repositoryFormDefaults, type RepositoryFormValues } from '../forms/repositoryForm';
 import type { Notify } from '../types';
-import { formatJson, parseJson, textValue } from '../utils/format';
+import { errorMessage, formatJson, parseJson, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
 
 type RepositorySortKey = 'name' | 'type';
+type RepositoryType = 'azure' | 'fs' | 'gcs' | 'hdfs' | 's3' | 'url';
+
+const repositoryTypes: RepositoryType[] = ['fs', 'url', 's3', 'gcs', 'hdfs', 'azure'];
+
+const repositorySettingsTemplates: Record<RepositoryType, Record<string, unknown>> = {
+  azure: {
+    container: '',
+    base_path: '',
+    client: 'default',
+  },
+  fs: {
+    location: '',
+    compress: true,
+  },
+  gcs: {
+    bucket: '',
+    base_path: '',
+    client: 'default',
+  },
+  hdfs: {
+    uri: '',
+    path: '',
+  },
+  s3: {
+    bucket: '',
+    base_path: '',
+    region: '',
+  },
+  url: {
+    url: '',
+  },
+};
+
+const repositoryTemplateValues = new Set(Object.values(repositorySettingsTemplates).map((value) => formatJson(value)));
 
 export function RepositoriesPage({
   connection,
@@ -41,25 +75,63 @@ export function RepositoriesPage({
 
   useEffect(() => {
     async function load() {
-      const result = await repositoriesList<true>({ body: connection, throwOnError: true });
-      setRepositories(result.data.items ?? []);
+      try {
+        await loadRepositories();
+      } catch (error) {
+        notify('danger', `Error loading repositories: ${errorMessage(error)}`);
+      }
     }
     void load();
-  }, [connection, refreshTick]);
+  }, [connection, notify, refreshTick]);
 
   async function save(values: RepositoryFormValues) {
-    await repositoriesCreate<true>({
-      body: { ...connection, name: values.name, settings: parseJson(values.settings) ?? {}, type: values.type },
-      throwOnError: true,
-    });
-    notify('success', update ? 'repository updated' : 'repository created');
+    if (!values.name.trim()) {
+      notify('danger', 'repository name is required');
+      return;
+    }
+    let settings: Record<string, unknown>;
+    try {
+      settings = parseRepositorySettings(values.settings);
+    } catch (error) {
+      notify('danger', `Invalid repository settings: ${errorMessage(error)}`);
+      return;
+    }
+    try {
+      await repositoriesCreate<true>({
+        body: { ...connection, name: values.name, settings, type: values.type },
+        throwOnError: true,
+      });
+      notify('success', update ? 'repository updated' : 'repository created');
+      await loadRepositories();
+    } catch (error) {
+      notify('danger', `Error ${update ? 'updating' : 'creating'} repository: ${errorMessage(error)}`);
+    }
   }
 
   async function remove(repositoryName: string) {
-    await repositoriesDelete<true>({ body: { ...connection, name: repositoryName }, throwOnError: true });
-    setRepositories((value) => value.filter((repository) => repository.name !== repositoryName));
-    setDeleteRepository(null);
-    notify('success', 'repository removed');
+    try {
+      await repositoriesDelete<true>({ body: { ...connection, name: repositoryName }, throwOnError: true });
+      setRepositories((value) => value.filter((repository) => repository.name !== repositoryName));
+      setDeleteRepository(null);
+      notify('success', 'repository removed');
+    } catch (error) {
+      notify('danger', `Error removing repository: ${errorMessage(error)}`);
+    }
+  }
+
+  async function loadRepositories() {
+    const result = await repositoriesList<true>({ body: connection, throwOnError: true });
+    setRepositories(result.data.items ?? []);
+  }
+
+  function changeRepositoryType(type: string, currentSettings: string, changeType: (value: string) => void, changeSettings: (value: string) => void) {
+    changeType(type);
+    const template = repositorySettingsTemplates[type as RepositoryType];
+    if (!template) return;
+    const trimmed = currentSettings.trim();
+    if (trimmed === '' || trimmed === '{}' || repositoryTemplateValues.has(currentSettings)) {
+      changeSettings(formatJson(template));
+    }
   }
 
   return (
@@ -154,9 +226,17 @@ export function RepositoriesPage({
                 <label className="form-label">type</label>
                 <form.Field name="type">
                   {(field) => (
-                    <select className="form-control" value={field.state.value} onChange={(event) => field.handleChange(event.target.value)}>
-                      {['fs', 'url', 's3', 'gcs', 'hdfs', 'azure'].map((value) => <option key={value}>{value}</option>)}
-                    </select>
+                    <form.Field name="settings">
+                      {(settingsField) => (
+                        <select
+                          className="form-control"
+                          value={field.state.value}
+                          onChange={(event) => changeRepositoryType(event.target.value, settingsField.state.value, field.handleChange, settingsField.handleChange)}
+                        >
+                          {repositoryTypes.map((value) => <option key={value}>{value}</option>)}
+                        </select>
+                      )}
+                    </form.Field>
                   )}
                 </form.Field>
               </div>
@@ -185,4 +265,13 @@ export function RepositoriesPage({
 
 function repositorySortValue(repository: Repository, key: RepositorySortKey) {
   return key === 'name' ? repository.name : textValue(repository.type);
+}
+
+function parseRepositorySettings(value: string): Record<string, unknown> {
+  const parsed = parseJson(value);
+  if (parsed === undefined) return {};
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('settings must be a JSON object');
+  }
+  return parsed as Record<string, unknown>;
 }
