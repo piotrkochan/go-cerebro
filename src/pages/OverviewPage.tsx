@@ -196,8 +196,17 @@ export function OverviewPage({
     return nodesList.some((node) => canReceiveShard(index, node, shard));
   }
 
+  function relocationDisabledReason(shard: ShardRef) {
+    const index = pageElements.find((item) => item.name === shard.index) ?? null;
+    if (!index) return 'index is not visible on this page';
+    if (nodesList.length < 2) return 'relocation requires at least two nodes';
+    if (canRelocateShard(shard)) return undefined;
+    return `all visible nodes already contain shard ${shard.shard} for this index`;
+  }
+
   const shardActions = {
     canRelocate: canRelocateShard,
+    relocationDisabledReason,
     select: (shard?: ShardRef) => setRelocatingShard(shard ?? null),
     selected: relocatingShard,
     showStats: (shard: ShardRef) =>

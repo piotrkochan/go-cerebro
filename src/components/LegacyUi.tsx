@@ -133,6 +133,7 @@ export type ShardRef = {
 
 export type ShardActions = {
   canRelocate?: (shard: ShardRef) => boolean;
+  relocationDisabledReason?: (shard: ShardRef) => string | undefined;
   select: (shard?: ShardRef) => void;
   selected?: ShardRef | null;
   showStats: (shard: ShardRef) => void;
@@ -390,7 +391,7 @@ export function renderAttributes(attributes?: Record<string, unknown>) {
 }
 
 export function renderShards(input: unknown, closed = false, actions?: ShardActions) {
-  const shards = Array.isArray(input) ? input : [];
+  const shards = (Array.isArray(input) ? [...input] : []).sort(compareShardEntries);
   return shards.map((raw, index) => {
     const shard = raw as { node?: unknown; primary?: unknown; shard?: unknown; state?: unknown };
     const state = textValue(shard.state).toLowerCase();
@@ -405,6 +406,7 @@ export function renderShards(input: unknown, closed = false, actions?: ShardActi
       actions.selected.index === shardRef.index &&
       actions.selected.node === shardRef.node &&
       actions.selected.shard === shardRef.shard;
+    const relocationDisabledReason = actions?.relocationDisabledReason?.(shardRef);
 
     return (
       <span className="group relative inline-block mr-[4px] mb-[4px]" key={index}>
@@ -430,12 +432,12 @@ export function renderShards(input: unknown, closed = false, actions?: ShardActi
             </li>
             <li>
               <a
-                className={!actions?.canRelocate?.(shardRef) ? 'cursor-not-allowed opacity-40' : ''}
+                className={relocationDisabledReason ? 'cursor-not-allowed opacity-40' : ''}
                 target="_self"
-                title={!actions?.canRelocate?.(shardRef) ? 'no eligible target node' : undefined}
+                title={relocationDisabledReason}
                 onClick={(event) => {
                   event.preventDefault();
-                  if (!actions?.canRelocate?.(shardRef)) return;
+                  if (!actions || relocationDisabledReason) return;
                   actions.select(selected ? undefined : shardRef);
                 }}
               >
@@ -447,6 +449,15 @@ export function renderShards(input: unknown, closed = false, actions?: ShardActi
       </span>
     );
   });
+}
+
+function compareShardEntries(left: unknown, right: unknown) {
+  const leftShard = left as { primary?: unknown; shard?: unknown };
+  const rightShard = right as { primary?: unknown; shard?: unknown };
+  const shardDiff = numberValue(leftShard.shard) - numberValue(rightShard.shard);
+  if (shardDiff !== 0) return shardDiff;
+  if (Boolean(leftShard.primary) === Boolean(rightShard.primary)) return 0;
+  return Boolean(leftShard.primary) ? -1 : 1;
 }
 
 export function byName(left: OverviewNode, right: OverviewNode): number {
