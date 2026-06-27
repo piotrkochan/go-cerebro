@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"strings"
@@ -100,6 +101,7 @@ func (s *Server) Run(ctx context.Context) error {
 	srv := &http.Server{
 		Addr:              s.addr,
 		Handler:           s.router,
+		TLSConfig:         serverTLSConfig(),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      90 * time.Second,
@@ -107,7 +109,13 @@ func (s *Server) Run(ctx context.Context) error {
 		MaxHeaderBytes:    1 << 20, // 1 MiB
 	}
 	errCh := make(chan error, 1)
-	go func() { errCh <- srv.ListenAndServe() }()
+	go func() {
+		if s.cfg.Server.TLSCertFile != "" {
+			errCh <- srv.ListenAndServeTLS(s.cfg.Server.TLSCertFile, s.cfg.Server.TLSKeyFile)
+			return
+		}
+		errCh <- srv.ListenAndServe()
+	}()
 	select {
 	case <-ctx.Done():
 		return srv.Shutdown(context.Background())
@@ -116,6 +124,19 @@ func (s *Server) Run(ctx context.Context) error {
 			return nil
 		}
 		return err
+	}
+}
+
+func (s *Server) Scheme() string {
+	if s.cfg.Server.TLSCertFile != "" {
+		return "https"
+	}
+	return "http"
+}
+
+func serverTLSConfig() *tls.Config {
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12,
 	}
 }
 

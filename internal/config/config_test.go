@@ -79,6 +79,19 @@ es:
 	assert.Contains(t, err.Error(), "client_cert_file")
 }
 
+func TestLoad_RequiresServerTLSCertAndKeyTogether(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+server:
+  tls_cert_file: "/tmp/tls.crt"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "server.tls_cert_file")
+}
+
 func TestLoad_RequiresAWSRegionWhenSigningEnabled(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")

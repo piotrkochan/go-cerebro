@@ -76,6 +76,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Added LDAP `ldaps://` requirement by default.
 - Added `auth.settings.ca_cert_file` for custom LDAP CA trust.
 - Added explicit `insecure_ldap` development escape hatch.
+- Added first-class HTTPS listener support with `server.tls_cert_file` and `server.tls_key_file`.
 - Added configurable HSTS when served through HTTPS.
 - Added `Permissions-Policy`.
 - Kept CSP, referrer policy, frame and content-type protection headers.

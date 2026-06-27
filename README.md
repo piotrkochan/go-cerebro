@@ -95,6 +95,7 @@ Important sections:
 - `auth`: `disabled`, `basic` or `ldap`. Do not expose an instance with `auth.type: disabled`.
 - `server.secret`: required for authenticated deployments. Set it to a strong random value.
 - `server.cookie_secure`: keep `true` behind HTTPS.
+- `server.tls_cert_file`, `server.tls_key_file`: optional HTTPS listener certificate and private key.
 - `server.hsts_enabled`, `server.hsts_max_age_seconds`, `server.hsts_include_subdomains`: HTTPS Strict Transport Security settings. Enable only for domains that should always use HTTPS.
 - `es.ca_cert_file`, `es.client_cert_file`, `es.client_key_file`: TLS trust and mutual TLS for Elasticsearch.
 - `auth.settings.ca_cert_file`: custom LDAP CA trust.
@@ -121,6 +122,8 @@ server:
   port: 9000
   secret: "${APPLICATION_SECRET}"
   cookie_secure: true
+  tls_cert_file: "/etc/cerebro/tls/tls.crt"
+  tls_key_file: "/etc/cerebro/tls/tls.key"
   hsts_enabled: true
   hsts_max_age_seconds: 31536000
   hsts_include_subdomains: true
@@ -246,7 +249,7 @@ More configuration examples are in [examples](./examples), including basic auth,
 
 Cerebro can manage Elasticsearch clusters. Treat access to this UI as administrative access.
 
-- Prefer a reverse proxy with HTTPS.
+- Serve Cerebro over HTTPS, either with `server.tls_cert_file`/`server.tls_key_file` or through a reverse proxy.
 - Keep `auth.type` enabled outside local development.
 - Set `server.secret`.
 - Keep `es.allow_ad_hoc_hosts: false` unless you explicitly need user-supplied ES targets.

@@ -59,6 +59,8 @@ type Server struct {
 	Secret                string `yaml:"secret"`
 	CookieSecure          bool   `yaml:"cookie_secure"`
 	MaxRequestBytes       int64  `yaml:"max_request_bytes"`
+	TLSCertFile           string `yaml:"tls_cert_file"`
+	TLSKeyFile            string `yaml:"tls_key_file"`
 	HSTSEnabled           bool   `yaml:"hsts_enabled"`
 	HSTSMaxAgeSeconds     int    `yaml:"hsts_max_age_seconds"`
 	HSTSIncludeSubDomains bool   `yaml:"hsts_include_subdomains"`
@@ -194,6 +196,9 @@ func (c *Config) normalize() {
 }
 
 func (c *Config) validate() error {
+	if (c.Server.TLSCertFile == "") != (c.Server.TLSKeyFile == "") {
+		return fmt.Errorf("server.tls_cert_file and server.tls_key_file must be configured together")
+	}
 	if (c.ES.ClientCertFile == "") != (c.ES.ClientKeyFile == "") {
 		return fmt.Errorf("es.client_cert_file and es.client_key_file must be configured together")
 	}

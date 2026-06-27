@@ -107,7 +107,7 @@ func runServe(args []string) {
 	if cfg.Auth.Type == "disabled" {
 		slog.Warn("authentication is disabled — anyone reaching this port can manage the configured Elasticsearch clusters")
 	}
-	slog.Info("cerebro starting", "addr", fmt.Sprintf(":%d", cfg.Server.Port), "auth", cfg.Auth.Type, "hosts", len(cfg.Hosts))
+	slog.Info("cerebro starting", "addr", fmt.Sprintf(":%d", cfg.Server.Port), "scheme", srv.Scheme(), "auth", cfg.Auth.Type, "hosts", len(cfg.Hosts))
 	if err := srv.Run(ctx); err != nil {
 		slog.Error("server stopped", "err", err)
 		os.Exit(1)

@@ -47,6 +47,9 @@ server:
   # Keep true when served through HTTPS. Set false only for local HTTP dev.
   cookie_secure: true
   max_request_bytes: 5242880
+  # Optional HTTPS listener. When both files are configured, Cerebro serves HTTPS.
+  # tls_cert_file: "/etc/cerebro/tls/tls.crt"
+  # tls_key_file: "/etc/cerebro/tls/tls.key"
   # HSTS is emitted only for HTTPS requests, including requests behind a proxy
   # that sets X-Forwarded-Proto: https.
   hsts_enabled: true

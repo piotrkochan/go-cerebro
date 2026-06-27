@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -52,4 +53,20 @@ func TestSecurityHeaders_OmitHSTSWhenDisabled(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Empty(t, rr.Header().Get("Strict-Transport-Security"))
+}
+
+func TestServer_SchemeReflectsTLSConfig(t *testing.T) {
+	httpServer := &Server{cfg: &config.Config{Server: config.Server{Port: 9000}}}
+	assert.Equal(t, "http", httpServer.Scheme())
+
+	httpsServer := &Server{cfg: &config.Config{Server: config.Server{
+		Port:        9000,
+		TLSCertFile: "/tmp/tls.crt",
+		TLSKeyFile:  "/tmp/tls.key",
+	}}}
+	assert.Equal(t, "https", httpsServer.Scheme())
+}
+
+func TestServerTLSConfig_RequiresTLS12OrNewer(t *testing.T) {
+	assert.Equal(t, uint16(tls.VersionTLS12), serverTLSConfig().MinVersion)
 }
