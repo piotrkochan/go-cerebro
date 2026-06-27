@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/elastic/elastic-transport-go/v8/elastictransport"
 	elasticsearch "github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v9/esapi"
 	"github.com/lmenezes/cerebro/internal/config"
 )
 
@@ -158,6 +159,10 @@ const (
 
 func encoded(s string) string { return url.QueryEscape(s) }
 
+func boolPtr(v bool) *bool { return &v }
+
+func jsonReader(raw []byte) io.Reader { return bytes.NewReader(raw) }
+
 func (c *HTTPClient) execute(ctx context.Context, uri, method string, body []byte, t Server, headers [][2]string) (Response, error) {
 	base, err := normalizeBaseURL(t.Host.Host)
 	if err != nil {
@@ -201,7 +206,39 @@ func (c *HTTPClient) execute(ctx context.Context, uri, method string, body []byt
 		return Response{}, err
 	}
 	defer resp.Body.Close()
-	raw, err := readLimited(resp.Body, c.maxResponseBytes)
+	return c.responseFromBody(resp.StatusCode, resp.Body)
+}
+
+func (c *HTTPClient) performESAPI(ctx context.Context, t Server, call func(context.Context, esapi.Transport) (*esapi.Response, error)) (Response, error) {
+	base, err := normalizeBaseURL(t.Host.Host)
+	if err != nil {
+		return Response{}, err
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if _, ok := ctx.Deadline(); !ok && c.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.timeout)
+		defer cancel()
+	}
+	es, err := c.elasticsearchTransport(base, t.Host.Auth)
+	if err != nil {
+		return Response{}, err
+	}
+	if len(t.Headers) > 0 {
+		es = headerTransport{next: es, headers: t.Headers}
+	}
+	resp, err := call(ctx, es)
+	if err != nil {
+		return Response{}, err
+	}
+	defer resp.Body.Close()
+	return c.responseFromBody(resp.StatusCode, resp.Body)
+}
+
+func (c *HTTPClient) responseFromBody(status int, body io.Reader) (Response, error) {
+	raw, err := readLimited(body, c.maxResponseBytes)
 	if err != nil {
 		return Response{}, err
 	}
@@ -211,7 +248,7 @@ func (c *HTTPClient) execute(ctx context.Context, uri, method string, body []byt
 	if !json.Valid(raw) {
 		raw, _ = json.Marshal(map[string]string{"error": string(raw)})
 	}
-	return Response{Status: resp.StatusCode, Body: raw}, nil
+	return Response{Status: status, Body: raw}, nil
 }
 
 func (c *HTTPClient) elasticsearchTransport(base string, auth *config.ESAuth) (elastictransport.Interface, error) {
@@ -221,19 +258,31 @@ func (c *HTTPClient) elasticsearchTransport(base string, auth *config.ESAuth) (e
 	if c.transport != nil {
 		transportOpts = append(transportOpts, elastictransport.WithTransport(c.transport))
 	}
+	if auth != nil {
+		transportOpts = append(transportOpts, elastictransport.WithBasicAuth(auth.Username, auth.Password))
+	}
 	opts := []elasticsearch.Option{
 		elasticsearch.WithAddresses(base),
 		elasticsearch.WithDisableMetaHeader(),
 		elasticsearch.WithTransportOptions(transportOpts...),
-	}
-	if auth != nil {
-		opts = append(opts, elasticsearch.WithBasicAuth(auth.Username, auth.Password))
 	}
 	baseClient, err := elasticsearch.NewBase(opts...)
 	if err != nil {
 		return nil, err
 	}
 	return baseClient.Transport, nil
+}
+
+type headerTransport struct {
+	next    esapi.Transport
+	headers [][2]string
+}
+
+func (t headerTransport) Perform(req *http.Request) (*http.Response, error) {
+	for _, h := range t.headers {
+		req.Header.Set(h[0], h[1])
+	}
+	return t.next.Perform(req)
 }
 
 func normalizeBaseURL(raw string) (string, error) {
@@ -406,91 +455,133 @@ func requestPayloadHash(req *http.Request) (string, error) {
 const emptySHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 func (c *HTTPClient) Main(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.InfoRequest{}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) ClusterState(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_cluster/state/master_node,routing_table,routing_nodes,blocks", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterStateRequest{Metric: []string{"master_node", "routing_table", "routing_nodes", "blocks"}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) IndicesStats(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_stats/docs,store", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesStatsRequest{Metric: []string{"docs", "store"}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) NodesStats(ctx context.Context, stats []string, t Server) (Response, error) {
-	p := fmt.Sprintf("/_nodes/stats/%s?human=true", strings.Join(stats, ","))
-	return c.execute(ctx, p, http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.NodesStatsRequest{Metric: stats, Human: true}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) NodeStats(ctx context.Context, node string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/_nodes/%s/stats?human", encoded(node)), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.NodesStatsRequest{NodeID: []string{node}, Human: true}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) IndexStats(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_stats?human=true", encoded(index)), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesStatsRequest{Index: []string{index}, Human: true}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) ClusterSettings(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_cluster/settings", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterGetSettingsRequest{}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) Aliases(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_aliases", http.MethodGet, nil, t, nil)
+	return c.GetAliases(ctx, t)
 }
 
 func (c *HTTPClient) ClusterHealth(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_cluster/health", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterHealthRequest{}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) Nodes(ctx context.Context, flags []string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/_nodes/_all/%s?human=true", strings.Join(flags, ",")), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.NodesInfoRequest{NodeID: []string{"_all"}, Metric: flags, Human: true}.Do(ctx, transport)
+	})
 }
 
 var jsonHeader = [2]string{"Content-type", contentJSON}
 var ndjsonHeader = [2]string{"Content-type", contentNDJSON}
 
 func (c *HTTPClient) CloseIndex(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_close", encoded(index)), http.MethodPost, nil, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesCloseRequest{Index: []string{index}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) OpenIndex(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_open", encoded(index)), http.MethodPost, nil, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesOpenRequest{Index: []string{index}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) RefreshIndex(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_refresh", encoded(index)), http.MethodPost, nil, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesRefreshRequest{Index: []string{index}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) FlushIndex(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_flush", encoded(index)), http.MethodPost, nil, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesFlushRequest{Index: []string{index}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) ForceMerge(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_forcemerge", encoded(index)), http.MethodPost, nil, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesForcemergeRequest{Index: []string{index}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) ClearIndexCache(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_cache/clear", encoded(index)), http.MethodPost, nil, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesClearCacheRequest{Index: []string{index}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) DeleteIndex(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s", encoded(index)), http.MethodDelete, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesDeleteRequest{Index: []string{index}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetIndexSettings(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_settings", encoded(index)), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesGetSettingsRequest{Index: []string{index}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetIndexSettingsFlat(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_settings?flat_settings=true&include_defaults=true", encoded(index)), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesGetSettingsRequest{Index: []string{index}, FlatSettings: boolPtr(true), IncludeDefaults: boolPtr(true)}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetIndexMapping(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_mapping", encoded(index)), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesGetMappingRequest{Index: []string{index}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) PutClusterSettings(ctx context.Context, settings string, t Server) (Response, error) {
-	return c.execute(ctx, "/_cluster/settings", http.MethodPut, []byte(settings), t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterPutSettingsRequest{
+			Body:   strings.NewReader(settings),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func allocationSettings(value string) string {
@@ -506,7 +597,9 @@ func (c *HTTPClient) DisableShardAllocation(ctx context.Context, kind string, t 
 }
 
 func (c *HTTPClient) GetShardStats(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_stats?level=shards&human=true", encoded(index)), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesStatsRequest{Index: []string{index}, Level: "shards", Human: true}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) RelocateShard(ctx context.Context, shard int, index, from, to string, t Server) (Response, error) {
@@ -522,19 +615,30 @@ func (c *HTTPClient) RelocateShard(ctx context.Context, shard int, index, from, 
 			},
 		},
 	})
-	return c.execute(ctx, "/_cluster/reroute", http.MethodPost, body, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterRerouteRequest{
+			Body:   jsonReader(body),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetIndexRecovery(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_recovery?active_only=true&human=true", encoded(index)), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesRecoveryRequest{Index: []string{index}, ActiveOnly: boolPtr(true), Human: true}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetClusterMapping(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_mapping", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesGetMappingRequest{}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetAliases(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_aliases", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesGetAliasRequest{}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) UpdateAliases(ctx context.Context, changes []json.RawMessage, t Server) (Response, error) {
@@ -543,71 +647,126 @@ func (c *HTTPClient) UpdateAliases(ctx context.Context, changes []json.RawMessag
 		body["actions"] = []json.RawMessage{}
 	}
 	raw, _ := json.Marshal(body)
-	return c.execute(ctx, "/_aliases", http.MethodPost, raw, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesUpdateAliasesRequest{
+			Body:   jsonReader(raw),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetIndexMetadata(ctx context.Context, index string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/_cluster/state/metadata/%s?human=true", encoded(index)), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterStateRequest{Metric: []string{"metadata"}, Index: []string{index}, Human: true}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) CreateIndex(ctx context.Context, index string, metadata json.RawMessage, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s", encoded(index)), http.MethodPut, metadata, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesCreateRequest{
+			Index:  index,
+			Body:   jsonReader(metadata),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetIndices(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_cat/indices?format=json", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.CatIndicesRequest{Format: "json"}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetTemplates(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_template", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesGetTemplateRequest{}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) CreateTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/_template/%s", encoded(name)), http.MethodPut, template, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesPutTemplateRequest{
+			Name:   name,
+			Body:   jsonReader(template),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) DeleteTemplate(ctx context.Context, name string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/_template/%s", encoded(name)), http.MethodDelete, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesDeleteTemplateRequest{Name: name}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetNodes(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_cat/nodes?format=json", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.CatNodesRequest{Format: "json"}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) AnalyzeTextByField(ctx context.Context, index, field, text string, t Server) (Response, error) {
 	body, _ := json.Marshal(map[string]string{"text": text, "field": field})
-	return c.execute(ctx, fmt.Sprintf("/%s/_analyze", encoded(index)), http.MethodGet, body, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesAnalyzeRequest{
+			Index:  index,
+			Body:   jsonReader(body),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) AnalyzeTextByAnalyzer(ctx context.Context, index, analyzer, text string, t Server) (Response, error) {
 	body, _ := json.Marshal(map[string]string{"text": text, "analyzer": analyzer})
-	return c.execute(ctx, fmt.Sprintf("/%s/_analyze", encoded(index)), http.MethodGet, body, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesAnalyzeRequest{
+			Index:  index,
+			Body:   jsonReader(body),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetClusterSettings(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_cluster/settings?flat_settings=true&include_defaults=true", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterGetSettingsRequest{FlatSettings: boolPtr(true), IncludeDefaults: boolPtr(true)}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetRepositories(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_snapshot", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.SnapshotGetRepositoryRequest{}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) CreateRepository(ctx context.Context, name, repoType string, settings json.RawMessage, t Server) (Response, error) {
 	body := map[string]any{"type": repoType, "settings": settings}
 	raw, _ := json.Marshal(body)
-	return c.execute(ctx, fmt.Sprintf("/_snapshot/%s", encoded(name)), http.MethodPut, raw, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.SnapshotCreateRepositoryRequest{
+			Body:       bytes.NewReader(raw),
+			Repository: name,
+			Header:     http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) DeleteRepository(ctx context.Context, name string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/_snapshot/%s", encoded(name)), http.MethodDelete, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.SnapshotDeleteRepositoryRequest{Repository: []string{name}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) GetSnapshots(ctx context.Context, repo string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/_snapshot/%s/_all", encoded(repo)), http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.SnapshotGetRequest{Repository: repo, Snapshot: []string{"_all"}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) DeleteSnapshot(ctx context.Context, repo, snapshot string, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/_snapshot/%s/%s", encoded(repo), encoded(snapshot)), http.MethodDelete, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.SnapshotDeleteRequest{Repository: repo, Snapshot: []string{snapshot}}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) CreateSnapshot(ctx context.Context, repo, snapshot string, ignoreUnavailable, includeGlobalState bool, indices *string, t Server) (Response, error) {
@@ -621,7 +780,14 @@ func (c *HTTPClient) CreateSnapshot(ctx context.Context, repo, snapshot string, 
 		body["indices"] = *indices
 	}
 	raw, _ := json.Marshal(body)
-	return c.execute(ctx, fmt.Sprintf("/_snapshot/%s/%s", encoded(repo), encoded(snapshot)), http.MethodPut, raw, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.SnapshotCreateRequest{
+			Repository: repo,
+			Snapshot:   snapshot,
+			Body:       jsonReader(raw),
+			Header:     http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) RestoreSnapshot(ctx context.Context, repo, snapshot string, renamePattern, renameReplacement *string, ignoreUnavailable, includeAliases, includeGlobalState bool, indices *string, t Server) (Response, error) {
@@ -640,31 +806,88 @@ func (c *HTTPClient) RestoreSnapshot(ctx context.Context, repo, snapshot string,
 		body["rename_replacement"] = *renameReplacement
 	}
 	raw, _ := json.Marshal(body)
-	return c.execute(ctx, fmt.Sprintf("/_snapshot/%s/%s/_restore", encoded(repo), encoded(snapshot)), http.MethodPost, raw, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.SnapshotRestoreRequest{
+			Repository: repo,
+			Snapshot:   snapshot,
+			Body:       jsonReader(raw),
+			Header:     http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) SaveClusterSettings(ctx context.Context, settings json.RawMessage, t Server) (Response, error) {
-	return c.execute(ctx, "/_cluster/settings", http.MethodPut, settings, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterPutSettingsRequest{
+			Body:   jsonReader(settings),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) UpdateIndexSettings(ctx context.Context, index string, settings json.RawMessage, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_settings", encoded(index)), http.MethodPut, settings, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesPutSettingsRequest{
+			Index:  []string{index},
+			Body:   jsonReader(settings),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) CatRequest(ctx context.Context, api string, t Server) (Response, error) {
-	path, err := catPath(api)
-	if err != nil {
-		return Response{}, err
-	}
-	return c.execute(ctx, path, http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		switch strings.TrimSpace(api) {
+		case "aliases":
+			return esapi.CatAliasesRequest{Format: "json"}.Do(ctx, transport)
+		case "allocation":
+			return esapi.CatAllocationRequest{Format: "json"}.Do(ctx, transport)
+		case "count":
+			return esapi.CatCountRequest{Format: "json"}.Do(ctx, transport)
+		case "fielddata":
+			return esapi.CatFielddataRequest{Format: "json"}.Do(ctx, transport)
+		case "health":
+			return esapi.CatHealthRequest{Format: "json"}.Do(ctx, transport)
+		case "indices":
+			return esapi.CatIndicesRequest{Format: "json"}.Do(ctx, transport)
+		case "master":
+			return esapi.CatMasterRequest{Format: "json"}.Do(ctx, transport)
+		case "nodes":
+			return esapi.CatNodesRequest{Format: "json"}.Do(ctx, transport)
+		case "pending tasks", "pending_tasks":
+			return esapi.CatPendingTasksRequest{Format: "json"}.Do(ctx, transport)
+		case "plugins":
+			return esapi.CatPluginsRequest{Format: "json"}.Do(ctx, transport)
+		case "recovery":
+			return esapi.CatRecoveryRequest{Format: "json"}.Do(ctx, transport)
+		case "repositories":
+			return esapi.CatRepositoriesRequest{Format: "json"}.Do(ctx, transport)
+		case "shards":
+			return esapi.CatShardsRequest{Format: "json"}.Do(ctx, transport)
+		case "segments":
+			return esapi.CatSegmentsRequest{Format: "json"}.Do(ctx, transport)
+		case "thread pool", "thread_pool":
+			return esapi.CatThreadPoolRequest{Format: "json"}.Do(ctx, transport)
+		default:
+			return nil, fmt.Errorf("unsupported cat API: %s", api)
+		}
+	})
 }
 
 func (c *HTTPClient) CatMaster(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_cat/master?format=json", http.MethodGet, nil, t, nil)
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.CatMasterRequest{Format: "json"}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) SearchIndexDocuments(ctx context.Context, index string, query json.RawMessage, t Server) (Response, error) {
-	return c.execute(ctx, fmt.Sprintf("/%s/_search", encoded(index)), http.MethodPost, query, t, [][2]string{jsonHeader})
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.SearchRequest{
+			Index:  []string{index},
+			Body:   jsonReader(query),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
 }
 
 func (c *HTTPClient) SaveIndexDocument(ctx context.Context, index, id string, document json.RawMessage, t Server) (Response, error) {
@@ -777,43 +1000,6 @@ func restMethod(method string) (string, error) {
 		return http.MethodHead, nil
 	default:
 		return "", fmt.Errorf("unsupported REST method: %s", method)
-	}
-}
-
-func catPath(api string) (string, error) {
-	switch strings.TrimSpace(api) {
-	case "aliases":
-		return "/_cat/aliases?format=json", nil
-	case "allocation":
-		return "/_cat/allocation?format=json", nil
-	case "count":
-		return "/_cat/count?format=json", nil
-	case "fielddata":
-		return "/_cat/fielddata?format=json", nil
-	case "health":
-		return "/_cat/health?format=json", nil
-	case "indices":
-		return "/_cat/indices?format=json", nil
-	case "master":
-		return "/_cat/master?format=json", nil
-	case "nodes":
-		return "/_cat/nodes?format=json", nil
-	case "pending tasks", "pending_tasks":
-		return "/_cat/pending_tasks?format=json", nil
-	case "plugins":
-		return "/_cat/plugins?format=json", nil
-	case "recovery":
-		return "/_cat/recovery?format=json", nil
-	case "repositories":
-		return "/_cat/repositories?format=json", nil
-	case "shards":
-		return "/_cat/shards?format=json", nil
-	case "segments":
-		return "/_cat/segments?format=json", nil
-	case "thread pool", "thread_pool":
-		return "/_cat/thread_pool?format=json", nil
-	default:
-		return "", fmt.Errorf("unsupported cat API: %s", api)
 	}
 }
 

@@ -45,7 +45,7 @@ func TestExecute_BasicAuthAndHeaders(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.Status)
 	assert.True(t, resp.IsSuccess())
-	assert.Equal(t, "/_aliases", gotPath)
+	assert.Equal(t, "/_alias", gotPath)
 	assert.NotEmpty(t, gotAuth)
 	assert.Equal(t, "alice", gotHeader)
 }
