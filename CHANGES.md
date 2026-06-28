@@ -53,6 +53,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Added type-aware cluster and index setting controls for booleans, numbers, sizes, durations and known enum values.
 - Normalized scientific-notation numeric setting values in the settings UI and fixed settings group navigation.
 - Improved cluster and index settings grouping to reduce one-item groups.
+- Added overview detection and subtle highlighting for data stream backing indices.
 - Unified cluster and index settings layout around the same header, filter, group navigation and pending-change panels.
 - Preserved the original Cerebro overview behavior more closely, including shard controls, affected-index filtering and relocation flow.
 

@@ -150,6 +150,8 @@ export function IndexHeader({
   index: OverviewIndex;
   settingsHref: string;
 }) {
+  const dataStream = textValue(index.data_stream);
+
   function action(handler: (index: OverviewIndex) => void) {
     return (event: MouseEvent<HTMLAnchorElement>) => {
       event.preventDefault();
@@ -158,7 +160,7 @@ export function IndexHeader({
   }
 
   return (
-    <div>
+    <div className={dataStream ? 'border-l-2 border-[#1ca8dd] pl-[5px]' : ''}>
       <div className="group relative">
         <span className="title normal-action" title={index.name}>
           <Icon className="pull-right" name="caret-down" />
@@ -239,6 +241,11 @@ export function IndexHeader({
             <Icon name="tag" /> {index.aliases[0]}
             {index.aliases.length > 1 ? <span>(+{index.aliases.length - 1})</span> : null}
           </div>
+        </div>
+      ) : null}
+      {dataStream ? (
+        <div className="subtitle text-[#1ca8dd]" title={`data stream backing index: ${dataStream}`}>
+          <Icon name="database" /> data stream: {dataStream}
         </div>
       ) : null}
       <div className="detail">

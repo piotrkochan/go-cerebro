@@ -759,6 +759,10 @@ export type OverviewHeap = {
 export type OverviewIndex = {
     aliases: Array<string> | null;
     closed: boolean;
+    /**
+     * Data stream name when this index is a backing index.
+     */
+    data_stream?: string;
     deleted_docs: unknown;
     doc_count: unknown;
     /**

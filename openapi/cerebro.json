@@ -1254,6 +1254,10 @@
           "closed": {
             "type": "boolean"
           },
+          "data_stream": {
+            "description": "Data stream name when this index is a backing index.",
+            "type": "string"
+          },
           "deleted_docs": {},
           "doc_count": {},
           "name": {

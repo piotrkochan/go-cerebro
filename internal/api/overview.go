@@ -61,7 +61,7 @@ func (d *Deps) RegisterOverview(api huma.API) {
 			return failMsg[transform.Overview](400, err.Error())
 		}
 		paths := []string{
-			"_cluster/state/master_node,routing_table,blocks",
+			"_cluster/state/master_node,routing_table,blocks,metadata",
 			"_nodes/stats/jvm,fs,os,process?human=true",
 			"_stats/docs,store?ignore_unavailable=true",
 			"_cluster/settings",

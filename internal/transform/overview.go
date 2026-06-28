@@ -31,6 +31,7 @@ type OverviewIndex struct {
 	Name             string                      `json:"name" doc:"Index name."`
 	Closed           bool                        `json:"closed"`
 	Special          bool                        `json:"special" doc:"Whether the index is dot-prefixed (system index)."`
+	DataStream       string                      `json:"data_stream,omitempty" doc:"Data stream name when this index is a backing index."`
 	Unhealthy        bool                        `json:"unhealthy" doc:"Whether any shard is not STARTED."`
 	DocCount         any                         `json:"doc_count"`
 	DeletedDocs      any                         `json:"deleted_docs"`
@@ -238,6 +239,7 @@ func buildIndices(state, indicesStats, aliases map[string]any) []OverviewIndex {
 	if stats == nil {
 		stats = map[string]any{}
 	}
+	dataStreams := dataStreamBackingIndices(state)
 
 	out := []OverviewIndex{}
 	seen := map[string]bool{}
@@ -252,7 +254,7 @@ func buildIndices(state, indicesStats, aliases map[string]any) []OverviewIndex {
 				idxAliases = al
 			}
 		}
-		out = append(out, buildIndex(index, idxStats, shards, idxAliases, idxBlock))
+		out = append(out, buildIndex(index, idxStats, shards, idxAliases, idxBlock, dataStreams[index]))
 	}
 	// Closed indices (ES < 7.X)
 	for name, blk := range blocks {
@@ -262,16 +264,17 @@ func buildIndices(state, indicesStats, aliases map[string]any) []OverviewIndex {
 		blkMap, _ := blk.(map[string]any)
 		if _, ok := blkMap["4"]; ok {
 			out = append(out, OverviewIndex{
-				Name:    name,
-				Closed:  true,
-				Special: startsWithDot(name),
+				Name:       name,
+				Closed:     true,
+				Special:    startsWithDot(name),
+				DataStream: dataStreams[name],
 			})
 		}
 	}
 	return out
 }
 
-func buildIndex(name string, stats, routing, aliasesObj, indexBlock map[string]any) OverviewIndex {
+func buildIndex(name string, stats, routing, aliasesObj, indexBlock map[string]any, dataStream string) OverviewIndex {
 	shardMap := createShardMap(routing)
 	docCount := getNested(stats, "primaries", "docs", "count")
 	if docCount == nil {
@@ -320,6 +323,7 @@ func buildIndex(name string, stats, routing, aliasesObj, indexBlock map[string]a
 		Name:             name,
 		Closed:           closed,
 		Special:          startsWithDot(name),
+		DataStream:       dataStream,
 		Unhealthy:        isIndexUnhealthy(shardMap),
 		DocCount:         docCount,
 		DeletedDocs:      deleted,
@@ -330,6 +334,35 @@ func buildIndex(name string, stats, routing, aliasesObj, indexBlock map[string]a
 		NumReplicas:      numReplicas,
 		Shards:           shardMap,
 	}
+}
+
+func dataStreamBackingIndices(state map[string]any) map[string]string {
+	out := map[string]string{}
+	streams, _ := getNested(state, "metadata", "data_streams").(map[string]any)
+	if len(streams) == 0 {
+		streams, _ = getNested(state, "metadata", "data_stream", "data_stream").(map[string]any)
+	}
+	if len(streams) == 0 {
+		streams, _ = getNested(state, "metadata", "data_stream").(map[string]any)
+	}
+	for streamName, raw := range streams {
+		if streamName == "data_stream_aliases" {
+			continue
+		}
+		stream, _ := raw.(map[string]any)
+		indices, _ := stream["indices"].([]any)
+		for _, rawIndex := range indices {
+			index, _ := rawIndex.(map[string]any)
+			indexName, _ := index["index_name"].(string)
+			if indexName == "" {
+				indexName, _ = index["name"].(string)
+			}
+			if indexName != "" {
+				out[indexName] = streamName
+			}
+		}
+	}
+	return out
 }
 
 func createShardMap(routing map[string]any) map[string][]map[string]any {
