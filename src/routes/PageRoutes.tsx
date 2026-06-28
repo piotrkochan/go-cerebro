@@ -9,6 +9,8 @@ import { ClusterSettingsPage } from '../pages/ClusterSettingsPage';
 import { ConnectPage } from '../pages/ConnectPage';
 import { CreateIndexPage } from '../pages/CreateIndexPage';
 import { DataExplorerPage } from '../pages/DataExplorerPage';
+import { DataStreamsPage } from '../pages/DataStreamsPage';
+import { ILMPoliciesPage } from '../pages/ILMPoliciesPage';
 import { IndexSettingsPage } from '../pages/IndexSettingsPage';
 import { NodesPage } from '../pages/NodesPage';
 import { OverviewPage } from '../pages/OverviewPage';
@@ -92,6 +94,17 @@ export function AnalysisRoute() {
 export function TemplatesRoute() {
   const { connection, notify, refreshTick } = usePageContext();
   return <TemplatesPage connection={connection} notify={notify} refreshTick={refreshTick} />;
+}
+
+export function DataStreamsRoute() {
+  const { connection, notify, refreshTick } = usePageContext();
+  return <DataStreamsPage connection={connection} notify={notify} refreshTick={refreshTick} />;
+}
+
+export function ILMPoliciesRoute() {
+  const { connection, notify, refreshTick } = usePageContext();
+  const search = useSearch({ strict: false });
+  return <ILMPoliciesPage connection={connection} initialPolicy={typeof search.policy === 'string' ? search.policy : ''} notify={notify} refreshTick={refreshTick} />;
 }
 
 export function SnapshotRoute() {

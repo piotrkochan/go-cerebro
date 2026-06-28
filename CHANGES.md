@@ -78,6 +78,21 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Added document sorting, including `_id` sorting.
 - Added safer modal behavior for row selection and document editing.
 
+### Data Streams
+- Added a data streams page under the `more` menu.
+- Added data stream listing with status, generation, backing index count, store size, template and lifecycle details.
+- Added backing index details, write-index badges and links to index settings/data explorer.
+- Added data stream creation, rollover, Data Stream Lifecycle retention update and delete actions with confirmations.
+- Separated ILM-managed data stream status from Data Stream Lifecycle retention editing.
+- Added ILM policies page under the `more` menu with create, update, delete and JSON policy editing.
+- Added wizard/json tabs for ILM policy editing, with TanStack Form-backed wizard fields for common lifecycle phases and actions.
+- Split ILM policies into managed and not managed tables using Elasticsearch `in_use_by` metadata.
+- Added Data Streams action for attaching an ILM policy by updating the matching composable index template, with optional backing-index update and rollover.
+- Data Streams now link ILM policy details to the ILM policies page.
+- Added Data Streams action for detaching ILM from the matching composable index template, with optional backing-index cleanup.
+- Linked data stream ILM policy labels directly to the matching editable ILM policy form.
+- Added graceful handling for Elasticsearch versions that do not support data streams.
+
 ### Security
 - Added backend REST method allowlist for proxied Elasticsearch requests.
 - Added LDAP `ldaps://` requirement by default.

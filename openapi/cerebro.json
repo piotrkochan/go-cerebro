@@ -611,6 +611,396 @@
         ],
         "type": "object"
       },
+      "DataStream": {
+        "additionalProperties": false,
+        "properties": {
+          "backing_indices": {
+            "items": {
+              "$ref": "#/components/schemas/DataStreamBackingIndex"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "backing_indices_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "generation": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "lifecycle": {},
+          "managed_by": {
+            "type": "string"
+          },
+          "maximum_timestamp": {},
+          "name": {
+            "type": "string"
+          },
+          "next_generation_managed_by": {
+            "type": "string"
+          },
+          "prefer_ilm": {
+            "type": "boolean"
+          },
+          "rollover_on_write": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "store_size_bytes": {
+            "format": "double",
+            "type": "number"
+          },
+          "system": {
+            "type": "boolean"
+          },
+          "template": {
+            "type": "string"
+          },
+          "timestamp_field": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "generation",
+          "backing_indices_count",
+          "store_size_bytes",
+          "hidden",
+          "system",
+          "prefer_ilm",
+          "rollover_on_write",
+          "backing_indices"
+        ],
+        "type": "object"
+      },
+      "DataStreamAttachILMInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataStreamAttachILMInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host as configured.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Data stream name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "policy": {
+            "description": "ILM policy name.",
+            "type": "string"
+          },
+          "rollover": {
+            "description": "Whether to rollover the data stream after updating the template.",
+            "type": "boolean"
+          },
+          "update_backing_indices": {
+            "description": "Whether existing backing indices should get index.lifecycle.name.",
+            "type": "boolean"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "policy",
+          "update_backing_indices",
+          "rollover",
+          "host"
+        ],
+        "type": "object"
+      },
+      "DataStreamAttachILMResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataStreamAttachILMResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "backing_indices_updated": {
+            "type": "boolean"
+          },
+          "data_stream": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "string"
+          },
+          "rolled_over": {
+            "type": "boolean"
+          },
+          "template": {
+            "type": "string"
+          },
+          "template_updated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data_stream",
+          "policy",
+          "template",
+          "template_updated",
+          "backing_indices_updated",
+          "rolled_over"
+        ],
+        "type": "object"
+      },
+      "DataStreamBackingIndex": {
+        "additionalProperties": false,
+        "properties": {
+          "docs_count": {},
+          "health": {
+            "type": "string"
+          },
+          "ilm_action": {
+            "type": "string"
+          },
+          "ilm_error": {
+            "type": "string"
+          },
+          "ilm_managed": {
+            "type": "boolean"
+          },
+          "ilm_phase": {
+            "type": "string"
+          },
+          "ilm_policy": {
+            "type": "string"
+          },
+          "ilm_step": {
+            "type": "string"
+          },
+          "managed_by": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "store_size_bytes": {},
+          "uuid": {
+            "type": "string"
+          },
+          "write_index": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "write_index",
+          "ilm_managed"
+        ],
+        "type": "object"
+      },
+      "DataStreamDetachILMInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataStreamDetachILMInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host as configured.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Data stream name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "update_backing_indices": {
+            "description": "Whether existing backing indices should have index.lifecycle.name removed.",
+            "type": "boolean"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "update_backing_indices",
+          "host"
+        ],
+        "type": "object"
+      },
+      "DataStreamDetachILMResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataStreamDetachILMResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "backing_indices_updated": {
+            "type": "boolean"
+          },
+          "data_stream": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          },
+          "template_updated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data_stream",
+          "template",
+          "template_updated",
+          "backing_indices_updated"
+        ],
+        "type": "object"
+      },
+      "DataStreamLifecycleInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataStreamLifecycleInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host as configured.",
+            "type": "string"
+          },
+          "lifecycle": {
+            "description": "Data stream lifecycle body."
+          },
+          "name": {
+            "description": "Data stream name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "lifecycle",
+          "host"
+        ],
+        "type": "object"
+      },
+      "DataStreamNameInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataStreamNameInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host as configured.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Data stream name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "host"
+        ],
+        "type": "object"
+      },
+      "DataStreamsResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DataStreamsResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "items": {
+            "description": "Data streams.",
+            "items": {
+              "$ref": "#/components/schemas/DataStream"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "supported": {
+            "description": "Whether the target Elasticsearch supports data streams.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "supported",
+          "items"
+        ],
+        "type": "object"
+      },
       "ErrorDetail": {
         "additionalProperties": false,
         "properties": {
@@ -722,6 +1112,148 @@
         ],
         "type": "object"
       },
+      "ILMPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "in_use_by": {
+            "$ref": "#/components/schemas/ILMPolicyInUseBy"
+          },
+          "modified_date": {},
+          "name": {
+            "type": "string"
+          },
+          "phases": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "policy": {},
+          "version": {}
+        },
+        "required": [
+          "name",
+          "phases",
+          "policy",
+          "in_use_by"
+        ],
+        "type": "object"
+      },
+      "ILMPolicyInUseBy": {
+        "additionalProperties": false,
+        "properties": {
+          "composable_templates": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "data_streams": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "indices": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "indices",
+          "data_streams",
+          "composable_templates"
+        ],
+        "type": "object"
+      },
+      "ILMPolicyNameInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ILMPolicyNameInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host as configured.",
+            "type": "string"
+          },
+          "name": {
+            "description": "ILM policy name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "host"
+        ],
+        "type": "object"
+      },
+      "ILMPolicySaveInBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ILMPolicySaveInBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "host": {
+            "description": "Name of the target Elasticsearch host as configured.",
+            "type": "string"
+          },
+          "name": {
+            "description": "ILM policy name.",
+            "type": "string"
+          },
+          "password": {
+            "description": "Optional per-request basic auth password override.",
+            "type": "string"
+          },
+          "policy": {
+            "description": "ILM policy body."
+          },
+          "username": {
+            "description": "Optional per-request basic auth username override.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "policy",
+          "host"
+        ],
+        "type": "object"
+      },
       "IndexSettingsGetInBody": {
         "additionalProperties": false,
         "properties": {
@@ -812,6 +1344,34 @@
             "description": "Collection items.",
             "items": {
               "$ref": "#/components/schemas/Alias"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ListILMPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ListILMPolicy.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "items": {
+            "description": "Collection items.",
+            "items": {
+              "$ref": "#/components/schemas/ILMPolicy"
             },
             "type": [
               "array",
@@ -2978,6 +3538,417 @@
         "summary": "Browse index documents",
         "tags": [
           "data-explorer"
+        ]
+      }
+    },
+    "/data_streams": {
+      "post": {
+        "description": "Returns data streams with backing index, stats and lifecycle information when supported by Elasticsearch.",
+        "operationId": "data-streams-list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataStreamsResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List data streams",
+        "tags": [
+          "data-streams"
+        ]
+      }
+    },
+    "/data_streams/attach_ilm": {
+      "post": {
+        "operationId": "data-streams-attach-ilm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataStreamAttachILMInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataStreamAttachILMResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Attach ILM policy to data stream",
+        "tags": [
+          "data-streams"
+        ]
+      }
+    },
+    "/data_streams/create": {
+      "post": {
+        "operationId": "data-streams-create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataStreamNameInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create data stream",
+        "tags": [
+          "data-streams"
+        ]
+      }
+    },
+    "/data_streams/delete": {
+      "post": {
+        "operationId": "data-streams-delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataStreamNameInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete data stream",
+        "tags": [
+          "data-streams"
+        ]
+      }
+    },
+    "/data_streams/detach_ilm": {
+      "post": {
+        "operationId": "data-streams-detach-ilm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataStreamDetachILMInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataStreamDetachILMResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Detach ILM policy from data stream",
+        "tags": [
+          "data-streams"
+        ]
+      }
+    },
+    "/data_streams/lifecycle": {
+      "post": {
+        "operationId": "data-streams-update-lifecycle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataStreamLifecycleInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update data stream lifecycle",
+        "tags": [
+          "data-streams"
+        ]
+      }
+    },
+    "/data_streams/rollover": {
+      "post": {
+        "operationId": "data-streams-rollover",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataStreamNameInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Rollover data stream",
+        "tags": [
+          "data-streams"
+        ]
+      }
+    },
+    "/ilm/policies": {
+      "post": {
+        "operationId": "ilm-policies-list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListILMPolicy"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List ILM policies",
+        "tags": [
+          "ilm"
+        ]
+      }
+    },
+    "/ilm/policies/delete": {
+      "post": {
+        "operationId": "ilm-policies-delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ILMPolicyNameInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete ILM policy",
+        "tags": [
+          "ilm"
+        ]
+      }
+    },
+    "/ilm/policies/save": {
+      "post": {
+        "operationId": "ilm-policies-save",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ILMPolicySaveInBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create or update ILM policy",
+        "tags": [
+          "ilm"
         ]
       }
     },

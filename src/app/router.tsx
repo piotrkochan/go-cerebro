@@ -17,6 +17,8 @@ import {
   ConnectRoute,
   CreateIndexRoute,
   DataExplorerRoute,
+  DataStreamsRoute,
+  ILMPoliciesRoute,
   IndexSettingsRoute,
   NodesRoute,
   OverviewRoute,
@@ -30,11 +32,13 @@ import { sessionActions, sessionStore } from '../stores/sessionStore';
 type AppSearch = {
   host?: string;
   index?: string;
+  policy?: string;
 };
 
 const validateSearch = (search: Record<string, unknown>): AppSearch => ({
   host: typeof search.host === 'string' ? search.host : undefined,
   index: typeof search.index === 'string' ? search.index : undefined,
+  policy: typeof search.policy === 'string' ? search.policy : undefined,
 });
 
 const rootRoute = createRootRoute({
@@ -77,6 +81,8 @@ const repositoryRoute = appRoute('/repository', RepositoriesRoute);
 const catRoute = appRoute('/cat', CatRoute);
 const analysisRoute = appRoute('/analysis', AnalysisRoute);
 const templatesRoute = appRoute('/templates', TemplatesRoute);
+const dataStreamsRoute = appRoute('/data_streams', DataStreamsRoute);
+const ilmPoliciesRoute = appRoute('/ilm', ILMPoliciesRoute);
 const snapshotRoute = appRoute('/snapshot', SnapshotRoute);
 const clusterSettingsRoute = appRoute('/cluster_settings', ClusterSettingsRoute);
 const createRoutePage = appRoute('/create', CreateIndexRoute);
@@ -95,6 +101,8 @@ const routeTree = rootRoute.addChildren([
   catRoute,
   analysisRoute,
   templatesRoute,
+  dataStreamsRoute,
+  ilmPoliciesRoute,
   snapshotRoute,
   clusterSettingsRoute,
   createRoutePage,

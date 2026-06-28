@@ -395,6 +395,193 @@ export type DataExplorerSearchInBody = {
     username?: string;
 };
 
+export type DataStream = {
+    backing_indices: Array<DataStreamBackingIndex> | null;
+    backing_indices_count: number;
+    generation: number;
+    hidden: boolean;
+    lifecycle?: unknown;
+    managed_by?: string;
+    maximum_timestamp?: unknown;
+    name: string;
+    next_generation_managed_by?: string;
+    prefer_ilm: boolean;
+    rollover_on_write: boolean;
+    status?: string;
+    store_size_bytes: number;
+    system: boolean;
+    template?: string;
+    timestamp_field?: string;
+};
+
+export type DataStreamAttachIlmInBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Data stream name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * ILM policy name.
+     */
+    policy: string;
+    /**
+     * Whether to rollover the data stream after updating the template.
+     */
+    rollover: boolean;
+    /**
+     * Whether existing backing indices should get index.lifecycle.name.
+     */
+    update_backing_indices: boolean;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataStreamAttachIlmResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    backing_indices_updated: boolean;
+    data_stream: string;
+    policy: string;
+    rolled_over: boolean;
+    template: string;
+    template_updated: boolean;
+};
+
+export type DataStreamBackingIndex = {
+    docs_count?: unknown;
+    health?: string;
+    ilm_action?: string;
+    ilm_error?: string;
+    ilm_managed: boolean;
+    ilm_phase?: string;
+    ilm_policy?: string;
+    ilm_step?: string;
+    managed_by?: string;
+    name: string;
+    status?: string;
+    store_size_bytes?: unknown;
+    uuid?: string;
+    write_index: boolean;
+};
+
+export type DataStreamDetachIlmInBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Data stream name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Whether existing backing indices should have index.lifecycle.name removed.
+     */
+    update_backing_indices: boolean;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataStreamDetachIlmResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    backing_indices_updated: boolean;
+    data_stream: string;
+    template: string;
+    template_updated: boolean;
+};
+
+export type DataStreamLifecycleInBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Data stream lifecycle body.
+     */
+    lifecycle: unknown;
+    /**
+     * Data stream name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataStreamNameInBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Data stream name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataStreamsResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Data streams.
+     */
+    items: Array<DataStream> | null;
+    /**
+     * Whether the target Elasticsearch supports data streams.
+     */
+    supported: boolean;
+};
+
 export type ErrorDetail = {
     /**
      * Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
@@ -460,6 +647,71 @@ export type HostBody = {
     username?: string;
 };
 
+export type IlmPolicy = {
+    in_use_by: IlmPolicyInUseBy;
+    modified_date?: unknown;
+    name: string;
+    phases: Array<string> | null;
+    policy: unknown;
+    version?: unknown;
+};
+
+export type IlmPolicyInUseBy = {
+    composable_templates: Array<string> | null;
+    data_streams: Array<string> | null;
+    indices: Array<string> | null;
+};
+
+export type IlmPolicyNameInBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * ILM policy name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type IlmPolicySaveInBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * ILM policy name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * ILM policy body.
+     */
+    policy: unknown;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
 export type IndexSettingsGetInBody = {
     /**
      * A URL to the JSON Schema for this object.
@@ -519,6 +771,17 @@ export type ListAlias = {
      * Collection items.
      */
     items: Array<Alias> | null;
+};
+
+export type ListIlmPolicy = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Collection items.
+     */
+    items: Array<IlmPolicy> | null;
 };
 
 export type ListNode = {
@@ -1531,6 +1794,129 @@ export type DataExplorerSearchInBodyWritable = {
     username?: string;
 };
 
+export type DataStreamAttachIlmInBodyWritable = {
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Data stream name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * ILM policy name.
+     */
+    policy: string;
+    /**
+     * Whether to rollover the data stream after updating the template.
+     */
+    rollover: boolean;
+    /**
+     * Whether existing backing indices should get index.lifecycle.name.
+     */
+    update_backing_indices: boolean;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataStreamAttachIlmResultWritable = {
+    backing_indices_updated: boolean;
+    data_stream: string;
+    policy: string;
+    rolled_over: boolean;
+    template: string;
+    template_updated: boolean;
+};
+
+export type DataStreamDetachIlmInBodyWritable = {
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Data stream name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Whether existing backing indices should have index.lifecycle.name removed.
+     */
+    update_backing_indices: boolean;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataStreamDetachIlmResultWritable = {
+    backing_indices_updated: boolean;
+    data_stream: string;
+    template: string;
+    template_updated: boolean;
+};
+
+export type DataStreamLifecycleInBodyWritable = {
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Data stream lifecycle body.
+     */
+    lifecycle: unknown;
+    /**
+     * Data stream name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataStreamNameInBodyWritable = {
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * Data stream name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type DataStreamsResultWritable = {
+    /**
+     * Data streams.
+     */
+    items: Array<DataStream> | null;
+    /**
+     * Whether the target Elasticsearch supports data streams.
+     */
+    supported: boolean;
+};
+
 export type ErrorModelWritable = {
     /**
      * A human-readable explanation specific to this occurrence of the problem.
@@ -1567,6 +1953,48 @@ export type HostBodyWritable = {
      * Optional per-request basic auth password override.
      */
     password?: string;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type IlmPolicyNameInBodyWritable = {
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * ILM policy name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * Optional per-request basic auth username override.
+     */
+    username?: string;
+};
+
+export type IlmPolicySaveInBodyWritable = {
+    /**
+     * Name of the target Elasticsearch host as configured.
+     */
+    host: string;
+    /**
+     * ILM policy name.
+     */
+    name: string;
+    /**
+     * Optional per-request basic auth password override.
+     */
+    password?: string;
+    /**
+     * ILM policy body.
+     */
+    policy: unknown;
     /**
      * Optional per-request basic auth username override.
      */
@@ -1620,6 +2048,13 @@ export type ListAliasWritable = {
      * Collection items.
      */
     items: Array<Alias> | null;
+};
+
+export type ListIlmPolicyWritable = {
+    /**
+     * Collection items.
+     */
+    items: Array<IlmPolicy> | null;
 };
 
 export type ListNodeWritable = {
@@ -2562,6 +2997,256 @@ export type DataExplorerSearchResponses = {
 };
 
 export type DataExplorerSearchResponse = DataExplorerSearchResponses[keyof DataExplorerSearchResponses];
+
+export type DataStreamsListData = {
+    body: HostBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/data_streams';
+};
+
+export type DataStreamsListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsListError = DataStreamsListErrors[keyof DataStreamsListErrors];
+
+export type DataStreamsListResponses = {
+    /**
+     * OK
+     */
+    200: DataStreamsResult;
+};
+
+export type DataStreamsListResponse = DataStreamsListResponses[keyof DataStreamsListResponses];
+
+export type DataStreamsAttachIlmData = {
+    body: DataStreamAttachIlmInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/data_streams/attach_ilm';
+};
+
+export type DataStreamsAttachIlmErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsAttachIlmError = DataStreamsAttachIlmErrors[keyof DataStreamsAttachIlmErrors];
+
+export type DataStreamsAttachIlmResponses = {
+    /**
+     * OK
+     */
+    200: DataStreamAttachIlmResult;
+};
+
+export type DataStreamsAttachIlmResponse = DataStreamsAttachIlmResponses[keyof DataStreamsAttachIlmResponses];
+
+export type DataStreamsCreateData = {
+    body: DataStreamNameInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/data_streams/create';
+};
+
+export type DataStreamsCreateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsCreateError = DataStreamsCreateErrors[keyof DataStreamsCreateErrors];
+
+export type DataStreamsCreateResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataStreamsCreateResponse = DataStreamsCreateResponses[keyof DataStreamsCreateResponses];
+
+export type DataStreamsDeleteData = {
+    body: DataStreamNameInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/data_streams/delete';
+};
+
+export type DataStreamsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsDeleteError = DataStreamsDeleteErrors[keyof DataStreamsDeleteErrors];
+
+export type DataStreamsDeleteResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataStreamsDeleteResponse = DataStreamsDeleteResponses[keyof DataStreamsDeleteResponses];
+
+export type DataStreamsDetachIlmData = {
+    body: DataStreamDetachIlmInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/data_streams/detach_ilm';
+};
+
+export type DataStreamsDetachIlmErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsDetachIlmError = DataStreamsDetachIlmErrors[keyof DataStreamsDetachIlmErrors];
+
+export type DataStreamsDetachIlmResponses = {
+    /**
+     * OK
+     */
+    200: DataStreamDetachIlmResult;
+};
+
+export type DataStreamsDetachIlmResponse = DataStreamsDetachIlmResponses[keyof DataStreamsDetachIlmResponses];
+
+export type DataStreamsUpdateLifecycleData = {
+    body: DataStreamLifecycleInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/data_streams/lifecycle';
+};
+
+export type DataStreamsUpdateLifecycleErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsUpdateLifecycleError = DataStreamsUpdateLifecycleErrors[keyof DataStreamsUpdateLifecycleErrors];
+
+export type DataStreamsUpdateLifecycleResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataStreamsUpdateLifecycleResponse = DataStreamsUpdateLifecycleResponses[keyof DataStreamsUpdateLifecycleResponses];
+
+export type DataStreamsRolloverData = {
+    body: DataStreamNameInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/data_streams/rollover';
+};
+
+export type DataStreamsRolloverErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsRolloverError = DataStreamsRolloverErrors[keyof DataStreamsRolloverErrors];
+
+export type DataStreamsRolloverResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataStreamsRolloverResponse = DataStreamsRolloverResponses[keyof DataStreamsRolloverResponses];
+
+export type IlmPoliciesListData = {
+    body: HostBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/ilm/policies';
+};
+
+export type IlmPoliciesListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type IlmPoliciesListError = IlmPoliciesListErrors[keyof IlmPoliciesListErrors];
+
+export type IlmPoliciesListResponses = {
+    /**
+     * OK
+     */
+    200: ListIlmPolicy;
+};
+
+export type IlmPoliciesListResponse = IlmPoliciesListResponses[keyof IlmPoliciesListResponses];
+
+export type IlmPoliciesDeleteData = {
+    body: IlmPolicyNameInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/ilm/policies/delete';
+};
+
+export type IlmPoliciesDeleteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type IlmPoliciesDeleteError = IlmPoliciesDeleteErrors[keyof IlmPoliciesDeleteErrors];
+
+export type IlmPoliciesDeleteResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type IlmPoliciesDeleteResponse = IlmPoliciesDeleteResponses[keyof IlmPoliciesDeleteResponses];
+
+export type IlmPoliciesSaveData = {
+    body: IlmPolicySaveInBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/ilm/policies/save';
+};
+
+export type IlmPoliciesSaveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type IlmPoliciesSaveError = IlmPoliciesSaveErrors[keyof IlmPoliciesSaveErrors];
+
+export type IlmPoliciesSaveResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type IlmPoliciesSaveResponse = IlmPoliciesSaveResponses[keyof IlmPoliciesSaveResponses];
 
 export type IndexSettingsGetData = {
     body: IndexSettingsGetInBodyWritable;

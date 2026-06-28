@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AliasesGetData, AliasesGetErrors, AliasesGetResponses, AliasesUpdateData, AliasesUpdateErrors, AliasesUpdateResponses, AnalysisAnalyzeAnalyzerData, AnalysisAnalyzeAnalyzerErrors, AnalysisAnalyzeAnalyzerResponses, AnalysisAnalyzeFieldData, AnalysisAnalyzeFieldErrors, AnalysisAnalyzeFieldResponses, AnalysisAnalyzersData, AnalysisAnalyzersErrors, AnalysisAnalyzersResponses, AnalysisFieldsData, AnalysisFieldsErrors, AnalysisFieldsResponses, AnalysisIndicesData, AnalysisIndicesErrors, AnalysisIndicesResponses, CatData, CatErrors, CatResponses, ClusterChangesData, ClusterChangesErrors, ClusterChangesResponses, ClusterSettingsGetData, ClusterSettingsGetErrors, ClusterSettingsGetResponses, ClusterSettingsSaveData, ClusterSettingsSaveErrors, ClusterSettingsSaveResponses, CommonsGetIndexMappingData, CommonsGetIndexMappingErrors, CommonsGetIndexMappingResponses, CommonsGetIndexSettingsData, CommonsGetIndexSettingsErrors, CommonsGetIndexSettingsResponses, CommonsGetIndexStatsData, CommonsGetIndexStatsErrors, CommonsGetIndexStatsResponses, CommonsGetNodeStatsData, CommonsGetNodeStatsErrors, CommonsGetNodeStatsResponses, CommonsIndicesData, CommonsIndicesErrors, CommonsIndicesResponses, CommonsNodesData, CommonsNodesErrors, CommonsNodesResponses, ConnectData, ConnectErrors, ConnectHostsData, ConnectHostsErrors, ConnectHostsResponses, ConnectResponses, CreateIndexCreateData, CreateIndexCreateErrors, CreateIndexCreateResponses, CreateIndexGetMetadataData, CreateIndexGetMetadataErrors, CreateIndexGetMetadataResponses, DataExplorerSaveData, DataExplorerSaveErrors, DataExplorerSaveResponses, DataExplorerSearchData, DataExplorerSearchErrors, DataExplorerSearchResponses, IndexSettingsGetData, IndexSettingsGetErrors, IndexSettingsGetResponses, IndexSettingsUpdateData, IndexSettingsUpdateErrors, IndexSettingsUpdateResponses, NavbarData, NavbarErrors, NavbarResponses, NodesData, NodesErrors, NodesResponses, OverviewClearIndicesCacheData, OverviewClearIndicesCacheErrors, OverviewClearIndicesCacheResponses, OverviewCloseIndicesData, OverviewCloseIndicesErrors, OverviewCloseIndicesResponses, OverviewData, OverviewDeleteIndicesData, OverviewDeleteIndicesErrors, OverviewDeleteIndicesResponses, OverviewDisableShardAllocationData, OverviewDisableShardAllocationErrors, OverviewDisableShardAllocationResponses, OverviewEnableShardAllocationData, OverviewEnableShardAllocationErrors, OverviewEnableShardAllocationResponses, OverviewErrors, OverviewFlushIndicesData, OverviewFlushIndicesErrors, OverviewFlushIndicesResponses, OverviewForceMergeData, OverviewForceMergeErrors, OverviewForceMergeResponses, OverviewOpenIndicesData, OverviewOpenIndicesErrors, OverviewOpenIndicesResponses, OverviewRefreshIndicesData, OverviewRefreshIndicesErrors, OverviewRefreshIndicesResponses, OverviewRelocateShardData, OverviewRelocateShardErrors, OverviewRelocateShardResponses, OverviewResponses, OverviewShardStatsData, OverviewShardStatsErrors, OverviewShardStatsResponses, RepositoriesCreateData, RepositoriesCreateErrors, RepositoriesCreateResponses, RepositoriesDeleteData, RepositoriesDeleteErrors, RepositoriesDeleteResponses, RepositoriesListData, RepositoriesListErrors, RepositoriesListResponses, RestHistoryData, RestHistoryErrors, RestHistoryResponses, RestIndexData, RestIndexErrors, RestIndexResponses, RestRequestData, RestRequestErrors, RestRequestResponses, SnapshotsCreateData, SnapshotsCreateErrors, SnapshotsCreateResponses, SnapshotsDeleteData, SnapshotsDeleteErrors, SnapshotsDeleteResponses, SnapshotsGetData, SnapshotsGetErrors, SnapshotsGetResponses, SnapshotsLoadData, SnapshotsLoadErrors, SnapshotsLoadResponses, SnapshotsRestoreData, SnapshotsRestoreErrors, SnapshotsRestoreResponses, TemplatesCreateData, TemplatesCreateErrors, TemplatesCreateResponses, TemplatesDeleteData, TemplatesDeleteErrors, TemplatesDeleteResponses, TemplatesListData, TemplatesListErrors, TemplatesListResponses } from './types.gen';
+import type { AliasesGetData, AliasesGetErrors, AliasesGetResponses, AliasesUpdateData, AliasesUpdateErrors, AliasesUpdateResponses, AnalysisAnalyzeAnalyzerData, AnalysisAnalyzeAnalyzerErrors, AnalysisAnalyzeAnalyzerResponses, AnalysisAnalyzeFieldData, AnalysisAnalyzeFieldErrors, AnalysisAnalyzeFieldResponses, AnalysisAnalyzersData, AnalysisAnalyzersErrors, AnalysisAnalyzersResponses, AnalysisFieldsData, AnalysisFieldsErrors, AnalysisFieldsResponses, AnalysisIndicesData, AnalysisIndicesErrors, AnalysisIndicesResponses, CatData, CatErrors, CatResponses, ClusterChangesData, ClusterChangesErrors, ClusterChangesResponses, ClusterSettingsGetData, ClusterSettingsGetErrors, ClusterSettingsGetResponses, ClusterSettingsSaveData, ClusterSettingsSaveErrors, ClusterSettingsSaveResponses, CommonsGetIndexMappingData, CommonsGetIndexMappingErrors, CommonsGetIndexMappingResponses, CommonsGetIndexSettingsData, CommonsGetIndexSettingsErrors, CommonsGetIndexSettingsResponses, CommonsGetIndexStatsData, CommonsGetIndexStatsErrors, CommonsGetIndexStatsResponses, CommonsGetNodeStatsData, CommonsGetNodeStatsErrors, CommonsGetNodeStatsResponses, CommonsIndicesData, CommonsIndicesErrors, CommonsIndicesResponses, CommonsNodesData, CommonsNodesErrors, CommonsNodesResponses, ConnectData, ConnectErrors, ConnectHostsData, ConnectHostsErrors, ConnectHostsResponses, ConnectResponses, CreateIndexCreateData, CreateIndexCreateErrors, CreateIndexCreateResponses, CreateIndexGetMetadataData, CreateIndexGetMetadataErrors, CreateIndexGetMetadataResponses, DataExplorerSaveData, DataExplorerSaveErrors, DataExplorerSaveResponses, DataExplorerSearchData, DataExplorerSearchErrors, DataExplorerSearchResponses, DataStreamsAttachIlmData, DataStreamsAttachIlmErrors, DataStreamsAttachIlmResponses, DataStreamsCreateData, DataStreamsCreateErrors, DataStreamsCreateResponses, DataStreamsDeleteData, DataStreamsDeleteErrors, DataStreamsDeleteResponses, DataStreamsDetachIlmData, DataStreamsDetachIlmErrors, DataStreamsDetachIlmResponses, DataStreamsListData, DataStreamsListErrors, DataStreamsListResponses, DataStreamsRolloverData, DataStreamsRolloverErrors, DataStreamsRolloverResponses, DataStreamsUpdateLifecycleData, DataStreamsUpdateLifecycleErrors, DataStreamsUpdateLifecycleResponses, IlmPoliciesDeleteData, IlmPoliciesDeleteErrors, IlmPoliciesDeleteResponses, IlmPoliciesListData, IlmPoliciesListErrors, IlmPoliciesListResponses, IlmPoliciesSaveData, IlmPoliciesSaveErrors, IlmPoliciesSaveResponses, IndexSettingsGetData, IndexSettingsGetErrors, IndexSettingsGetResponses, IndexSettingsUpdateData, IndexSettingsUpdateErrors, IndexSettingsUpdateResponses, NavbarData, NavbarErrors, NavbarResponses, NodesData, NodesErrors, NodesResponses, OverviewClearIndicesCacheData, OverviewClearIndicesCacheErrors, OverviewClearIndicesCacheResponses, OverviewCloseIndicesData, OverviewCloseIndicesErrors, OverviewCloseIndicesResponses, OverviewData, OverviewDeleteIndicesData, OverviewDeleteIndicesErrors, OverviewDeleteIndicesResponses, OverviewDisableShardAllocationData, OverviewDisableShardAllocationErrors, OverviewDisableShardAllocationResponses, OverviewEnableShardAllocationData, OverviewEnableShardAllocationErrors, OverviewEnableShardAllocationResponses, OverviewErrors, OverviewFlushIndicesData, OverviewFlushIndicesErrors, OverviewFlushIndicesResponses, OverviewForceMergeData, OverviewForceMergeErrors, OverviewForceMergeResponses, OverviewOpenIndicesData, OverviewOpenIndicesErrors, OverviewOpenIndicesResponses, OverviewRefreshIndicesData, OverviewRefreshIndicesErrors, OverviewRefreshIndicesResponses, OverviewRelocateShardData, OverviewRelocateShardErrors, OverviewRelocateShardResponses, OverviewResponses, OverviewShardStatsData, OverviewShardStatsErrors, OverviewShardStatsResponses, RepositoriesCreateData, RepositoriesCreateErrors, RepositoriesCreateResponses, RepositoriesDeleteData, RepositoriesDeleteErrors, RepositoriesDeleteResponses, RepositoriesListData, RepositoriesListErrors, RepositoriesListResponses, RestHistoryData, RestHistoryErrors, RestHistoryResponses, RestIndexData, RestIndexErrors, RestIndexResponses, RestRequestData, RestRequestErrors, RestRequestResponses, SnapshotsCreateData, SnapshotsCreateErrors, SnapshotsCreateResponses, SnapshotsDeleteData, SnapshotsDeleteErrors, SnapshotsDeleteResponses, SnapshotsGetData, SnapshotsGetErrors, SnapshotsGetResponses, SnapshotsLoadData, SnapshotsLoadErrors, SnapshotsLoadResponses, SnapshotsRestoreData, SnapshotsRestoreErrors, SnapshotsRestoreResponses, TemplatesCreateData, TemplatesCreateErrors, TemplatesCreateResponses, TemplatesDeleteData, TemplatesDeleteErrors, TemplatesDeleteResponses, TemplatesListData, TemplatesListErrors, TemplatesListResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -312,6 +312,128 @@ export const dataExplorerSave = <ThrowOnError extends boolean = false>(options: 
  */
 export const dataExplorerSearch = <ThrowOnError extends boolean = false>(options: Options<DataExplorerSearchData, ThrowOnError>): RequestResult<DataExplorerSearchResponses, DataExplorerSearchErrors, ThrowOnError> => (options.client ?? client).post<DataExplorerSearchResponses, DataExplorerSearchErrors, ThrowOnError>({
     url: '/data_explorer/search',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List data streams
+ *
+ * Returns data streams with backing index, stats and lifecycle information when supported by Elasticsearch.
+ */
+export const dataStreamsList = <ThrowOnError extends boolean = false>(options: Options<DataStreamsListData, ThrowOnError>): RequestResult<DataStreamsListResponses, DataStreamsListErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsListResponses, DataStreamsListErrors, ThrowOnError>({
+    url: '/data_streams',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Attach ILM policy to data stream
+ */
+export const dataStreamsAttachIlm = <ThrowOnError extends boolean = false>(options: Options<DataStreamsAttachIlmData, ThrowOnError>): RequestResult<DataStreamsAttachIlmResponses, DataStreamsAttachIlmErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsAttachIlmResponses, DataStreamsAttachIlmErrors, ThrowOnError>({
+    url: '/data_streams/attach_ilm',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Create data stream
+ */
+export const dataStreamsCreate = <ThrowOnError extends boolean = false>(options: Options<DataStreamsCreateData, ThrowOnError>): RequestResult<DataStreamsCreateResponses, DataStreamsCreateErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsCreateResponses, DataStreamsCreateErrors, ThrowOnError>({
+    url: '/data_streams/create',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete data stream
+ */
+export const dataStreamsDelete = <ThrowOnError extends boolean = false>(options: Options<DataStreamsDeleteData, ThrowOnError>): RequestResult<DataStreamsDeleteResponses, DataStreamsDeleteErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsDeleteResponses, DataStreamsDeleteErrors, ThrowOnError>({
+    url: '/data_streams/delete',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Detach ILM policy from data stream
+ */
+export const dataStreamsDetachIlm = <ThrowOnError extends boolean = false>(options: Options<DataStreamsDetachIlmData, ThrowOnError>): RequestResult<DataStreamsDetachIlmResponses, DataStreamsDetachIlmErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsDetachIlmResponses, DataStreamsDetachIlmErrors, ThrowOnError>({
+    url: '/data_streams/detach_ilm',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update data stream lifecycle
+ */
+export const dataStreamsUpdateLifecycle = <ThrowOnError extends boolean = false>(options: Options<DataStreamsUpdateLifecycleData, ThrowOnError>): RequestResult<DataStreamsUpdateLifecycleResponses, DataStreamsUpdateLifecycleErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsUpdateLifecycleResponses, DataStreamsUpdateLifecycleErrors, ThrowOnError>({
+    url: '/data_streams/lifecycle',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Rollover data stream
+ */
+export const dataStreamsRollover = <ThrowOnError extends boolean = false>(options: Options<DataStreamsRolloverData, ThrowOnError>): RequestResult<DataStreamsRolloverResponses, DataStreamsRolloverErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsRolloverResponses, DataStreamsRolloverErrors, ThrowOnError>({
+    url: '/data_streams/rollover',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List ILM policies
+ */
+export const ilmPoliciesList = <ThrowOnError extends boolean = false>(options: Options<IlmPoliciesListData, ThrowOnError>): RequestResult<IlmPoliciesListResponses, IlmPoliciesListErrors, ThrowOnError> => (options.client ?? client).post<IlmPoliciesListResponses, IlmPoliciesListErrors, ThrowOnError>({
+    url: '/ilm/policies',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete ILM policy
+ */
+export const ilmPoliciesDelete = <ThrowOnError extends boolean = false>(options: Options<IlmPoliciesDeleteData, ThrowOnError>): RequestResult<IlmPoliciesDeleteResponses, IlmPoliciesDeleteErrors, ThrowOnError> => (options.client ?? client).post<IlmPoliciesDeleteResponses, IlmPoliciesDeleteErrors, ThrowOnError>({
+    url: '/ilm/policies/delete',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Create or update ILM policy
+ */
+export const ilmPoliciesSave = <ThrowOnError extends boolean = false>(options: Options<IlmPoliciesSaveData, ThrowOnError>): RequestResult<IlmPoliciesSaveResponses, IlmPoliciesSaveErrors, ThrowOnError> => (options.client ?? client).post<IlmPoliciesSaveResponses, IlmPoliciesSaveErrors, ThrowOnError>({
+    url: '/ilm/policies/save',
     ...options,
     headers: {
         'Content-Type': 'application/json',

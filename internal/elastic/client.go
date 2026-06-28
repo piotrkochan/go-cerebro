@@ -79,6 +79,21 @@ type Client interface {
 	GetTemplates(ctx context.Context, t Server) (Response, error)
 	CreateTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error)
 	DeleteTemplate(ctx context.Context, name string, t Server) (Response, error)
+	GetDataStreams(ctx context.Context, t Server) (Response, error)
+	GetDataStreamStats(ctx context.Context, t Server) (Response, error)
+	GetDataStreamBackingIndices(ctx context.Context, t Server) (Response, error)
+	GetDataStreamILM(ctx context.Context, t Server) (Response, error)
+	CreateDataStream(ctx context.Context, name string, t Server) (Response, error)
+	RolloverDataStream(ctx context.Context, name string, t Server) (Response, error)
+	DeleteDataStream(ctx context.Context, name string, t Server) (Response, error)
+	PutDataStreamLifecycle(ctx context.Context, name string, lifecycle json.RawMessage, t Server) (Response, error)
+	GetComposableIndexTemplate(ctx context.Context, name string, t Server) (Response, error)
+	PutComposableIndexTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error)
+	PutIndexLifecycleSettings(ctx context.Context, indices []string, policy string, t Server) (Response, error)
+	ClearIndexLifecycleSettings(ctx context.Context, indices []string, t Server) (Response, error)
+	GetILMPolicies(ctx context.Context, t Server) (Response, error)
+	PutILMPolicy(ctx context.Context, name string, policy json.RawMessage, t Server) (Response, error)
+	DeleteILMPolicy(ctx context.Context, name string, t Server) (Response, error)
 	GetNodes(ctx context.Context, t Server) (Response, error)
 	AnalyzeTextByField(ctx context.Context, index, field, text string, t Server) (Response, error)
 	AnalyzeTextByAnalyzer(ctx context.Context, index, analyzer, text string, t Server) (Response, error)
@@ -697,6 +712,89 @@ func (c *HTTPClient) DeleteTemplate(ctx context.Context, name string, t Server) 
 	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
 		return esapi.IndicesDeleteTemplateRequest{Name: name}.Do(ctx, transport)
 	})
+}
+
+func (c *HTTPClient) GetDataStreams(ctx context.Context, t Server) (Response, error) {
+	return c.execute(ctx, "/_data_stream", http.MethodGet, nil, t, nil)
+}
+
+func (c *HTTPClient) GetDataStreamStats(ctx context.Context, t Server) (Response, error) {
+	return c.execute(ctx, "/_data_stream/_stats", http.MethodGet, nil, t, nil)
+}
+
+func (c *HTTPClient) GetDataStreamBackingIndices(ctx context.Context, t Server) (Response, error) {
+	path := "/_cat/indices/.ds-*?format=json&bytes=b&expand_wildcards=all&h=index,health,status,docs.count,store.size"
+	return c.execute(ctx, path, http.MethodGet, nil, t, nil)
+}
+
+func (c *HTTPClient) GetDataStreamILM(ctx context.Context, t Server) (Response, error) {
+	return c.execute(ctx, "/.ds-*/_ilm/explain?ignore_unavailable=true&expand_wildcards=all", http.MethodGet, nil, t, nil)
+}
+
+func (c *HTTPClient) CreateDataStream(ctx context.Context, name string, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_data_stream/%s", encoded(name)), http.MethodPut, nil, t, nil)
+}
+
+func (c *HTTPClient) RolloverDataStream(ctx context.Context, name string, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/%s/_rollover", encoded(name)), http.MethodPost, nil, t, nil)
+}
+
+func (c *HTTPClient) DeleteDataStream(ctx context.Context, name string, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_data_stream/%s", encoded(name)), http.MethodDelete, nil, t, nil)
+}
+
+func (c *HTTPClient) PutDataStreamLifecycle(ctx context.Context, name string, lifecycle json.RawMessage, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_data_stream/%s/_lifecycle", encoded(name)), http.MethodPut, lifecycle, t, [][2]string{jsonHeader})
+}
+
+func (c *HTTPClient) GetComposableIndexTemplate(ctx context.Context, name string, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_index_template/%s", encoded(name)), http.MethodGet, nil, t, nil)
+}
+
+func (c *HTTPClient) PutComposableIndexTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_index_template/%s", encoded(name)), http.MethodPut, template, t, [][2]string{jsonHeader})
+}
+
+func (c *HTTPClient) PutIndexLifecycleSettings(ctx context.Context, indices []string, policy string, t Server) (Response, error) {
+	encodedIndices := make([]string, 0, len(indices))
+	for _, index := range indices {
+		if strings.TrimSpace(index) != "" {
+			encodedIndices = append(encodedIndices, encoded(index))
+		}
+	}
+	body, _ := json.Marshal(map[string]any{
+		"index": map[string]any{
+			"lifecycle": map[string]string{"name": policy},
+		},
+	})
+	return c.execute(ctx, fmt.Sprintf("/%s/_settings?expand_wildcards=all", strings.Join(encodedIndices, ",")), http.MethodPut, body, t, [][2]string{jsonHeader})
+}
+
+func (c *HTTPClient) ClearIndexLifecycleSettings(ctx context.Context, indices []string, t Server) (Response, error) {
+	encodedIndices := make([]string, 0, len(indices))
+	for _, index := range indices {
+		if strings.TrimSpace(index) != "" {
+			encodedIndices = append(encodedIndices, encoded(index))
+		}
+	}
+	body, _ := json.Marshal(map[string]any{
+		"index": map[string]any{
+			"lifecycle": map[string]any{"name": nil},
+		},
+	})
+	return c.execute(ctx, fmt.Sprintf("/%s/_settings?expand_wildcards=all", strings.Join(encodedIndices, ",")), http.MethodPut, body, t, [][2]string{jsonHeader})
+}
+
+func (c *HTTPClient) GetILMPolicies(ctx context.Context, t Server) (Response, error) {
+	return c.execute(ctx, "/_ilm/policy", http.MethodGet, nil, t, nil)
+}
+
+func (c *HTTPClient) PutILMPolicy(ctx context.Context, name string, policy json.RawMessage, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_ilm/policy/%s", encoded(name)), http.MethodPut, policy, t, [][2]string{jsonHeader})
+}
+
+func (c *HTTPClient) DeleteILMPolicy(ctx context.Context, name string, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_ilm/policy/%s", encoded(name)), http.MethodDelete, nil, t, nil)
 }
 
 func (c *HTTPClient) GetNodes(ctx context.Context, t Server) (Response, error) {

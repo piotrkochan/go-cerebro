@@ -97,6 +97,16 @@ export function Navbar({
                   </Link>
                 </li>
                 <li>
+                  <Link search={search} to="/data_streams">
+                    <Icon name="database" /> data streams
+                  </Link>
+                </li>
+                <li>
+                  <Link search={search} to="/ilm">
+                    <Icon name="history" /> ilm policies
+                  </Link>
+                </li>
+                <li>
                   <Link search={search} to="/repositories">
                     <Icon name="database" /> repositories
                   </Link>
