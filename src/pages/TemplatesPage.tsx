@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 
 import { templatesCreate, templatesDelete, templatesList, type HostBodyWritable, type Template } from '../api/client';
+import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { ConfirmModal } from '../components/Modal';
@@ -84,6 +85,43 @@ export function TemplatesPage({
     sort,
     templateSortValue,
   );
+  const templateColumns: DataTableColumn<Template>[] = [
+    {
+      header: <SortHeader name="name" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>name</SortHeader>,
+      key: 'name',
+      render: (template) => <><Icon name="book" /> {template.name}</>,
+    },
+    {
+      header: <SortHeader name="pattern" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>pattern</SortHeader>,
+      key: 'pattern',
+      render: (template) => templatePattern(template),
+    },
+    {
+      className: 'text-right',
+      header: 'actions',
+      headerClassName: 'text-right',
+      key: 'actions',
+      render: (template) => (
+        <span className="inline-flex items-center justify-end gap-[10px]">
+          <button
+            aria-label={`edit template ${template.name}`}
+            className="btn btn-default btn-xs"
+            title="edit template"
+            type="button"
+            onClick={() => {
+              form.setFieldValue('name', template.name);
+              form.setFieldValue('body', formatJson(template.template));
+            }}
+          >
+            <Icon name="pencil" />
+          </button>
+          <button aria-label={`delete template ${template.name}`} className="btn btn-danger btn-xs" title="delete template" type="button" onClick={() => setDeleteTemplate(template)}>
+            <Icon name="trash" />
+          </button>
+        </span>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -108,7 +146,9 @@ export function TemplatesPage({
         storageKey="cerebro.templatesSplitPercent"
         left={
           <>
-            <h4>existing templates</h4>
+            <h4>
+              existing templates <small className="info-text">({filtered.length})</small>
+            </h4>
             <div className="row">
               <div className="col-md-8">
                 {templates.length ? (
@@ -123,52 +163,7 @@ export function TemplatesPage({
                 ) : null}
               </div>
               <div className="col-xs-12">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>
-                        <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'name'))}>
-                          name {sort.key === 'name' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                        </button>
-                      </th>
-                      <th>
-                        <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'pattern'))}>
-                          pattern {sort.key === 'pattern' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                        </button>
-                      </th>
-                      <th className="text-right">actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((template) => (
-                      <tr key={template.name}>
-                        <td>
-                          <Icon name="book" /> {template.name}
-                        </td>
-                        <td>{templatePattern(template)}</td>
-                        <td className="text-right">
-                          <span className="pull-right inline-flex items-center gap-[10px]">
-                            <button
-                              aria-label={`edit template ${template.name}`}
-                              className="btn btn-default btn-xs"
-                              title="edit template"
-                              type="button"
-                              onClick={() => {
-                                form.setFieldValue('name', template.name);
-                                form.setFieldValue('body', formatJson(template.template));
-                              }}
-                            >
-                              <Icon name="pencil" />
-                            </button>
-                            <button aria-label={`delete template ${template.name}`} className="btn btn-danger btn-xs" title="delete template" type="button" onClick={() => setDeleteTemplate(template)}>
-                              <Icon name="trash" />
-                            </button>
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable columns={templateColumns} getRowKey={(template) => template.name} rows={filtered} />
               </div>
             </div>
           </>

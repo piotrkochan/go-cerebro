@@ -56,6 +56,9 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Added overview detection and subtle highlighting for data stream backing indices.
 - Unified cluster and index settings layout around the same header, filter, group navigation and pending-change panels.
 - Preserved the original Cerebro overview behavior more closely, including shard controls, affected-index filtering and relocation flow.
+- Unified table density, table headers and list section headers across `more` pages.
+- Moved yellow/red cluster health details from the host label into a dedicated header health menu with allocation explanations and safe replica-count fixes.
+- Added a shared React table component and reused it across administrative list tables for consistent headers, empty states and row details.
 
 ### REST Console
 - Reworked the REST page.

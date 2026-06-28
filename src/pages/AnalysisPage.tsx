@@ -8,6 +8,7 @@ import {
   analysisIndices,
   type HostBodyWritable,
 } from '../api/client';
+import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import type { Notify } from '../types';
 import { errorMessage, textValue } from '../utils/format';
@@ -171,45 +172,30 @@ function TokensTable({ tokens }: { tokens?: Token[] }) {
 
   if (!tokens) return null;
   const sortedTokens = sortByText(tokens, sort, tokenSortValue);
+  const columns: DataTableColumn<Token>[] = [
+    {
+      header: <SortHeader name="token" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>token</SortHeader>,
+      key: 'token',
+      render: (token) => textValue(token.token),
+    },
+    {
+      header: <SortHeader name="position" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>position</SortHeader>,
+      key: 'position',
+      render: (token) => textValue(token.position),
+    },
+    {
+      header: <SortHeader name="start_offset" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>start offset</SortHeader>,
+      key: 'start_offset',
+      render: (token) => textValue(token.start_offset),
+    },
+    {
+      header: <SortHeader name="end_offset" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>end offset</SortHeader>,
+      key: 'end_offset',
+      render: (token) => textValue(token.end_offset),
+    },
+  ];
 
-  return (
-    <table className="table">
-      <thead>
-        <tr>
-          <th>
-            <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'token'))}>
-              token {sort.key === 'token' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-            </button>
-          </th>
-          <th>
-            <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'position'))}>
-              position {sort.key === 'position' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-            </button>
-          </th>
-          <th>
-            <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'start_offset'))}>
-              start offset {sort.key === 'start_offset' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-            </button>
-          </th>
-          <th>
-            <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'end_offset'))}>
-              end offset {sort.key === 'end_offset' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-            </button>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {sortedTokens.map((token, index) => (
-          <tr key={index}>
-            <td>{textValue(token.token)}</td>
-            <td>{textValue(token.position)}</td>
-            <td>{textValue(token.start_offset)}</td>
-            <td>{textValue(token.end_offset)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
+  return <DataTable columns={columns} getRowKey={(_, index) => String(index)} rows={sortedTokens} />;
 }
 
 function tokenSortValue(token: Token, key: TokenSortKey) {

@@ -108,6 +108,8 @@ type Client interface {
 	SaveClusterSettings(ctx context.Context, settings json.RawMessage, t Server) (Response, error)
 	UpdateIndexSettings(ctx context.Context, index string, settings json.RawMessage, t Server) (Response, error)
 	CatRequest(ctx context.Context, api string, t Server) (Response, error)
+	CatShards(ctx context.Context, columns []string, t Server) (Response, error)
+	AllocationExplain(ctx context.Context, index string, shard int, primary bool, t Server) (Response, error)
 	CatMaster(ctx context.Context, t Server) (Response, error)
 	SearchIndexDocuments(ctx context.Context, index string, query json.RawMessage, t Server) (Response, error)
 	SaveIndexDocument(ctx context.Context, index, id string, document json.RawMessage, t Server) (Response, error)
@@ -969,6 +971,29 @@ func (c *HTTPClient) CatRequest(ctx context.Context, api string, t Server) (Resp
 		default:
 			return nil, fmt.Errorf("unsupported cat API: %s", api)
 		}
+	})
+}
+
+func (c *HTTPClient) CatShards(ctx context.Context, columns []string, t Server) (Response, error) {
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.CatShardsRequest{Format: "json", H: columns}.Do(ctx, transport)
+	})
+}
+
+func (c *HTTPClient) AllocationExplain(ctx context.Context, index string, shard int, primary bool, t Server) (Response, error) {
+	body, err := json.Marshal(map[string]any{
+		"index":   index,
+		"shard":   shard,
+		"primary": primary,
+	})
+	if err != nil {
+		return Response{}, err
+	}
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterAllocationExplainRequest{
+			Body:   jsonReader(body),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
 	})
 }
 

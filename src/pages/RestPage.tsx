@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 
 import { restHistory, restIndex, restRequest, type HostBodyWritable } from '../api/client';
+import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { SplitPane } from '../components/SplitPane';
@@ -94,6 +95,28 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
   }
 
   const sortedHistory = sortByText(history, historySort, restHistorySortValue);
+  const historyColumns: DataTableColumn<RestHistoryItem>[] = [
+    {
+      className: 'normal-action',
+      header: <SortHeader name="created_at" sort={historySort} onSort={(name) => setHistorySort((value) => nextSort(value, name))}>created</SortHeader>,
+      headerClassName: 'w-[100px]',
+      key: 'created_at',
+      render: (item) => textValue(item.created_at),
+    },
+    {
+      className: 'normal-action',
+      header: <SortHeader name="method" sort={historySort} onSort={(name) => setHistorySort((value) => nextSort(value, name))}>method</SortHeader>,
+      headerClassName: 'w-[60px]',
+      key: 'method',
+      render: (item) => textValue(item.method),
+    },
+    {
+      className: 'normal-action',
+      header: <SortHeader name="path" sort={historySort} onSort={(name) => setHistorySort((value) => nextSort(value, name))}>path</SortHeader>,
+      key: 'path',
+      render: (item) => textValue(item.path),
+    },
+  ];
 
   return (
     <SplitPane
@@ -160,42 +183,19 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
           </div>
           {showHistory && history.length ? (
             <div className="col-xs-12 panel-collapse collapse in !block !visible" id="restHistory">
-              <table className="table table-condensed">
-                <thead>
-                  <tr>
-                    <th style={{ width: 100 }}>
-                      <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setHistorySort((value) => nextSort(value, 'created_at'))}>
-                        created {historySort.key === 'created_at' ? <Icon name={historySort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                      </button>
-                    </th>
-                    <th style={{ width: 60 }}>
-                      <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setHistorySort((value) => nextSort(value, 'method'))}>
-                        method {historySort.key === 'method' ? <Icon name={historySort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                      </button>
-                    </th>
-                    <th>
-                      <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setHistorySort((value) => nextSort(value, 'path'))}>
-                        path {historySort.key === 'path' ? <Icon name={historySort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                      </button>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedHistory.map((item, index) => (
-                    <tr className="normal-action" key={index} onClick={() => {
-                      setRequest({
-                        body: textValue(item.body),
-                        method: textValue(item.method) || 'GET',
-                        path: textValue(item.path),
-                      });
-                    }}>
-                      <td style={{ width: 100 }}>{textValue(item.created_at)}</td>
-                      <td style={{ width: 60 }}>{textValue(item.method)}</td>
-                      <td>{textValue(item.path)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable
+                columns={historyColumns}
+                getRowKey={(_, index) => String(index)}
+                rowClassName="normal-action"
+                rows={sortedHistory}
+                onRowClick={(item) => {
+                  setRequest({
+                    body: textValue(item.body),
+                    method: textValue(item.method) || 'GET',
+                    path: textValue(item.path),
+                  });
+                }}
+              />
             </div>
           ) : null}
         </div>
@@ -250,7 +250,7 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
               </button>
             </div>
           ) : null}
-          <LazyJsonEditor height={response ? 606 : 647} readOnly value={formatJson(response?.body ?? '')} onChange={() => undefined} />
+          <LazyJsonEditor height={response ? 606 : 647} readOnly value={formatJson(restResponseBody(response?.body ?? ''))} onChange={() => undefined} />
         </div>
       }
     />
@@ -291,4 +291,10 @@ function restErrorBody(error: unknown): unknown {
     };
   }
   return { error };
+}
+
+function restResponseBody(body: unknown): unknown {
+  if (typeof body !== 'string') return body;
+  const parsed = parseJson(body);
+  return typeof parsed === 'string' ? body : parsed;
 }

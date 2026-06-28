@@ -3,6 +3,7 @@ import { useForm } from '@tanstack/react-form';
 
 import { ilmPoliciesDelete, ilmPoliciesList, ilmPoliciesSave } from '../api/ilmClient';
 import type { HostBodyWritable, IlmPolicy } from '../api/client/types.gen';
+import { DataTable, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { ConfirmModal } from '../components/Modal';
@@ -319,53 +320,56 @@ function ILMPolicyTable({
   policies: IlmPolicy[];
   sort: SortState<ILMSortKey>;
 }) {
-  if (!policies.length) {
-    return <div className="info-text">none</div>;
-  }
-  return (
-    <table className="table table-condensed">
-      <thead>
-        <tr>
-          <th>{sortButton('name', 'name', sort, onSort)}</th>
-          <th>{sortButton('phases', 'phases', sort, onSort)}</th>
-          <th>{sortButton('version', 'version', sort, onSort)}</th>
-          <th>used by</th>
-          <th className="text-right">actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {policies.map((policy) => {
-          const managed = isManagedPolicy(policy);
-          return (
-            <tr key={policy.name}>
-              <td className="break-all">
-                <Icon name="history" /> {policy.name}
-              </td>
-              <td>{phasesText(policy) || <span className="info-text">none</span>}</td>
-              <td>{textValue(policy.version) || 'n/a'}</td>
-              <td>{managed ? managedPolicyUsage(policy) : <span className="info-text">none</span>}</td>
-              <td className="text-right">
-                <span className="inline-flex items-center gap-[10px]">
-                  <button className="btn btn-default btn-xs" title="edit policy" type="button" onClick={() => onEdit(policy)}>
-                    <Icon name="pencil" />
-                  </button>
-                  <button
-                    className="btn btn-danger btn-xs"
-                    disabled={managed}
-                    title={managed ? 'policy is in use' : 'delete policy'}
-                    type="button"
-                    onClick={() => onDelete(policy)}
-                  >
-                    <Icon name="trash" />
-                  </button>
-                </span>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
+  const columns: DataTableColumn<IlmPolicy>[] = [
+    {
+      className: 'break-all',
+      header: sortButton('name', 'name', sort, onSort),
+      key: 'name',
+      render: (policy) => <><Icon name="history" /> {policy.name}</>,
+    },
+    {
+      header: sortButton('phases', 'phases', sort, onSort),
+      key: 'phases',
+      render: (policy) => phasesText(policy) || <span className="info-text">none</span>,
+    },
+    {
+      header: sortButton('version', 'version', sort, onSort),
+      key: 'version',
+      render: (policy) => textValue(policy.version) || 'n/a',
+    },
+    {
+      header: 'used by',
+      key: 'used-by',
+      render: (policy) => (isManagedPolicy(policy) ? managedPolicyUsage(policy) : <span className="info-text">none</span>),
+    },
+    {
+      className: 'text-right',
+      header: 'actions',
+      headerClassName: 'text-right',
+      key: 'actions',
+      render: (policy) => {
+        const managed = isManagedPolicy(policy);
+        return (
+          <span className="inline-flex items-center gap-[10px]">
+            <button className="btn btn-default btn-xs" title="edit policy" type="button" onClick={() => onEdit(policy)}>
+              <Icon name="pencil" />
+            </button>
+            <button
+              className="btn btn-danger btn-xs"
+              disabled={managed}
+              title={managed ? 'policy is in use' : 'delete policy'}
+              type="button"
+              onClick={() => onDelete(policy)}
+            >
+              <Icon name="trash" />
+            </button>
+          </span>
+        );
+      },
+    },
+  ];
+
+  return <DataTable columns={columns} getRowKey={(policy) => policy.name} rows={policies} />;
 }
 
 function ILMPolicyWizard({

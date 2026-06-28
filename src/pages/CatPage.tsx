@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { cat, type HostBodyWritable } from '../api/client';
+import { DataTable, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import type { Notify } from '../types';
 import { errorMessage, textValue } from '../utils/format';
@@ -66,6 +67,15 @@ export function CatPage({ connection, notify }: { connection: HostBodyWritable; 
     });
     return sortAsc ? compared : -compared;
   });
+  const columns: DataTableColumn<CatRow>[] = headers.map((header) => ({
+    header: (
+      <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => sort(header)}>
+        {header} {header === sortCol ? <Icon name={sortAsc ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+      </button>
+    ),
+    key: header,
+    render: (row) => textValue(row[header]),
+  }));
 
   return (
     <>
@@ -92,27 +102,7 @@ export function CatPage({ connection, notify }: { connection: HostBodyWritable; 
         <div className="col-xs-12">
           {executed && headers.length === 0 && rows.length === 0 ? <h4 className="text-center">No data available</h4> : null}
           {headers.length ? (
-            <table className="table">
-              <thead>
-                <tr>
-                  {headers.map((header) => (
-                    <th className="normal-action" key={header} onClick={() => sort(header)}>
-                      {header}
-                      {header === sortCol ? <Icon name={sortAsc ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRows.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {headers.map((header) => (
-                      <td key={header}>{textValue(row[header])}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable columns={columns} getRowKey={(_, index) => String(index)} rows={sortedRows} />
           ) : null}
         </div>
       </div>

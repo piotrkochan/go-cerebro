@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 
 import { aliasesGet, aliasesUpdate, overview, type Alias, type HostBodyWritable, type Overview } from '../api/client';
+import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { ConfirmModal } from '../components/Modal';
@@ -57,6 +58,63 @@ export function AliasesPage({
     sort,
     aliasSortValue,
   );
+  const aliasColumns: DataTableColumn<Alias>[] = [
+    {
+      header: <SortHeader name="alias" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>alias</SortHeader>,
+      key: 'alias',
+      render: (alias) => <><Icon name="tag" /> {alias.alias}</>,
+    },
+    {
+      header: <SortHeader name="index" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>index</SortHeader>,
+      key: 'index',
+      render: (alias) => alias.index,
+    },
+    {
+      header: <SortHeader name="routing" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>routing / filter</SortHeader>,
+      key: 'routing',
+      render: (alias) => (
+        <>
+          {alias.search_routing ? <div><span className="info-text">search:</span> {textValue(alias.search_routing)}</div> : null}
+          {alias.index_routing ? <div><span className="info-text">index:</span> {textValue(alias.index_routing)}</div> : null}
+          {alias.filter ? (
+            <details>
+              <summary className="normal-action info-text">filter JSON</summary>
+              <pre>{formatJson(alias.filter)}</pre>
+            </details>
+          ) : (
+            <span className="info-text">none</span>
+          )}
+        </>
+      ),
+    },
+    {
+      className: 'text-right',
+      header: 'actions',
+      headerClassName: 'text-right',
+      key: 'actions',
+      render: (alias) => (
+        <div className="inline-flex items-center justify-end gap-[10px]">
+          <button aria-label={`remove alias ${alias.alias}`} className="btn btn-danger btn-xs" title="remove alias" type="button" onClick={() => setDeleteConfirm(alias)}>
+            <Icon name="trash" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+  const changeColumns: DataTableColumn<unknown>[] = [
+    { className: 'col-xs-2', header: null, key: 'kind', render: (change) => aliasChangeLabel(change) },
+    { header: null, key: 'body', render: (change) => <pre>{formatJson(change)}</pre> },
+    {
+      className: 'text-right col-xs-1',
+      header: null,
+      key: 'actions',
+      render: (_, index) => (
+        <button className="btn btn-default btn-xs" type="button" onClick={() => setChanges((value) => value.filter((_, i) => i !== index))}>
+          <Icon name="undo" /> undo
+        </button>
+      ),
+    },
+  ];
 
   function removeIndexAlias(alias: Alias) {
     setChanges((value) => [...value, { remove: { alias: alias.alias, index: alias.index } }]);
@@ -131,61 +189,7 @@ export function AliasesPage({
               <input className="form-control" placeholder="filter by index" value={filter.index} onChange={(event) => setFilter((value) => ({ ...value, index: event.target.value }))} />
             </div>
             <div className="col-xs-12">
-              {filtered.length ? (
-                <table className="table table-condensed">
-                  <thead>
-                    <tr>
-                      <th>
-                        <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'alias'))}>
-                          alias {sort.key === 'alias' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                        </button>
-                      </th>
-                      <th>
-                        <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'index'))}>
-                          index {sort.key === 'index' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                        </button>
-                      </th>
-                      <th>
-                        <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'routing'))}>
-                          routing / filter {sort.key === 'routing' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                        </button>
-                      </th>
-                      <th className="text-right">remove</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((alias, index) => (
-                      <tr key={`${alias.alias}-${alias.index}-${index}`}>
-                        <td>
-                          <Icon name="tag" /> {alias.alias}
-                        </td>
-                        <td>{alias.index}</td>
-                        <td>
-                          {alias.search_routing ? <div><span className="info-text">search:</span> {textValue(alias.search_routing)}</div> : null}
-                          {alias.index_routing ? <div><span className="info-text">index:</span> {textValue(alias.index_routing)}</div> : null}
-                          {alias.filter ? (
-                            <details>
-                              <summary className="normal-action info-text">filter JSON</summary>
-                              <pre>{formatJson(alias.filter)}</pre>
-                            </details>
-                          ) : (
-                            <span className="info-text">none</span>
-                          )}
-                        </td>
-                        <td className="text-right">
-                          <div className="inline-flex items-center justify-end gap-[10px]">
-                            <button aria-label={`remove alias ${alias.alias}`} className="btn btn-danger btn-xs" title="remove alias" type="button" onClick={() => setDeleteConfirm(alias)}>
-                              <Icon name="trash" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="info-text">no aliases match current filters</div>
-              )}
+              <DataTable columns={aliasColumns} empty="no aliases match current filters" getRowKey={(alias, index) => `${alias.alias}-${alias.index}-${index}`} rows={filtered} />
             </div>
           </div>
           </>
@@ -269,23 +273,7 @@ export function AliasesPage({
           </h4>
           {changes.length ? (
             <>
-              <table className="table table-condensed">
-                <tbody>
-                  {changes.map((change, index) => (
-                    <tr key={index}>
-                      <td className="col-xs-2">{aliasChangeLabel(change)}</td>
-                      <td>
-                        <pre>{formatJson(change)}</pre>
-                      </td>
-                      <td className="text-right col-xs-1">
-                        <button className="btn btn-default btn-xs" type="button" onClick={() => setChanges((value) => value.filter((_, i) => i !== index))}>
-                          <Icon name="undo" /> undo
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable columns={changeColumns} getRowKey={(_, index) => String(index)} rows={changes} showHeader={false} />
               <div className="text-right">
                 <button className="btn btn-default" type="button" onClick={() => setChanges([])}>
                   discard all

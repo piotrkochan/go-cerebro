@@ -11,7 +11,8 @@ import {
   dataStreamsUpdateLifecycle,
 } from '../api/dataStreamsClient';
 import { ilmPoliciesList } from '../api/ilmClient';
-import type { DataStream, HostBodyWritable, IlmPolicy } from '../api/client/types.gen';
+import type { DataStream, DataStreamBackingIndex, HostBodyWritable, IlmPolicy } from '../api/client/types.gen';
+import { DataTable, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { ConfirmModal, ModalFrame, useEscape } from '../components/Modal';
 import { SplitPane } from '../components/SplitPane';
@@ -161,6 +162,24 @@ export function DataStreamsPage({
     dataStreamSortValue,
   );
   const selected = streams.find((stream) => stream.name === selectedName) ?? filtered[0] ?? null;
+  const dataStreamColumns: DataTableColumn<DataStream>[] = [
+    {
+      className: 'normal-action',
+      header: sortButton('name', 'name', sort, setSort),
+      key: 'name',
+      render: (stream) => (
+        <>
+          <Icon name="database" /> {stream.name}
+          {stream.hidden ? <span className="label ml-2 bg-[#8b8f95]">hidden</span> : null}
+          {stream.system ? <span className="label ml-2 bg-[#e4d836]">system</span> : null}
+        </>
+      ),
+    },
+    { header: sortButton('status', 'status', sort, setSort), key: 'status', render: (stream) => <HealthLabel status={stream.status} /> },
+    { header: sortButton('generation', 'gen', sort, setSort), key: 'generation', render: (stream) => stream.generation },
+    { header: sortButton('backing_indices', 'backing', sort, setSort), key: 'backing_indices', render: (stream) => stream.backing_indices_count },
+    { header: sortButton('size', 'size', sort, setSort), key: 'size', render: (stream) => formatBytes(stream.store_size_bytes) },
+  ];
 
   if (!supported) {
     return (
@@ -249,40 +268,14 @@ export function DataStreamsPage({
                 <input className="form-control" placeholder="filter data streams by name" value={filter} onChange={(event) => setFilter(event.target.value)} />
               </div>
               <div className="col-xs-12">
-                {filtered.length ? (
-                  <table className="table table-condensed">
-                    <thead>
-                      <tr>
-                        <th>{sortButton('name', 'name', sort, setSort)}</th>
-                        <th>{sortButton('status', 'status', sort, setSort)}</th>
-                        <th>{sortButton('generation', 'gen', sort, setSort)}</th>
-                        <th>{sortButton('backing_indices', 'backing', sort, setSort)}</th>
-                        <th>{sortButton('size', 'size', sort, setSort)}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map((stream) => (
-                        <tr
-                          className={`cursor-pointer ${selected?.name === stream.name ? 'bg-[#434749]' : ''}`}
-                          key={stream.name}
-                          onClick={() => setSelectedName(stream.name)}
-                        >
-                          <td className="normal-action">
-                            <Icon name="database" /> {stream.name}
-                            {stream.hidden ? <span className="label ml-2 bg-[#8b8f95]">hidden</span> : null}
-                            {stream.system ? <span className="label ml-2 bg-[#e4d836]">system</span> : null}
-                          </td>
-                          <td><HealthLabel status={stream.status} /></td>
-                          <td>{stream.generation}</td>
-                          <td>{stream.backing_indices_count}</td>
-                          <td>{formatBytes(stream.store_size_bytes)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="info-text">no data streams match current filter</div>
-                )}
+                <DataTable
+                  columns={dataStreamColumns}
+                  empty="no data streams match current filter"
+                  getRowKey={(stream) => stream.name}
+                  rowClassName={(stream) => `cursor-pointer ${selected?.name === stream.name ? 'bg-[#434749]' : ''}`}
+                  rows={filtered}
+                  onRowClick={(stream) => setSelectedName(stream.name)}
+                />
               </div>
             </div>
           </>
@@ -329,6 +322,59 @@ function DataStreamDetails({
   const managedBy = dataStreamManagedBy(stream);
   const retentionEditable = canEditDataStreamLifecycle(stream);
   const ilmPolicy = writeIndex?.ilm_policy || '';
+  const backingIndexColumns: DataTableColumn<DataStreamBackingIndex>[] = [
+    {
+      className: 'break-all',
+      header: 'index',
+      key: 'index',
+      render: (index) => (
+        <>
+          {index.write_index ? <span className="label label-success mr-2">write</span> : null}
+          {index.name}
+        </>
+      ),
+    },
+    { header: 'health', key: 'health', render: (index) => <HealthLabel status={index.health} /> },
+    { header: 'docs', key: 'docs', render: (index) => textValue(index.docs_count) || '0' },
+    { header: 'size', key: 'size', render: (index) => formatBytes(index.store_size_bytes) },
+    { header: 'managed by', key: 'managed-by', render: (index) => index.managed_by || 'unmanaged' },
+    {
+      header: 'lifecycle',
+      key: 'lifecycle',
+      render: (index) =>
+        index.ilm_managed ? (
+          <>
+            {index.ilm_policy ? (
+              <div>
+                <span className="info-text">policy:</span>{' '}
+                <Link className="normal-action" search={{ host: connection.host, policy: index.ilm_policy }} to="/ilm">
+                  {index.ilm_policy}
+                </Link>
+              </div>
+            ) : null}
+            <div>{[index.ilm_phase, index.ilm_action, index.ilm_step].filter(Boolean).join(' / ') || 'managed'}</div>
+          </>
+        ) : (
+          <span className="info-text">not ILM managed</span>
+        ),
+    },
+    {
+      className: 'text-right',
+      header: 'actions',
+      headerClassName: 'text-right',
+      key: 'actions',
+      render: (index) => (
+        <span className="inline-flex items-center gap-[10px]">
+          <Link className="btn btn-default btn-xs" search={{ host: connection.host, index: index.name }} title="index settings" to="/index_settings">
+            <Icon name="cog" />
+          </Link>
+          <Link className="btn btn-default btn-xs" search={{ host: connection.host, index: index.name }} title="browse backing index data" to="/data_explorer">
+            <Icon name="database" />
+          </Link>
+        </span>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -406,60 +452,7 @@ function DataStreamDetails({
           <Icon name="database" /> browse data
         </Link>
       </div>
-      <table className="table table-condensed">
-        <thead>
-          <tr>
-            <th>index</th>
-            <th>health</th>
-            <th>docs</th>
-            <th>size</th>
-            <th>managed by</th>
-            <th>lifecycle</th>
-            <th className="text-right">actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(stream.backing_indices ?? []).map((index) => (
-            <tr key={index.name}>
-              <td className="break-all">
-                {index.write_index ? <span className="label label-success mr-2">write</span> : null}
-                {index.name}
-              </td>
-              <td><HealthLabel status={index.health} /></td>
-              <td>{textValue(index.docs_count) || '0'}</td>
-              <td>{formatBytes(index.store_size_bytes)}</td>
-              <td>{index.managed_by || 'unmanaged'}</td>
-              <td>
-                {index.ilm_managed ? (
-                  <>
-                    {index.ilm_policy ? (
-                      <div>
-                        <span className="info-text">policy:</span>{' '}
-                        <Link className="normal-action" search={{ host: connection.host, policy: index.ilm_policy }} to="/ilm">
-                          {index.ilm_policy}
-                        </Link>
-                      </div>
-                    ) : null}
-                    <div>{[index.ilm_phase, index.ilm_action, index.ilm_step].filter(Boolean).join(' / ') || 'managed'}</div>
-                  </>
-                ) : (
-                  <span className="info-text">not ILM managed</span>
-                )}
-              </td>
-              <td className="text-right">
-                <span className="inline-flex items-center gap-[10px]">
-                  <Link className="btn btn-default btn-xs" search={{ host: connection.host, index: index.name }} title="index settings" to="/index_settings">
-                    <Icon name="cog" />
-                  </Link>
-                  <Link className="btn btn-default btn-xs" search={{ host: connection.host, index: index.name }} title="browse backing index data" to="/data_explorer">
-                    <Icon name="database" />
-                  </Link>
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DataTable columns={backingIndexColumns} getRowKey={(index) => index.name} rows={stream.backing_indices ?? []} />
       <details>
         <summary className="normal-action info-text">raw lifecycle</summary>
         <pre>{formatJson(stream.lifecycle ?? {})}</pre>

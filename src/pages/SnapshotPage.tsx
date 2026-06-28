@@ -9,8 +9,10 @@ import {
   snapshotsRestore,
   type HostBodyWritable,
 } from '../api/client';
+import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { ConfirmModal } from '../components/Modal';
+import { SplitPane } from '../components/SplitPane';
 import type { Notify } from '../types';
 import { errorMessage, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
@@ -35,6 +37,7 @@ export function SnapshotPage({
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [showSpecial, setShowSpecial] = useState(false);
   const [deleteSnapshotName, setDeleteSnapshotName] = useState('');
+  const [restoreSnapshotName, setRestoreSnapshotName] = useState('');
   const [sort, setSort] = useState<SortState<SnapshotSortKey>>({ key: 'name', order: 'asc' });
   const [createForm, setCreateForm] = useState({ ignoreUnavailable: false, includeGlobalState: true, indices: [] as string[], repository: '', snapshot: '' });
   const [restoreForms, setRestoreForms] = useState<Record<string, RestoreForm>>({});
@@ -96,9 +99,58 @@ export function SnapshotPage({
   }
 
   const visibleIndices = showSpecial ? indices : indices.filter((index) => !index.special);
+  const restoreSnapshotItem = snapshots.find((snapshot) => textValue(snapshot.snapshot) === restoreSnapshotName);
+  const snapshotColumns: DataTableColumn<Snapshot>[] = [
+    {
+      header: <SortHeader name="name" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>snapshot</SortHeader>,
+      key: 'name',
+      render: (snapshot) => <><Icon name="database" /> {textValue(snapshot.snapshot)}</>,
+    },
+    {
+      header: <SortHeader name="start_time" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>created</SortHeader>,
+      key: 'start_time',
+      render: (snapshot) => textValue(snapshot.start_time),
+    },
+    {
+      header: <SortHeader name="state" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>state</SortHeader>,
+      key: 'state',
+      render: (snapshot) => textValue(snapshot.state),
+    },
+    {
+      className: 'text-right',
+      header: 'actions',
+      headerClassName: 'text-right',
+      key: 'actions',
+      render: (snapshot) => {
+        const snapshotName = textValue(snapshot.snapshot);
+        return (
+          <span className="inline-flex items-center justify-end gap-[10px]">
+            <button
+              aria-label={`restore snapshot ${snapshotName}`}
+              className="btn btn-default btn-xs"
+              title="restore snapshot"
+              type="button"
+              onClick={() => setRestoreSnapshotName((value) => (value === snapshotName ? '' : snapshotName))}
+            >
+              <Icon name="download" />
+            </button>
+            <button
+              aria-label={`delete snapshot ${snapshotName}`}
+              className="btn btn-danger btn-xs"
+              title="delete snapshot"
+              type="button"
+              onClick={() => setDeleteSnapshotName(snapshotName)}
+            >
+              <Icon name="trash" />
+            </button>
+          </span>
+        );
+      },
+    },
+  ];
 
   return (
-    <div className="row">
+    <>
       {deleteSnapshotName ? (
         <ConfirmModal
           body={
@@ -116,110 +168,71 @@ export function SnapshotPage({
           title="delete snapshot"
         />
       ) : null}
-      <div className="col-md-6">
-        <h4>
-          existing snapshots
-          <div className="form-inline form-group pull-right">
-            <select className="form-control" value={repository} onChange={(event) => void loadSnapshots(event.target.value)}>
-              <option value="">select repository</option>
-              {repositories.map((repo) => <option key={repo}>{repo}</option>)}
-            </select>
-          </div>
-        </h4>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>
-                <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'name'))}>
-                  snapshot {sort.key === 'name' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                </button>
-              </th>
-              <th>
-                <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'start_time'))}>
-                  created {sort.key === 'start_time' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                </button>
-              </th>
-              <th>
-                <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'state'))}>
-                  state {sort.key === 'state' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                </button>
-              </th>
-              <th className="text-right">actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortByText(snapshots, sort, snapshotSortValue).map((snapshot) => {
-              const snapshotName = textValue(snapshot.snapshot);
-              return (
-                <tr key={snapshot.uuid ?? snapshotName}>
-                  <td colSpan={4}>
-                    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(80px,.5fr)_auto] items-center gap-[10px]">
-                      <div><Icon name="database" /> {snapshotName}</div>
-                      <div>{textValue(snapshot.start_time)}</div>
-                      <div>{textValue(snapshot.state)}</div>
-                      <span className="pull-right inline-flex items-center gap-[10px]">
-                        <button
-                          aria-label={`delete snapshot ${snapshotName}`}
-                          className="btn btn-danger btn-xs"
-                          title="delete snapshot"
-                          type="button"
-                          onClick={() => setDeleteSnapshotName(snapshotName)}
-                        >
-                          <Icon name="trash" />
-                        </button>
-                      </span>
-                    </div>
-                    <RestoreFormView
-                      form={restoreForms[snapshotName] ?? defaultRestoreForm}
-                      setForm={(form) => setRestoreForms((value) => ({ ...value, [snapshotName]: form }))}
-                      snapshot={snapshot}
-                      onRestore={() => void restoreSnapshot(snapshotName)}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="col-md-6">
-        <h4>create new snapshot</h4>
-        <div className="row">
-          <div className="col-sm-6">
-            <FormGroup label="repository">
-              <select className="form-control" value={createForm.repository} onChange={(event) => setCreateForm((value) => ({ ...value, repository: event.target.value }))}>
-                <option value="">select repository</option>
-                {repositories.map((repo) => <option key={repo}>{repo}</option>)}
-              </select>
-            </FormGroup>
-            <FormGroup label="snapshot name">
-              <input className="form-control" placeholder="snapshot name" value={createForm.snapshot} onChange={(event) => setCreateForm((value) => ({ ...value, snapshot: event.target.value }))} />
-            </FormGroup>
-            <Checkbox checked={createForm.ignoreUnavailable} label="ignore unavailable indices" onChange={(checked) => setCreateForm((value) => ({ ...value, ignoreUnavailable: checked }))} />
-            <Checkbox checked={createForm.includeGlobalState} label="include global state" onChange={(checked) => setCreateForm((value) => ({ ...value, includeGlobalState: checked }))} />
-          </div>
-          <div className="col-sm-6">
-            <FormGroup label="indices (defaults to all if none is selected)">
-              <label className="cluster-map-node-type">
-                <input checked={showSpecial} type="checkbox" onChange={(event) => setShowSpecial(event.target.checked)} /> show special indices
-              </label>
-              <MultiSelect
-                options={visibleIndices.map((index) => index.name)}
-                value={createForm.indices}
-                onChange={(selected) => setCreateForm((value) => ({ ...value, indices: selected }))}
+      <SplitPane
+        storageKey="cerebro.snapshotsSplitPercent"
+        left={
+          <>
+            <div className="flex items-center justify-between gap-[15px]">
+              <h4>
+                existing snapshots <small className="info-text">({snapshots.length})</small>
+              </h4>
+              <div className="form-inline form-group">
+                <select className="form-control" value={repository} onChange={(event) => void loadSnapshots(event.target.value)}>
+                  <option value="">select repository</option>
+                  {repositories.map((repo) => <option key={repo}>{repo}</option>)}
+                </select>
+              </div>
+            </div>
+            <DataTable columns={snapshotColumns} getRowKey={(snapshot) => snapshot.uuid ?? textValue(snapshot.snapshot)} rows={sortByText(snapshots, sort, snapshotSortValue)} />
+            {restoreSnapshotItem ? (
+              <RestoreFormView
+                form={restoreForms[restoreSnapshotName] ?? defaultRestoreForm}
+                setForm={(form) => setRestoreForms((value) => ({ ...value, [restoreSnapshotName]: form }))}
+                snapshot={restoreSnapshotItem}
+                onRestore={() => void restoreSnapshot(restoreSnapshotName)}
               />
-            </FormGroup>
-          </div>
-        </div>
-        <div className="row">
-          <div className="col-xs-12">
-            <button className="btn btn-success pull-right" type="submit" onClick={() => void createSnapshot()}>
-              <Icon name="file" /> create
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+            ) : null}
+          </>
+        }
+        right={
+          <>
+            <h4>create new snapshot</h4>
+            <div className="row">
+              <div className="col-sm-6">
+                <FormGroup label="repository">
+                  <select className="form-control" value={createForm.repository} onChange={(event) => setCreateForm((value) => ({ ...value, repository: event.target.value }))}>
+                    <option value="">select repository</option>
+                    {repositories.map((repo) => <option key={repo}>{repo}</option>)}
+                  </select>
+                </FormGroup>
+                <FormGroup label="snapshot name">
+                  <input className="form-control" placeholder="snapshot name" value={createForm.snapshot} onChange={(event) => setCreateForm((value) => ({ ...value, snapshot: event.target.value }))} />
+                </FormGroup>
+                <Checkbox checked={createForm.ignoreUnavailable} label="ignore unavailable indices" onChange={(checked) => setCreateForm((value) => ({ ...value, ignoreUnavailable: checked }))} />
+                <Checkbox checked={createForm.includeGlobalState} label="include global state" onChange={(checked) => setCreateForm((value) => ({ ...value, includeGlobalState: checked }))} />
+              </div>
+              <div className="col-sm-6">
+                <FormGroup label="indices (defaults to all if none is selected)">
+                  <Checkbox checked={showSpecial} label="show special indices" onChange={setShowSpecial} />
+                  <MultiSelect
+                    options={visibleIndices.map((index) => index.name)}
+                    value={createForm.indices}
+                    onChange={(selected) => setCreateForm((value) => ({ ...value, indices: selected }))}
+                  />
+                </FormGroup>
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-xs-12">
+                <button className="btn btn-success pull-right" type="button" onClick={() => void createSnapshot()}>
+                  <Icon name="file" /> create
+                </button>
+              </div>
+            </div>
+          </>
+        }
+      />
+    </>
   );
 }
 
@@ -236,7 +249,8 @@ const defaultRestoreForm: RestoreForm = { ignoreUnavailable: true, includeAliase
 
 function RestoreFormView({ form, onRestore, setForm, snapshot }: { form: RestoreForm; onRestore: () => void; setForm: (form: RestoreForm) => void; snapshot: Snapshot }) {
   return (
-    <div>
+    <div className="mt-[15px] border border-[#55595c] p-[12px]">
+      <h4 className="!mt-0">restore {textValue(snapshot.snapshot)}</h4>
       <div className="row">
         <div className="col-lg-6">
           <FormGroup label="rename pattern">
@@ -257,7 +271,7 @@ function RestoreFormView({ form, onRestore, setForm, snapshot }: { form: Restore
       </div>
       <div className="row">
         <div className="col-lg-12 action-buttons">
-          <button className="btn btn-success pull-right" type="submit" onClick={onRestore}>
+          <button className="btn btn-success pull-right" type="button" onClick={onRestore}>
             <Icon name="download" /> restore
           </button>
         </div>

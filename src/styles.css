@@ -69,6 +69,18 @@ table.shard-map { table-layout: fixed; }
 
 /* Code editor */
 .ace-cerebro { border: 1px solid #55595c; }
+.json-editor .cm-selectionBackground,
+.json-editor .cm-selectionLayer .cm-selectionBackground,
+.json-editor .cm-editor.cm-focused .cm-selectionBackground {
+  background-color: #e4d836 !important;
+  outline: 1px solid #e4d836 !important;
+  opacity: .95 !important;
+}
+.json-editor .cm-content ::selection,
+.json-editor .cm-line ::selection {
+  background-color: #e4d836 !important;
+  color: #1f2224 !important;
+}
 
 /* Type ahead */
 .typeahead-demo .custom-popup-wrapper { top: 100%; left: 0; z-index: 1000; display: none; }

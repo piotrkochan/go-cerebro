@@ -39,8 +39,13 @@ const cerebroTheme = EditorView.theme(
     '.cm-activeLine, .cm-activeLineGutter': {
       backgroundColor: '#373a3c',
     },
-    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
-      backgroundColor: '#55595c',
+    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, .cm-selectionLayer .cm-selectionBackground': {
+      backgroundColor: '#e4d836',
+      opacity: '.95',
+    },
+    '.cm-content ::selection': {
+      backgroundColor: '#e4d836',
+      color: '#1f2224',
     },
     '.cm-panels, .cm-search': {
       backgroundColor: '#373a3c',
@@ -64,7 +69,7 @@ const cerebroHighlight = syntaxHighlighting(
     { tag: tags.bool, color: '#1CA8DD', fontWeight: 'bold' },
     { tag: tags.number, color: '#9F85FF' },
     { tag: tags.null, color: '#D0D0D0' },
-    { tag: tags.propertyName, color: '#f0f0f0' },
+    { tag: tags.propertyName, color: '#E4D836' },
     { tag: tags.comment, color: '#998', fontStyle: 'italic' },
   ]),
 );

@@ -6,6 +6,6 @@ export type RepositoryFormValues = {
 
 export const repositoryFormDefaults: RepositoryFormValues = {
   name: '',
-  settings: '{}',
+  settings: '{\n  "location": "",\n  "compress": true\n}',
   type: 'fs',
 };

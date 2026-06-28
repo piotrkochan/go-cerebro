@@ -8,6 +8,7 @@ import {
   type HostBodyWritable,
   type Repository,
 } from '../api/client';
+import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { ConfirmModal } from '../components/Modal';
@@ -133,6 +134,51 @@ export function RepositoriesPage({
       changeSettings(formatJson(template));
     }
   }
+  const repositoryColumns: DataTableColumn<Repository>[] = [
+    {
+      header: <SortHeader name="name" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>name</SortHeader>,
+      key: 'name',
+      render: (repository) => <><Icon name="database" /> {repository.name}</>,
+    },
+    {
+      header: <SortHeader name="type" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>type</SortHeader>,
+      key: 'type',
+      render: (repository) => repository.type,
+    },
+    {
+      className: 'text-right',
+      header: 'actions',
+      headerClassName: 'text-right',
+      key: 'actions',
+      render: (repository) => (
+        <span className="inline-flex items-center justify-end gap-[10px]">
+          <button
+            aria-label={`edit repository ${repository.name}`}
+            className="btn btn-default btn-xs"
+            title="edit repository"
+            type="button"
+            onClick={() => {
+              form.setFieldValue('name', repository.name);
+              form.setFieldValue('type', repository.type);
+              form.setFieldValue('settings', formatJson(repository.settings));
+              setUpdate(true);
+            }}
+          >
+            <Icon name="pencil" />
+          </button>
+          <button
+            aria-label={`delete repository ${repository.name}`}
+            className="btn btn-danger btn-xs"
+            title="delete repository"
+            type="button"
+            onClick={() => setDeleteRepository(repository)}
+          >
+            <Icon name="trash" />
+          </button>
+        </span>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -157,59 +203,10 @@ export function RepositoriesPage({
         storageKey="cerebro.repositoriesSplitPercent"
         left={
           <>
-            <h4>existing repositories</h4>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>
-                    <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'name'))}>
-                      name {sort.key === 'name' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                    </button>
-                  </th>
-                  <th>
-                    <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, 'type'))}>
-                      type {sort.key === 'type' ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
-                    </button>
-                  </th>
-                  <th className="text-right">actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortByText(repositories, sort, repositorySortValue).map((repository) => (
-                  <tr key={repository.name}>
-                    <td><Icon name="database" /> {repository.name}</td>
-                    <td>{repository.type}</td>
-                    <td className="text-right">
-                      <span className="pull-right inline-flex items-center gap-[10px]">
-                        <button
-                          aria-label={`edit repository ${repository.name}`}
-                          className="btn btn-default btn-xs"
-                          title="edit repository"
-                          type="button"
-                          onClick={() => {
-                            form.setFieldValue('name', repository.name);
-                            form.setFieldValue('type', repository.type);
-                            form.setFieldValue('settings', formatJson(repository.settings));
-                            setUpdate(true);
-                          }}
-                        >
-                          <Icon name="pencil" />
-                        </button>
-                        <button
-                          aria-label={`delete repository ${repository.name}`}
-                          className="btn btn-danger btn-xs"
-                          title="delete repository"
-                          type="button"
-                          onClick={() => setDeleteRepository(repository)}
-                        >
-                          <Icon name="trash" />
-                        </button>
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <h4>
+              existing repositories <small className="info-text">({repositories.length})</small>
+            </h4>
+            <DataTable columns={repositoryColumns} getRowKey={(repository) => repository.name} rows={sortByText(repositories, sort, repositorySortValue)} />
           </>
         }
         right={
