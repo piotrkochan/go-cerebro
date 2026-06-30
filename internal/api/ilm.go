@@ -12,20 +12,18 @@ import (
 )
 
 type ILMHostIn struct {
-	Body HostBody
+	ClusterPath
 }
 
 type ILMPolicyNameIn struct {
-	Body struct {
-		HostBody
-		Name string `json:"name" required:"true" doc:"ILM policy name."`
-	}
+	ClusterPath
+	Name string `path:"name" doc:"ILM policy name."`
 }
 
 type ILMPolicySaveIn struct {
+	ClusterPath
+	Name string `path:"name" doc:"ILM policy name."`
 	Body struct {
-		HostBody
-		Name   string          `json:"name" required:"true" doc:"ILM policy name."`
 		Policy json.RawMessage `json:"policy" required:"true" doc:"ILM policy body."`
 	}
 }
@@ -33,12 +31,12 @@ type ILMPolicySaveIn struct {
 func (d *Deps) RegisterILM(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "ilm-policies-list",
-		Method:      http.MethodPost,
+		Method:      http.MethodGet,
 		Path:        "/ilm/policies",
 		Summary:     "List ILM policies",
 		Tags:        []string{"ilm"},
 	}, func(ctx context.Context, in *ILMHostIn) (*Output[List[transform.ILMPolicy]], error) {
-		return transformListResp(ctx, d, in.Body,
+		return transformListResp(ctx, d,
 			func(c context.Context, t elastic.Server) (elastic.Response, error) {
 				return d.Client.GetILMPolicies(c, t)
 			},
@@ -47,35 +45,35 @@ func (d *Deps) RegisterILM(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "ilm-policies-save",
-		Method:      http.MethodPost,
-		Path:        "/ilm/policies/save",
+		Method:      http.MethodPut,
+		Path:        "/ilm/policies/{name}",
 		Summary:     "Create or update ILM policy",
 		Tags:        []string{"ilm"},
 	}, func(ctx context.Context, in *ILMPolicySaveIn) (*RawOutput, error) {
-		name := strings.TrimSpace(in.Body.Name)
+		name := strings.TrimSpace(in.Name)
 		if name == "" {
 			return failMsg[RawResponse](http.StatusBadRequest, "ILM policy name is required")
 		}
 		if !json.Valid(in.Body.Policy) {
 			return failMsg[RawResponse](http.StatusBadRequest, "policy must be valid JSON")
 		}
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
 			return d.Client.PutILMPolicy(c, name, in.Body.Policy, t)
 		})
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "ilm-policies-delete",
-		Method:      http.MethodPost,
-		Path:        "/ilm/policies/delete",
+		Method:      http.MethodDelete,
+		Path:        "/ilm/policies/{name}",
 		Summary:     "Delete ILM policy",
 		Tags:        []string{"ilm"},
 	}, func(ctx context.Context, in *ILMPolicyNameIn) (*RawOutput, error) {
-		name := strings.TrimSpace(in.Body.Name)
+		name := strings.TrimSpace(in.Name)
 		if name == "" {
 			return failMsg[RawResponse](http.StatusBadRequest, "ILM policy name is required")
 		}
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body.HostBody)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[RawResponse](http.StatusBadRequest, err.Error())
 		}

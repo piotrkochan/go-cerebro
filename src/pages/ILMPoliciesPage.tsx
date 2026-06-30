@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useForm } from '@tanstack/react-form';
 
 import { ilmPoliciesDelete, ilmPoliciesList, ilmPoliciesSave } from '../api/ilmClient';
 import type { HostBodyWritable, IlmPolicy } from '../api/client/types.gen';
-import { DataTable, type DataTableColumn } from '../components/DataTable';
+import { Button } from '../components/Button';
+import { DataTable, SortIndicator, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { ConfirmModal } from '../components/Modal';
 import { SplitPane } from '../components/SplitPane';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, formatJson, parseJson, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
 
@@ -116,7 +119,7 @@ export function ILMPoliciesPage({
 
   async function load() {
     try {
-      const result = await ilmPoliciesList<true>({ body: connection, throwOnError: true });
+      const result = await ilmPoliciesList<true>({ path: clusterPath(connection), throwOnError: true });
       const items = (result.data.items ?? []).sort((left, right) => left.name.localeCompare(right.name));
       setPolicies(items);
       if (initialPolicy && openedPolicy.current !== initialPolicy) {
@@ -143,7 +146,7 @@ export function ILMPoliciesPage({
       return;
     }
     try {
-      await ilmPoliciesSave<true>({ body: { ...connection, name, policy: body }, throwOnError: true });
+      await ilmPoliciesSave<true>({ body: { policy: body }, path: { ...clusterPath(connection), name }, throwOnError: true });
       notify('info', policies.some((policy) => policy.name === name) ? 'ILM policy successfully updated' : 'ILM policy successfully created');
       await load();
     } catch (error) {
@@ -153,7 +156,7 @@ export function ILMPoliciesPage({
 
   async function remove(policy: IlmPolicy) {
     try {
-      await ilmPoliciesDelete<true>({ body: { ...connection, name: policy.name }, throwOnError: true });
+      await ilmPoliciesDelete<true>({ path: { ...clusterPath(connection), name: policy.name }, throwOnError: true });
       notify('info', 'ILM policy successfully deleted');
       await load();
     } catch (error) {
@@ -227,18 +230,18 @@ export function ILMPoliciesPage({
               <h4>
                 ilm policies <small className="info-text">({filtered.length})</small>
               </h4>
-              <button className="btn btn-success btn-xs" type="button" onClick={resetForm}>
-                <Icon name="plus" /> new policy
-              </button>
+              <Button icon="plus" size="xs" variant="success" onClick={resetForm}>
+                new policy
+              </Button>
             </div>
             <div className="form-group">
               <input className="form-control" placeholder="filter policies by name or phase" value={filter} onChange={(event) => setFilter(event.target.value)} />
             </div>
             <h4>my policies <small className="info-text">({notManagedPolicies.length})</small></h4>
-            <ILMPolicyTable policies={notManagedPolicies} sort={sort} onDelete={setDeletePolicy} onEdit={edit} onSort={setSort} />
+            <ILMPolicyTable policies={notManagedPolicies} sort={sort} onDelete={setDeletePolicy} onSort={setSort} />
 
             <h4 className="mt-[20px]">managed policies <small className="info-text">({managedPolicies.length})</small></h4>
-            <ILMPolicyTable policies={managedPolicies} sort={sort} onDelete={setDeletePolicy} onEdit={edit} onSort={setSort} />
+            <ILMPolicyTable policies={managedPolicies} sort={sort} onDelete={setDeletePolicy} onSort={setSort} />
           </>
         }
         right={
@@ -292,9 +295,9 @@ export function ILMPoliciesPage({
                   {(name) => {
                     const editMode = policies.some((policy) => policy.name === name);
                     return (
-                      <button className={`btn ${editMode ? 'btn-warning' : 'btn-success'}`} type="submit" onClick={() => void form.handleSubmit()}>
-                        <Icon className={`${editMode ? 'alert-warning' : 'alert-success'} normal-action`} name={editMode ? 'save' : 'file'} /> {editMode ? 'update' : 'create'}
-                      </button>
+                      <Button icon={editMode ? 'save' : 'plus'} type="submit" variant={editMode ? 'warning' : 'success'} onClick={() => void form.handleSubmit()}>
+                        {editMode ? 'update' : 'create'}
+                      </Button>
                     );
                   }}
                 </form.Subscribe>
@@ -309,13 +312,11 @@ export function ILMPoliciesPage({
 
 function ILMPolicyTable({
   onDelete,
-  onEdit,
   onSort,
   policies,
   sort,
 }: {
   onDelete: (policy: IlmPolicy) => void;
-  onEdit: (policy: IlmPolicy) => void;
   onSort: (value: SortState<ILMSortKey> | ((value: SortState<ILMSortKey>) => SortState<ILMSortKey>)) => void;
   policies: IlmPolicy[];
   sort: SortState<ILMSortKey>;
@@ -340,7 +341,7 @@ function ILMPolicyTable({
     {
       header: 'used by',
       key: 'used-by',
-      render: (policy) => (isManagedPolicy(policy) ? managedPolicyUsage(policy) : <span className="info-text">none</span>),
+      render: (policy) => <PolicyUsage policy={policy} />,
     },
     {
       className: 'text-right',
@@ -351,9 +352,9 @@ function ILMPolicyTable({
         const managed = isManagedPolicy(policy);
         return (
           <span className="inline-flex items-center gap-[10px]">
-            <button className="btn btn-default btn-xs" title="edit policy" type="button" onClick={() => onEdit(policy)}>
+            <Link className="btn btn-default btn-xs" search={(previous) => ({ ...previous, policy: policy.name })} title="edit policy" to="/ilm">
               <Icon name="pencil" />
-            </button>
+            </Link>
             <button
               className="btn btn-danger btn-xs"
               disabled={managed}
@@ -624,7 +625,7 @@ function sortButton(
 ) {
   return (
     <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, key))}>
-      {label} {sort.key === key ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+      {label} <SortIndicator active={sort.key === key} order={sort.order} />
     </button>
   );
 }
@@ -650,6 +651,44 @@ function managedPolicyUsage(policy: IlmPolicy) {
     usedBy?.composable_templates?.length ? `${usedBy.composable_templates.length} templates` : '',
   ].filter(Boolean);
   return parts.join(', ');
+}
+
+function PolicyUsage({ policy }: { policy: IlmPolicy }) {
+  if (!isManagedPolicy(policy)) return <span className="info-text">none</span>;
+  const usedBy = policy.in_use_by;
+  return (
+    <span className="group relative inline-block">
+      <button className="normal-action border-0 bg-transparent p-0 text-left text-inherit" type="button">
+        {managedPolicyUsage(policy)} <Icon name="caret-down" />
+      </button>
+      <span className="absolute left-0 top-full z-[1000] hidden w-[360px] border border-[#55595c] bg-[#373a3c] p-[10px] text-left shadow-lg group-hover:block group-focus-within:block">
+        <UsageGroup label="indices" values={usedBy?.indices ?? []} />
+        <UsageGroup label="data streams" values={usedBy?.data_streams ?? []} />
+        <UsageGroup label="templates" values={usedBy?.composable_templates ?? []} />
+      </span>
+    </span>
+  );
+}
+
+function UsageGroup({ label, values }: { label: string; values: string[] }) {
+  if (!values.length) return null;
+  const visible = values.slice(0, 12);
+  const hidden = values.length - visible.length;
+  return (
+    <span className="mb-[8px] block last:mb-0">
+      <span className="mb-[3px] block text-[11px] uppercase text-[#8b8f95]">
+        {label} ({values.length})
+      </span>
+      <span className="block max-h-[140px] overflow-auto pr-[4px]">
+        {visible.map((value) => (
+          <span className="block break-all font-mono text-[12px] text-[#eceeef]" key={value}>
+            {value}
+          </span>
+        ))}
+        {hidden > 0 ? <span className="block info-text">+ {hidden} more</span> : null}
+      </span>
+    </span>
+  );
 }
 
 function policySortValue(policy: IlmPolicy, key: ILMSortKey) {
