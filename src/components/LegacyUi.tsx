@@ -79,7 +79,7 @@ export function Stats({ data }: { data: Overview }) {
     <div className="row">
       <div className="col-xs-12">
         <div className="stats">
-          <div className="row">
+          <div className="grid grid-cols-1 gap-x-[30px] sm:grid-cols-2 lg:grid-cols-6">
             <Stat value={textValue(data.cluster_name)} />
             <Stat label="nodes" value={formatNumber(data.number_of_nodes)} />
             <Stat label="indices" value={formatNumber(data.indices?.length ?? 0)} />
@@ -103,7 +103,7 @@ export function Stats({ data }: { data: Overview }) {
 
 function Stat({ label, value }: { label?: string; value: string }) {
   return (
-    <div className="col-lg-2">
+    <div>
       <span className="stat">
         <span className="stat-value">{value}</span>
         {label ? <span> {label}</span> : null}

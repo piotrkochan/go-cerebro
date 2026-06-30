@@ -281,50 +281,38 @@ export function OverviewPage({
           </button>
         </div>
       ) : null}
-      <div className="row">
-        <div className="col-lg-4">
-          <div className="row">
-            <div className="col-lg-6 col-sm-6 form-group">
-              <input
-                className="form-control form-control-sm"
-                placeholder="filter indices by name or aliases"
-                type="text"
-                value={filterName}
-                onChange={(event) => setFilterName(event.target.value)}
-              />
-            </div>
-            <div className="col-lg-3 col-sm-3 col-xs-6 form-group">
-              <div className="checkbox">
-                <label>
-                  <input checked={showClosed} type="checkbox" onChange={(event) => setShowClosed(event.target.checked)} />{' '}
-                  closed ({data.closed_indices})
-                </label>
-              </div>
-            </div>
-            <div className="col-lg-3 col-sm-3 col-xs-6 form-group">
-              <div className="checkbox">
-                <label>
-                  <input checked={showSpecial} type="checkbox" onChange={(event) => setShowSpecial(event.target.checked)} />{' '}
-                  .special ({data.special_indices})
-                </label>
-              </div>
-            </div>
-          </div>
+      <div className="mb-[15px] flex flex-wrap items-start gap-x-[18px] gap-y-[8px]">
+        <div className="form-group m-0 w-[220px] max-w-full">
+          <input
+            className="form-control form-control-sm"
+            placeholder="filter indices"
+            type="text"
+            value={filterName}
+            onChange={(event) => setFilterName(event.target.value)}
+          />
         </div>
-        <div className="col-lg-4">
-          <div className="row">
-            <div className="col-lg-6 col-sm-6 form-group">
-              <input
-                className="form-control form-control-sm"
-                placeholder="filter nodes by name"
-                type="text"
-                value={nodeFilter}
-                onChange={(event) => setNodeFilter(event.target.value)}
-              />
-            </div>
-          </div>
+        <div className="form-group m-0 pt-[7px]">
+          <label className="m-0 inline-flex items-center gap-[6px] whitespace-nowrap font-normal">
+            <input checked={showClosed} type="checkbox" onChange={(event) => setShowClosed(event.target.checked)} />
+            <span>closed ({data.closed_indices})</span>
+          </label>
         </div>
-        <div className="col-lg-4 form-group">
+        <div className="form-group m-0 pt-[7px]">
+          <label className="m-0 inline-flex items-center gap-[6px] whitespace-nowrap font-normal">
+            <input checked={showSpecial} type="checkbox" onChange={(event) => setShowSpecial(event.target.checked)} />
+            <span>.special ({data.special_indices})</span>
+          </label>
+        </div>
+        <div className="form-group m-0 w-[190px] max-w-full">
+          <input
+            className="form-control form-control-sm"
+            placeholder="filter nodes"
+            type="text"
+            value={nodeFilter}
+            onChange={(event) => setNodeFilter(event.target.value)}
+          />
+        </div>
+        <div className="form-group m-0 ml-auto max-w-full">
           <Pagination page={currentPage} pageSize={pageSize} setPage={setPage} total={indices.length} />
         </div>
       </div>

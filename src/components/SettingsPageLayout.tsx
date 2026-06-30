@@ -43,8 +43,8 @@ export function SettingsPageLayout<TSetting>({
   const visibleSettings = groups.reduce((total, group) => total + group.settings.length, 0);
 
   return (
-    <div className="grid gap-[15px] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
-        <aside className="xl:sticky xl:top-[70px] xl:self-start">
+    <div className="grid gap-[15px] lg:grid-cols-[180px_minmax(0,1fr)_260px] 2xl:grid-cols-[220px_minmax(0,1fr)_320px]">
+        <aside className="lg:sticky lg:top-[70px] lg:self-start">
           <div className="border border-[#55595c] bg-[#373a3c]">
             <div className="border-b border-[#55595c] px-3 py-2">
               <div className="text-[12px] uppercase text-[#8b8f95]">groups</div>
@@ -101,7 +101,7 @@ export function SettingsPageLayout<TSetting>({
           </div>
         </main>
 
-        <aside className="xl:sticky xl:top-[70px] xl:self-start">
+        <aside className="lg:sticky lg:top-[70px] lg:self-start">
           <div className="border border-[#55595c] bg-[#373a3c]">
             <div className="border-b border-[#55595c] px-3 py-2">
               <h2 className="m-0 text-[14px] font-normal">
