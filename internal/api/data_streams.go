@@ -14,28 +14,26 @@ import (
 )
 
 type DataStreamsHostIn struct {
-	Body HostBody
+	ClusterPath
 }
 
 type DataStreamNameIn struct {
-	Body struct {
-		HostBody
-		Name string `json:"name" required:"true" doc:"Data stream name."`
-	}
+	ClusterPath
+	Name string `path:"name" doc:"Data stream name."`
 }
 
 type DataStreamLifecycleIn struct {
+	ClusterPath
+	Name string `path:"name" doc:"Data stream name."`
 	Body struct {
-		HostBody
-		Name      string          `json:"name" required:"true" doc:"Data stream name."`
 		Lifecycle json.RawMessage `json:"lifecycle" required:"true" doc:"Data stream lifecycle body."`
 	}
 }
 
 type DataStreamAttachILMIn struct {
+	ClusterPath
+	Name string `path:"name" doc:"Data stream name."`
 	Body struct {
-		HostBody
-		Name                 string `json:"name" required:"true" doc:"Data stream name."`
 		Policy               string `json:"policy" required:"true" doc:"ILM policy name."`
 		UpdateBackingIndices bool   `json:"update_backing_indices" doc:"Whether existing backing indices should get index.lifecycle.name."`
 		Rollover             bool   `json:"rollover" doc:"Whether to rollover the data stream after updating the template."`
@@ -43,11 +41,9 @@ type DataStreamAttachILMIn struct {
 }
 
 type DataStreamDetachILMIn struct {
-	Body struct {
-		HostBody
-		Name                 string `json:"name" required:"true" doc:"Data stream name."`
-		UpdateBackingIndices bool   `json:"update_backing_indices" doc:"Whether existing backing indices should have index.lifecycle.name removed."`
-	}
+	ClusterPath
+	Name                 string `path:"name" doc:"Data stream name."`
+	UpdateBackingIndices bool   `query:"update_backing_indices" doc:"Whether existing backing indices should have index.lifecycle.name removed."`
 }
 
 type DataStreamAttachILMResult struct {
@@ -69,13 +65,13 @@ type DataStreamDetachILMResult struct {
 func (d *Deps) RegisterDataStreams(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "data-streams-list",
-		Method:      http.MethodPost,
+		Method:      http.MethodGet,
 		Path:        "/data_streams",
 		Summary:     "List data streams",
-		Description: "Returns data streams with backing index, stats and lifecycle information when supported by Elasticsearch.",
+		Description: "Returns a lightweight data stream list. Use GET /data_streams/{name} for backing indices, stats and lifecycle details.",
 		Tags:        []string{"data-streams"},
 	}, func(ctx context.Context, in *DataStreamsHostIn) (*Output[transform.DataStreamsResult], error) {
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[transform.DataStreamsResult](http.StatusBadRequest, err.Error())
 		}
@@ -89,37 +85,71 @@ func (d *Deps) RegisterDataStreams(api huma.API) {
 		if !streams.IsSuccess() {
 			return fail[transform.DataStreamsResult](streams.Status, streams.Body)
 		}
+		return ok(http.StatusOK, transform.DataStreamSummaries(streams.Body))
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "data-streams-get",
+		Method:      http.MethodGet,
+		Path:        "/data_streams/{name}",
+		Summary:     "Get data stream details",
+		Description: "Returns backing indices, stats and lifecycle information for one data stream.",
+		Tags:        []string{"data-streams"},
+	}, func(ctx context.Context, in *DataStreamNameIn) (*Output[transform.DataStream], error) {
+		name := strings.TrimSpace(in.Name)
+		if name == "" {
+			return failMsg[transform.DataStream](http.StatusBadRequest, "data stream name is required")
+		}
+		t, err := clusterTarget(ctx)
+		if err != nil {
+			return failMsg[transform.DataStream](http.StatusBadRequest, err.Error())
+		}
+		streams, err := d.Client.GetDataStream(ctx, name, t)
+		if err != nil {
+			return failMsg[transform.DataStream](http.StatusInternalServerError, err.Error())
+		}
+		if !streams.IsSuccess() {
+			return fail[transform.DataStream](streams.Status, streams.Body)
+		}
+		target, found := dataStreamTarget(streams.Body, name)
+		if !found {
+			return failMsg[transform.DataStream](http.StatusNotFound, "data stream not found")
+		}
 
 		var stats, cat, ilm elastic.Response
 		g, gctx := errgroup.WithContext(ctx)
 		g.Go(func() error {
-			stats, _ = d.Client.GetDataStreamStats(gctx, t)
+			stats, _ = d.Client.GetDataStreamStats(gctx, name, t)
 			return nil
 		})
 		g.Go(func() error {
-			cat, _ = d.Client.GetDataStreamBackingIndices(gctx, t)
+			cat, _ = d.Client.GetDataStreamBackingIndices(gctx, target.BackingIndices, t)
 			return nil
 		})
 		g.Go(func() error {
-			ilm, _ = d.Client.GetDataStreamILM(gctx, t)
+			ilm, _ = d.Client.GetDataStreamILM(gctx, target.BackingIndices, t)
 			return nil
 		})
 		_ = g.Wait()
-		return ok(http.StatusOK, transform.DataStreams(streams.Body, successfulBody(stats), successfulBody(cat), successfulBody(ilm)))
+		detail, found := transform.DataStreamDetail(streams.Body, successfulBody(stats), successfulBody(cat), successfulBody(ilm), name)
+		if !found {
+			return failMsg[transform.DataStream](http.StatusNotFound, "data stream not found")
+		}
+		return ok(http.StatusOK, detail)
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "data-streams-create",
-		Method:      http.MethodPost,
-		Path:        "/data_streams/create",
+		Method:      http.MethodPut,
+		Path:        "/data_streams/{name}",
 		Summary:     "Create data stream",
 		Tags:        []string{"data-streams"},
 	}, func(ctx context.Context, in *DataStreamNameIn) (*RawOutput, error) {
-		name := strings.TrimSpace(in.Body.Name)
+		name := strings.TrimSpace(in.Name)
 		if name == "" {
 			return failMsg[RawResponse](http.StatusBadRequest, "data stream name is required")
 		}
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
 			return d.Client.CreateDataStream(c, name, t)
 		})
 	})
@@ -127,62 +157,62 @@ func (d *Deps) RegisterDataStreams(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "data-streams-rollover",
 		Method:      http.MethodPost,
-		Path:        "/data_streams/rollover",
+		Path:        "/data_streams/{name}/rollover",
 		Summary:     "Rollover data stream",
 		Tags:        []string{"data-streams"},
 	}, func(ctx context.Context, in *DataStreamNameIn) (*RawOutput, error) {
-		name := strings.TrimSpace(in.Body.Name)
+		name := strings.TrimSpace(in.Name)
 		if name == "" {
 			return failMsg[RawResponse](http.StatusBadRequest, "data stream name is required")
 		}
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
 			return d.Client.RolloverDataStream(c, name, t)
 		})
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "data-streams-delete",
-		Method:      http.MethodPost,
-		Path:        "/data_streams/delete",
+		Method:      http.MethodDelete,
+		Path:        "/data_streams/{name}",
 		Summary:     "Delete data stream",
 		Tags:        []string{"data-streams"},
 	}, func(ctx context.Context, in *DataStreamNameIn) (*RawOutput, error) {
-		name := strings.TrimSpace(in.Body.Name)
+		name := strings.TrimSpace(in.Name)
 		if name == "" {
 			return failMsg[RawResponse](http.StatusBadRequest, "data stream name is required")
 		}
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
 			return d.Client.DeleteDataStream(c, name, t)
 		})
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "data-streams-update-lifecycle",
-		Method:      http.MethodPost,
-		Path:        "/data_streams/lifecycle",
+		Method:      http.MethodPut,
+		Path:        "/data_streams/{name}/lifecycle",
 		Summary:     "Update data stream lifecycle",
 		Tags:        []string{"data-streams"},
 	}, func(ctx context.Context, in *DataStreamLifecycleIn) (*RawOutput, error) {
-		name := strings.TrimSpace(in.Body.Name)
+		name := strings.TrimSpace(in.Name)
 		if name == "" {
 			return failMsg[RawResponse](http.StatusBadRequest, "data stream name is required")
 		}
 		if !json.Valid(in.Body.Lifecycle) {
 			return failMsg[RawResponse](http.StatusBadRequest, "lifecycle must be valid JSON")
 		}
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
 			return d.Client.PutDataStreamLifecycle(c, name, in.Body.Lifecycle, t)
 		})
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "data-streams-attach-ilm",
-		Method:      http.MethodPost,
-		Path:        "/data_streams/attach_ilm",
+		Method:      http.MethodPut,
+		Path:        "/data_streams/{name}/ilm",
 		Summary:     "Attach ILM policy to data stream",
 		Tags:        []string{"data-streams"},
 	}, func(ctx context.Context, in *DataStreamAttachILMIn) (*Output[DataStreamAttachILMResult], error) {
-		name := strings.TrimSpace(in.Body.Name)
+		name := strings.TrimSpace(in.Name)
 		policy := strings.TrimSpace(in.Body.Policy)
 		if name == "" {
 			return failMsg[DataStreamAttachILMResult](http.StatusBadRequest, "data stream name is required")
@@ -190,7 +220,7 @@ func (d *Deps) RegisterDataStreams(api huma.API) {
 		if policy == "" {
 			return failMsg[DataStreamAttachILMResult](http.StatusBadRequest, "ILM policy is required")
 		}
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body.HostBody)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[DataStreamAttachILMResult](http.StatusBadRequest, err.Error())
 		}
@@ -258,16 +288,16 @@ func (d *Deps) RegisterDataStreams(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "data-streams-detach-ilm",
-		Method:      http.MethodPost,
-		Path:        "/data_streams/detach_ilm",
+		Method:      http.MethodDelete,
+		Path:        "/data_streams/{name}/ilm",
 		Summary:     "Detach ILM policy from data stream",
 		Tags:        []string{"data-streams"},
 	}, func(ctx context.Context, in *DataStreamDetachILMIn) (*Output[DataStreamDetachILMResult], error) {
-		name := strings.TrimSpace(in.Body.Name)
+		name := strings.TrimSpace(in.Name)
 		if name == "" {
 			return failMsg[DataStreamDetachILMResult](http.StatusBadRequest, "data stream name is required")
 		}
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body.HostBody)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[DataStreamDetachILMResult](http.StatusBadRequest, err.Error())
 		}
@@ -309,7 +339,7 @@ func (d *Deps) RegisterDataStreams(api huma.API) {
 			Template:        target.Template,
 			TemplateUpdated: true,
 		}
-		if in.Body.UpdateBackingIndices && len(target.BackingIndices) > 0 {
+		if in.UpdateBackingIndices && len(target.BackingIndices) > 0 {
 			putSettings, err := d.Client.ClearIndexLifecycleSettings(ctx, target.BackingIndices, t)
 			if err != nil {
 				return failMsg[DataStreamDetachILMResult](http.StatusInternalServerError, err.Error())

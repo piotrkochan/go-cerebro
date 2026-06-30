@@ -6,35 +6,43 @@ import {
   dataStreamsCreate,
   dataStreamsDelete,
   dataStreamsDetachIlm,
+  dataStreamsGet,
   dataStreamsList,
   dataStreamsRollover,
   dataStreamsUpdateLifecycle,
 } from '../api/dataStreamsClient';
 import { ilmPoliciesList } from '../api/ilmClient';
 import type { DataStream, DataStreamBackingIndex, HostBodyWritable, IlmPolicy } from '../api/client/types.gen';
-import { DataTable, type DataTableColumn } from '../components/DataTable';
+import { DataTable, SortIndicator, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { ConfirmModal, ModalFrame, useEscape } from '../components/Modal';
 import { SplitPane } from '../components/SplitPane';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, formatBytes, formatJson, textValue, timeInterval } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
 
 type DataStreamSortKey = 'name' | 'status' | 'generation' | 'backing_indices' | 'size';
+type BackingIndexSortKey = 'index' | 'health' | 'docs' | 'size' | 'managed_by' | 'lifecycle';
 type RetentionMode = 'retention' | 'infinite' | 'disabled';
 
 export function DataStreamsPage({
   connection,
   notify,
+  onStreamChange,
   refreshTick,
+  selectedStream,
 }: {
   connection: HostBodyWritable;
   notify: Notify;
+  onStreamChange: (stream: string) => void;
   refreshTick: number;
+  selectedStream: string;
 }) {
   const [streams, setStreams] = useState<DataStream[]>([]);
+  const [selectedDetail, setSelectedDetail] = useState<DataStream | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [supported, setSupported] = useState(true);
-  const [selectedName, setSelectedName] = useState('');
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState<SortState<DataStreamSortKey>>({ key: 'name', order: 'asc' });
   const [rolloverConfirm, setRolloverConfirm] = useState<DataStream | null>(null);
@@ -49,23 +57,49 @@ export function DataStreamsPage({
     void load();
   }, [connection, refreshTick]);
 
+  useEffect(() => {
+    if (!selectedStream) {
+      setSelectedDetail(null);
+      return;
+    }
+    void loadDetail(selectedStream);
+  }, [connection, refreshTick, selectedStream]);
+
   async function load() {
     try {
-      const result = await dataStreamsList<true>({ body: connection, throwOnError: true });
+      const result = await dataStreamsList<true>({ path: clusterPath(connection), throwOnError: true });
       const items = result.data.items ?? [];
       setSupported(result.data.supported);
       setStreams(items);
-      setSelectedName((current) => current && items.some((stream) => stream.name === current) ? current : (items[0]?.name ?? ''));
+      if (!selectedStream && items[0]) onStreamChange(items[0].name);
+      if (selectedStream && !items.some((stream) => stream.name === selectedStream)) {
+        onStreamChange(items[0]?.name ?? '');
+      }
     } catch (error) {
       notify('danger', `Error loading data streams: ${errorMessage(error)}`);
     }
   }
 
+  async function loadDetail(name: string) {
+    const initialLoad = selectedDetail?.name !== name;
+    if (initialLoad) setDetailLoading(true);
+    try {
+      const result = await dataStreamsGet<true>({ path: { ...clusterPath(connection), name }, throwOnError: true });
+      setSelectedDetail(result.data);
+    } catch (error) {
+      if (initialLoad) setSelectedDetail(null);
+      notify('danger', `Error loading data stream ${name}: ${errorMessage(error)}`);
+    } finally {
+      if (initialLoad) setDetailLoading(false);
+    }
+  }
+
   async function rollover(stream: DataStream) {
     try {
-      await dataStreamsRollover<true>({ body: { ...connection, name: stream.name }, throwOnError: true });
+      await dataStreamsRollover<true>({ path: { ...clusterPath(connection), name: stream.name }, throwOnError: true });
       notify('info', `Data stream ${stream.name} rolled over`);
       await load();
+      await loadDetail(stream.name);
     } catch (error) {
       notify('danger', `Error rolling over data stream: ${errorMessage(error)}`);
     }
@@ -73,10 +107,10 @@ export function DataStreamsPage({
 
   async function create(name: string) {
     try {
-      await dataStreamsCreate<true>({ body: { ...connection, name }, throwOnError: true });
+      await dataStreamsCreate<true>({ path: { ...clusterPath(connection), name }, throwOnError: true });
       notify('info', `Data stream ${name} created`);
       setCreateOpen(false);
-      setSelectedName(name);
+      onStreamChange(name);
       await load();
     } catch (error) {
       notify('danger', `Error creating data stream: ${errorMessage(error)}`);
@@ -85,9 +119,9 @@ export function DataStreamsPage({
 
   async function remove(stream: DataStream) {
     try {
-      await dataStreamsDelete<true>({ body: { ...connection, name: stream.name }, throwOnError: true });
+      await dataStreamsDelete<true>({ path: { ...clusterPath(connection), name: stream.name }, throwOnError: true });
       notify('info', `Data stream ${stream.name} deleted`);
-      setSelectedName('');
+      onStreamChange('');
       await load();
     } catch (error) {
       notify('danger', `Error deleting data stream: ${errorMessage(error)}`);
@@ -97,12 +131,14 @@ export function DataStreamsPage({
   async function saveLifecycle(stream: DataStream, lifecycle: unknown) {
     try {
       await dataStreamsUpdateLifecycle<true>({
-        body: { ...connection, lifecycle, name: stream.name },
+        body: { lifecycle },
+        path: { ...clusterPath(connection), name: stream.name },
         throwOnError: true,
       });
       notify('info', `Data stream ${stream.name} lifecycle updated`);
       setRetentionStream(null);
       await load();
+      await loadDetail(stream.name);
     } catch (error) {
       notify('danger', `Error updating data stream lifecycle: ${errorMessage(error)}`);
     }
@@ -110,7 +146,7 @@ export function DataStreamsPage({
 
   async function openAttachILM(stream: DataStream) {
     try {
-      const result = await ilmPoliciesList<true>({ body: connection, throwOnError: true });
+      const result = await ilmPoliciesList<true>({ path: clusterPath(connection), throwOnError: true });
       setPolicies((result.data.items ?? []).sort((left, right) => left.name.localeCompare(right.name)));
       setAttachStream(stream);
     } catch (error) {
@@ -122,17 +158,17 @@ export function DataStreamsPage({
     try {
       await dataStreamsAttachIlm<true>({
         body: {
-          ...connection,
-          name: stream.name,
           policy,
           rollover: rolloverAfterAttach,
           update_backing_indices: updateBackingIndices,
         },
+        path: { ...clusterPath(connection), name: stream.name },
         throwOnError: true,
       });
       notify('info', `ILM policy ${policy} attached to ${stream.name}`);
       setAttachStream(null);
       await load();
+      await loadDetail(stream.name);
     } catch (error) {
       notify('danger', `Error attaching ILM policy: ${errorMessage(error)}`);
     }
@@ -141,16 +177,14 @@ export function DataStreamsPage({
   async function detachILM(stream: DataStream, updateBackingIndices: boolean) {
     try {
       await dataStreamsDetachIlm<true>({
-        body: {
-          ...connection,
-          name: stream.name,
-          update_backing_indices: updateBackingIndices,
-        },
+        path: { ...clusterPath(connection), name: stream.name },
+        query: { update_backing_indices: updateBackingIndices },
         throwOnError: true,
       });
       notify('info', `ILM detached from ${stream.name}`);
       setDetachStream(null);
       await load();
+      await loadDetail(stream.name);
     } catch (error) {
       notify('danger', `Error detaching ILM policy: ${errorMessage(error)}`);
     }
@@ -161,7 +195,8 @@ export function DataStreamsPage({
     sort,
     dataStreamSortValue,
   );
-  const selected = streams.find((stream) => stream.name === selectedName) ?? filtered[0] ?? null;
+  const selectedName = selectedStream || filtered[0]?.name || '';
+  const selected = selectedDetail?.name === selectedName ? selectedDetail : null;
   const dataStreamColumns: DataTableColumn<DataStream>[] = [
     {
       className: 'normal-action',
@@ -178,7 +213,7 @@ export function DataStreamsPage({
     { header: sortButton('status', 'status', sort, setSort), key: 'status', render: (stream) => <HealthLabel status={stream.status} /> },
     { header: sortButton('generation', 'gen', sort, setSort), key: 'generation', render: (stream) => stream.generation },
     { header: sortButton('backing_indices', 'backing', sort, setSort), key: 'backing_indices', render: (stream) => stream.backing_indices_count },
-    { header: sortButton('size', 'size', sort, setSort), key: 'size', render: (stream) => formatBytes(stream.store_size_bytes) },
+    { header: sortButton('size', 'size', sort, setSort), key: 'size', render: (stream) => stream.store_size_bytes ? formatBytes(stream.store_size_bytes) : '-' },
   ];
 
   if (!supported) {
@@ -272,16 +307,18 @@ export function DataStreamsPage({
                   columns={dataStreamColumns}
                   empty="no data streams match current filter"
                   getRowKey={(stream) => stream.name}
-                  rowClassName={(stream) => `cursor-pointer ${selected?.name === stream.name ? 'bg-[#434749]' : ''}`}
+                  rowClassName={(stream) => `cursor-pointer ${selectedName === stream.name ? 'bg-[#434749]' : ''}`}
                   rows={filtered}
-                  onRowClick={(stream) => setSelectedName(stream.name)}
+                  onRowClick={(stream) => onStreamChange(stream.name)}
                 />
               </div>
             </div>
           </>
         }
         right={
-          selected ? (
+          detailLoading ? (
+            <div className="info-text">loading data stream details...</div>
+          ) : selected ? (
             <DataStreamDetails
               connection={connection}
               stream={selected}
@@ -317,15 +354,17 @@ function DataStreamDetails({
   onRollover: () => void;
   stream: DataStream;
 }) {
+  const [backingSort, setBackingSort] = useState<SortState<BackingIndexSortKey>>({ key: 'index', order: 'asc' });
   const writeIndex = (stream.backing_indices ?? []).find((index) => index.write_index);
   const lifecycle = lifecycleSummary(stream.lifecycle);
   const managedBy = dataStreamManagedBy(stream);
   const retentionEditable = canEditDataStreamLifecycle(stream);
   const ilmPolicy = writeIndex?.ilm_policy || '';
+  const backingIndices = sortByText(stream.backing_indices ?? [], backingSort, backingIndexSortValue);
   const backingIndexColumns: DataTableColumn<DataStreamBackingIndex>[] = [
     {
       className: 'break-all',
-      header: 'index',
+      header: sortButton('index', 'index', backingSort, setBackingSort),
       key: 'index',
       render: (index) => (
         <>
@@ -334,12 +373,12 @@ function DataStreamDetails({
         </>
       ),
     },
-    { header: 'health', key: 'health', render: (index) => <HealthLabel status={index.health} /> },
-    { header: 'docs', key: 'docs', render: (index) => textValue(index.docs_count) || '0' },
-    { header: 'size', key: 'size', render: (index) => formatBytes(index.store_size_bytes) },
-    { header: 'managed by', key: 'managed-by', render: (index) => index.managed_by || 'unmanaged' },
+    { header: sortButton('health', 'health', backingSort, setBackingSort), key: 'health', render: (index) => <HealthLabel status={index.health} /> },
+    { header: sortButton('docs', 'docs', backingSort, setBackingSort), key: 'docs', render: (index) => textValue(index.docs_count) || '0' },
+    { header: sortButton('size', 'size', backingSort, setBackingSort), key: 'size', render: (index) => formatBytes(index.store_size_bytes) },
+    { header: sortButton('managed_by', 'managed by', backingSort, setBackingSort), key: 'managed-by', render: (index) => index.managed_by || 'unmanaged' },
     {
-      header: 'lifecycle',
+      header: sortButton('lifecycle', 'lifecycle', backingSort, setBackingSort),
       key: 'lifecycle',
       render: (index) =>
         index.ilm_managed ? (
@@ -452,7 +491,7 @@ function DataStreamDetails({
           <Icon name="database" /> browse data
         </Link>
       </div>
-      <DataTable columns={backingIndexColumns} getRowKey={(index) => index.name} rows={stream.backing_indices ?? []} />
+      <DataTable columns={backingIndexColumns} getRowKey={(index) => index.name} rows={backingIndices} />
       <details>
         <summary className="normal-action info-text">raw lifecycle</summary>
         <pre>{formatJson(stream.lifecycle ?? {})}</pre>
@@ -649,15 +688,15 @@ function DetachILMModal({
   );
 }
 
-function sortButton(
-  key: DataStreamSortKey,
+function sortButton<Key extends string>(
+  key: Key,
   label: string,
-  sort: SortState<DataStreamSortKey>,
-  setSort: (value: SortState<DataStreamSortKey> | ((value: SortState<DataStreamSortKey>) => SortState<DataStreamSortKey>)) => void,
+  sort: SortState<Key>,
+  setSort: (value: SortState<Key> | ((value: SortState<Key>) => SortState<Key>)) => void,
 ) {
   return (
     <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => setSort((value) => nextSort(value, key))}>
-      {label} {sort.key === key ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+      {label} <SortIndicator active={sort.key === key} order={sort.order} />
     </button>
   );
 }
@@ -674,6 +713,23 @@ function dataStreamSortValue(stream: DataStream, key: DataStreamSortKey) {
       return String(stream.store_size_bytes).padStart(20, '0');
     default:
       return stream.name;
+  }
+}
+
+function backingIndexSortValue(index: DataStreamBackingIndex, key: BackingIndexSortKey) {
+  switch (key) {
+    case 'health':
+      return index.health || '';
+    case 'docs':
+      return String(textValue(index.docs_count) || '0').padStart(20, '0');
+    case 'size':
+      return String(textValue(index.store_size_bytes) || '0').padStart(20, '0');
+    case 'managed_by':
+      return index.managed_by || 'unmanaged';
+    case 'lifecycle':
+      return index.ilm_policy || [index.ilm_phase, index.ilm_action, index.ilm_step].filter(Boolean).join(' / ') || (index.ilm_managed ? 'managed' : 'not managed');
+    default:
+      return index.name;
   }
 }
 

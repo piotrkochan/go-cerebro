@@ -50,6 +50,27 @@ func DataStreamsUnsupported() DataStreamsResult {
 	return DataStreamsResult{Supported: false, Items: []DataStream{}}
 }
 
+func DataStreamSummaries(dataStreamsRaw json.RawMessage) DataStreamsResult {
+	result := DataStreams(dataStreamsRaw, nil, nil, nil)
+	for i := range result.Items {
+		result.Items[i].BackingIndices = nil
+		result.Items[i].Lifecycle = nil
+		result.Items[i].StoreSizeBytes = 0
+		result.Items[i].MaximumTimestamp = nil
+	}
+	return result
+}
+
+func DataStreamDetail(dataStreamsRaw, statsRaw, catRaw, ilmRaw json.RawMessage, name string) (DataStream, bool) {
+	result := DataStreams(dataStreamsRaw, statsRaw, catRaw, ilmRaw)
+	for _, stream := range result.Items {
+		if stream.Name == name {
+			return stream, true
+		}
+	}
+	return DataStream{}, false
+}
+
 func DataStreams(dataStreamsRaw, statsRaw, catRaw, ilmRaw json.RawMessage) DataStreamsResult {
 	var root struct {
 		DataStreams []struct {
