@@ -35,11 +35,16 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Added OpenAPI/client consistency checks in CI.
 - Added `$schema` metadata to API response models where applicable.
 - Added typed endpoints for overview, nodes, aliases, templates, snapshots, repositories, REST, cat APIs, analysis, index settings, cluster settings and data explorer.
+- Moved Elasticsearch-operating API routes under a global `/clusters/{cluster}` Huma route group.
+- Added backend-generated cluster slugs for configured Elasticsearch hosts, including stable duplicate suffixes.
+- Resolved Elasticsearch cluster targets once per request through group middleware instead of passing host data through endpoint bodies.
 
 ### Frontend
 - Added Vite development setup with live reload on port `5173`.
+- Added Vite proxy support for the `/clusters` API prefix used by the generated client.
 - Added build-time version injection and `cerebro version`.
 - Added updated connect screen logo with Go mark.
+- Added Cerebro favicon links and `/favicon.ico` fallback for development and embedded builds.
 - Added refresh interval persistence in local storage.
 - Added stable cluster loading when opening a non-overview route directly.
 - Fixed header/menu regressions after the React rewrite.
@@ -59,6 +64,15 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Unified table density, table headers and list section headers across `more` pages.
 - Moved yellow/red cluster health details from the host label into a dedicated header health menu with allocation explanations and safe replica-count fixes.
 - Added a shared React table component and reused it across administrative list tables for consistent headers, empty states and row details.
+- Added wizard/json editing for legacy and composable index templates, including version-aware mapping field types and nested field mapping generation.
+- Added component template listing, creation, editing and deletion with `composed_of` support in index templates.
+- Added template type persistence in the URL and changed component-template composition to an explicit add/remove list.
+- Added edited template persistence in the URL and native edit links for templates and ILM policies.
+- Split component templates into user and managed tables, and removed the unused pattern column from reusable component templates.
+- Replaced text sort markers with shared up/down arrow icons across sortable tables.
+- Split template loading into a lightweight list response and a separate detail request when editing one template.
+- Replaced template action endpoints with REST-style `GET`, `PUT` and `DELETE /templates/{kind}/{name}` routes.
+- Removed frontend handling of Elasticsearch username/password overrides; Elasticsearch credentials are resolved only by the backend host configuration.
 
 ### REST Console
 - Reworked the REST page.
@@ -94,6 +108,9 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Data Streams now link ILM policy details to the ILM policies page.
 - Added Data Streams action for detaching ILM from the matching composable index template, with optional backing-index cleanup.
 - Linked data stream ILM policy labels directly to the matching editable ILM policy form.
+- Split Data Streams loading into a lightweight list endpoint and a per-stream detail endpoint selected from the URL.
+- Added sortable backing-index details and non-flickering background refresh on the Data Streams page.
+- Added ILM policy usage hover details showing concrete indices, data streams and templates.
 - Added graceful handling for Elasticsearch versions that do not support data streams.
 
 ### Security

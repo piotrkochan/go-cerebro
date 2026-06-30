@@ -20,3 +20,4 @@ conf/application.yaml
 /public/assets/JsonEditor.js
 /internal/server/static/*
 !/internal/server/static/.gitkeep
+!/internal/server/static/favicon.ico
