@@ -24,9 +24,14 @@ export function SortHeader<K extends string>({
 }) {
   return (
     <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => onSort(name)}>
-      {children} {sort.key === name ? <Icon name={sort.order === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+      {children} <SortIndicator active={sort.key === name} order={sort.order} />
     </button>
   );
+}
+
+export function SortIndicator({ active, order }: { active: boolean; order: 'asc' | 'desc' }) {
+  if (!active) return null;
+  return <Icon className="ml-[3px] inline-block align-[-2px]" name={order === 'asc' ? 'sort-alpha-asc' : 'sort-alpha-desc'} size={13} />;
 }
 
 export function DataTable<T>({
@@ -53,10 +58,10 @@ export function DataTable<T>({
   return (
     <table className={`table table-condensed ${className}`.trim()}>
       {showHeader ? (
-        <thead>
+        <thead className="bg-[#343739]">
           <tr>
             {columns.map((column) => (
-              <th className={column.headerClassName} key={column.key}>
+              <th className={['border-b border-[#55595c]', column.headerClassName].filter(Boolean).join(' ')} key={column.key}>
                 {column.header}
               </th>
             ))}

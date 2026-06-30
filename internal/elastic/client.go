@@ -77,12 +77,21 @@ type Client interface {
 	CreateIndex(ctx context.Context, index string, metadata json.RawMessage, t Server) (Response, error)
 	GetIndices(ctx context.Context, t Server) (Response, error)
 	GetTemplates(ctx context.Context, t Server) (Response, error)
+	GetComposableIndexTemplates(ctx context.Context, t Server) (Response, error)
+	GetTemplate(ctx context.Context, name string, t Server) (Response, error)
 	CreateTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error)
+	CreateComposableIndexTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error)
 	DeleteTemplate(ctx context.Context, name string, t Server) (Response, error)
+	DeleteComposableIndexTemplate(ctx context.Context, name string, t Server) (Response, error)
+	GetComponentTemplates(ctx context.Context, t Server) (Response, error)
+	GetComponentTemplate(ctx context.Context, name string, t Server) (Response, error)
+	CreateComponentTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error)
+	DeleteComponentTemplate(ctx context.Context, name string, t Server) (Response, error)
 	GetDataStreams(ctx context.Context, t Server) (Response, error)
-	GetDataStreamStats(ctx context.Context, t Server) (Response, error)
-	GetDataStreamBackingIndices(ctx context.Context, t Server) (Response, error)
-	GetDataStreamILM(ctx context.Context, t Server) (Response, error)
+	GetDataStream(ctx context.Context, name string, t Server) (Response, error)
+	GetDataStreamStats(ctx context.Context, name string, t Server) (Response, error)
+	GetDataStreamBackingIndices(ctx context.Context, indices []string, t Server) (Response, error)
+	GetDataStreamILM(ctx context.Context, indices []string, t Server) (Response, error)
 	CreateDataStream(ctx context.Context, name string, t Server) (Response, error)
 	RolloverDataStream(ctx context.Context, name string, t Server) (Response, error)
 	DeleteDataStream(ctx context.Context, name string, t Server) (Response, error)
@@ -175,6 +184,17 @@ const (
 )
 
 func encoded(s string) string { return url.QueryEscape(s) }
+
+func encodedIndexList(indices []string) string {
+	encodedIndices := make([]string, 0, len(indices))
+	for _, index := range indices {
+		index = strings.TrimSpace(index)
+		if index != "" {
+			encodedIndices = append(encodedIndices, encoded(index))
+		}
+	}
+	return strings.Join(encodedIndices, ",")
+}
 
 func boolPtr(v bool) *bool { return &v }
 
@@ -700,9 +720,29 @@ func (c *HTTPClient) GetTemplates(ctx context.Context, t Server) (Response, erro
 	})
 }
 
+func (c *HTTPClient) GetComposableIndexTemplates(ctx context.Context, t Server) (Response, error) {
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesGetIndexTemplateRequest{}.Do(ctx, transport)
+	})
+}
+
+func (c *HTTPClient) GetTemplate(ctx context.Context, name string, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_template/%s", encoded(name)), http.MethodGet, nil, t, nil)
+}
+
 func (c *HTTPClient) CreateTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error) {
 	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
 		return esapi.IndicesPutTemplateRequest{
+			Name:   name,
+			Body:   jsonReader(template),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
+}
+
+func (c *HTTPClient) CreateComposableIndexTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error) {
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesPutIndexTemplateRequest{
 			Name:   name,
 			Body:   jsonReader(template),
 			Header: http.Header{"Content-Type": []string{contentJSON}},
@@ -716,21 +756,63 @@ func (c *HTTPClient) DeleteTemplate(ctx context.Context, name string, t Server) 
 	})
 }
 
+func (c *HTTPClient) DeleteComposableIndexTemplate(ctx context.Context, name string, t Server) (Response, error) {
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.IndicesDeleteIndexTemplateRequest{Name: []string{name}}.Do(ctx, transport)
+	})
+}
+
+func (c *HTTPClient) GetComponentTemplates(ctx context.Context, t Server) (Response, error) {
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterGetComponentTemplateRequest{}.Do(ctx, transport)
+	})
+}
+
+func (c *HTTPClient) GetComponentTemplate(ctx context.Context, name string, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_component_template/%s", encoded(name)), http.MethodGet, nil, t, nil)
+}
+
+func (c *HTTPClient) CreateComponentTemplate(ctx context.Context, name string, template json.RawMessage, t Server) (Response, error) {
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterPutComponentTemplateRequest{
+			Name:   name,
+			Body:   jsonReader(template),
+			Header: http.Header{"Content-Type": []string{contentJSON}},
+		}.Do(ctx, transport)
+	})
+}
+
+func (c *HTTPClient) DeleteComponentTemplate(ctx context.Context, name string, t Server) (Response, error) {
+	return c.performESAPI(ctx, t, func(ctx context.Context, transport esapi.Transport) (*esapi.Response, error) {
+		return esapi.ClusterDeleteComponentTemplateRequest{Name: []string{name}}.Do(ctx, transport)
+	})
+}
+
 func (c *HTTPClient) GetDataStreams(ctx context.Context, t Server) (Response, error) {
 	return c.execute(ctx, "/_data_stream", http.MethodGet, nil, t, nil)
 }
 
-func (c *HTTPClient) GetDataStreamStats(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/_data_stream/_stats", http.MethodGet, nil, t, nil)
+func (c *HTTPClient) GetDataStream(ctx context.Context, name string, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_data_stream/%s", encoded(name)), http.MethodGet, nil, t, nil)
 }
 
-func (c *HTTPClient) GetDataStreamBackingIndices(ctx context.Context, t Server) (Response, error) {
-	path := "/_cat/indices/.ds-*?format=json&bytes=b&expand_wildcards=all&h=index,health,status,docs.count,store.size"
+func (c *HTTPClient) GetDataStreamStats(ctx context.Context, name string, t Server) (Response, error) {
+	return c.execute(ctx, fmt.Sprintf("/_data_stream/%s/_stats", encoded(name)), http.MethodGet, nil, t, nil)
+}
+
+func (c *HTTPClient) GetDataStreamBackingIndices(ctx context.Context, indices []string, t Server) (Response, error) {
+	if len(indices) == 0 {
+		return Response{Status: http.StatusOK, Body: json.RawMessage("[]")}, nil
+	}
+	path := fmt.Sprintf("/_cat/indices/%s?format=json&bytes=b&expand_wildcards=all&h=index,health,status,docs.count,store.size", encodedIndexList(indices))
 	return c.execute(ctx, path, http.MethodGet, nil, t, nil)
 }
 
-func (c *HTTPClient) GetDataStreamILM(ctx context.Context, t Server) (Response, error) {
-	return c.execute(ctx, "/.ds-*/_ilm/explain?ignore_unavailable=true&expand_wildcards=all", http.MethodGet, nil, t, nil)
+func (c *HTTPClient) GetDataStreamILM(ctx context.Context, indices []string, t Server) (Response, error) {
+	if len(indices) == 0 {
+		return Response{Status: http.StatusOK, Body: json.RawMessage(`{"indices":{}}`)}, nil
+	}
+	return c.execute(ctx, fmt.Sprintf("/%s/_ilm/explain?ignore_unavailable=true&expand_wildcards=all", encodedIndexList(indices)), http.MethodGet, nil, t, nil)
 }
 
 func (c *HTTPClient) CreateDataStream(ctx context.Context, name string, t Server) (Response, error) {

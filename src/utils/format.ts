@@ -2,8 +2,9 @@ export function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'object' && error !== null) {
     const candidate = error as {
-      data?: { error?: { reason?: unknown; root_cause?: Array<{ reason?: unknown }> }; status?: unknown };
+      data?: { detail?: unknown; error?: { reason?: unknown; root_cause?: Array<{ reason?: unknown }> }; status?: unknown; title?: unknown };
       detail?: unknown;
+      errors?: Array<{ detail?: unknown; message?: unknown }>;
       error?: { reason?: unknown; root_cause?: Array<{ reason?: unknown }> };
       message?: unknown;
       title?: unknown;
@@ -12,7 +13,11 @@ export function errorMessage(error: unknown): string {
     return textValue(
       upstream?.reason
       ?? upstream?.root_cause?.[0]?.reason
+      ?? candidate.data?.detail
+      ?? candidate.data?.title
       ?? candidate.detail
+      ?? candidate.errors?.[0]?.detail
+      ?? candidate.errors?.[0]?.message
       ?? candidate.message
       ?? candidate.title
       ?? error,
@@ -39,6 +44,7 @@ export function textValue(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) return '';
   return JSON.stringify(value);
 }
 
