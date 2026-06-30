@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useStore } from '@tanstack/react-store';
 
@@ -28,7 +28,7 @@ function usePageContext() {
   const refreshTick = useStore(refreshStore, (state) => state.tick);
   const connection = useMemo(
     () => getConnection(session),
-    [session.auth.password, session.auth.username, session.host],
+    [session.host],
   );
 
   return {
@@ -48,8 +48,8 @@ export function ConnectRoute() {
   return (
     <ConnectPage
       currentHost={host}
-      onConnected={(nextHost, auth) => {
-        sessionActions.connect(nextHost, auth);
+      onConnected={(nextHost, nextHostName) => {
+        sessionActions.connect(nextHost, nextHostName);
         void navigate({ search: { host: nextHost }, to: '/overview' });
       }}
     />
@@ -92,13 +92,40 @@ export function AnalysisRoute() {
 }
 
 export function TemplatesRoute() {
-  const { connection, notify, refreshTick } = usePageContext();
-  return <TemplatesPage connection={connection} notify={notify} refreshTick={refreshTick} />;
+  const { connection, majorVersion, notify, refreshTick } = usePageContext();
+  const search = useSearch({ strict: false });
+  const navigate = useNavigate();
+  const updateKind = useCallback((kind: 'index' | 'component' | 'legacy') => {
+    void navigate({ search: (previous) => ({ ...previous, kind, template: undefined }), to: '/templates' });
+  }, [navigate]);
+  return (
+    <TemplatesPage
+      connection={connection}
+      majorVersion={majorVersion}
+      notify={notify}
+      refreshTick={refreshTick}
+      selectedKind={search.kind === 'index' || search.kind === 'component' || search.kind === 'legacy' ? search.kind : undefined}
+      selectedTemplate={typeof search.template === 'string' ? search.template : undefined}
+      onKindChange={updateKind}
+    />
+  );
 }
 
 export function DataStreamsRoute() {
   const { connection, notify, refreshTick } = usePageContext();
-  return <DataStreamsPage connection={connection} notify={notify} refreshTick={refreshTick} />;
+  const search = useSearch({ strict: false });
+  const navigate = useNavigate();
+  return (
+    <DataStreamsPage
+      connection={connection}
+      notify={notify}
+      refreshTick={refreshTick}
+      selectedStream={typeof search.stream === 'string' ? search.stream : ''}
+      onStreamChange={(stream) => {
+        void navigate({ search: (previous) => ({ ...previous, stream: stream || undefined }), to: '/data_streams' });
+      }}
+    />
+  );
 }
 
 export function ILMPoliciesRoute() {

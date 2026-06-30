@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AliasesGetData, AliasesGetErrors, AliasesGetResponses, AliasesUpdateData, AliasesUpdateErrors, AliasesUpdateResponses, AnalysisAnalyzeAnalyzerData, AnalysisAnalyzeAnalyzerErrors, AnalysisAnalyzeAnalyzerResponses, AnalysisAnalyzeFieldData, AnalysisAnalyzeFieldErrors, AnalysisAnalyzeFieldResponses, AnalysisAnalyzersData, AnalysisAnalyzersErrors, AnalysisAnalyzersResponses, AnalysisFieldsData, AnalysisFieldsErrors, AnalysisFieldsResponses, AnalysisIndicesData, AnalysisIndicesErrors, AnalysisIndicesResponses, CatData, CatErrors, CatResponses, ClusterChangesData, ClusterChangesErrors, ClusterChangesResponses, ClusterSettingsGetData, ClusterSettingsGetErrors, ClusterSettingsGetResponses, ClusterSettingsSaveData, ClusterSettingsSaveErrors, ClusterSettingsSaveResponses, CommonsGetIndexMappingData, CommonsGetIndexMappingErrors, CommonsGetIndexMappingResponses, CommonsGetIndexSettingsData, CommonsGetIndexSettingsErrors, CommonsGetIndexSettingsResponses, CommonsGetIndexStatsData, CommonsGetIndexStatsErrors, CommonsGetIndexStatsResponses, CommonsGetNodeStatsData, CommonsGetNodeStatsErrors, CommonsGetNodeStatsResponses, CommonsIndicesData, CommonsIndicesErrors, CommonsIndicesResponses, CommonsNodesData, CommonsNodesErrors, CommonsNodesResponses, ConnectData, ConnectErrors, ConnectHostsData, ConnectHostsErrors, ConnectHostsResponses, ConnectResponses, CreateIndexCreateData, CreateIndexCreateErrors, CreateIndexCreateResponses, CreateIndexGetMetadataData, CreateIndexGetMetadataErrors, CreateIndexGetMetadataResponses, DataExplorerSaveData, DataExplorerSaveErrors, DataExplorerSaveResponses, DataExplorerSearchData, DataExplorerSearchErrors, DataExplorerSearchResponses, DataStreamsAttachIlmData, DataStreamsAttachIlmErrors, DataStreamsAttachIlmResponses, DataStreamsCreateData, DataStreamsCreateErrors, DataStreamsCreateResponses, DataStreamsDeleteData, DataStreamsDeleteErrors, DataStreamsDeleteResponses, DataStreamsDetachIlmData, DataStreamsDetachIlmErrors, DataStreamsDetachIlmResponses, DataStreamsListData, DataStreamsListErrors, DataStreamsListResponses, DataStreamsRolloverData, DataStreamsRolloverErrors, DataStreamsRolloverResponses, DataStreamsUpdateLifecycleData, DataStreamsUpdateLifecycleErrors, DataStreamsUpdateLifecycleResponses, IlmPoliciesDeleteData, IlmPoliciesDeleteErrors, IlmPoliciesDeleteResponses, IlmPoliciesListData, IlmPoliciesListErrors, IlmPoliciesListResponses, IlmPoliciesSaveData, IlmPoliciesSaveErrors, IlmPoliciesSaveResponses, IndexSettingsGetData, IndexSettingsGetErrors, IndexSettingsGetResponses, IndexSettingsUpdateData, IndexSettingsUpdateErrors, IndexSettingsUpdateResponses, NavbarData, NavbarErrors, NavbarResponses, NodesData, NodesErrors, NodesResponses, OverviewClearIndicesCacheData, OverviewClearIndicesCacheErrors, OverviewClearIndicesCacheResponses, OverviewCloseIndicesData, OverviewCloseIndicesErrors, OverviewCloseIndicesResponses, OverviewData, OverviewDeleteIndicesData, OverviewDeleteIndicesErrors, OverviewDeleteIndicesResponses, OverviewDisableShardAllocationData, OverviewDisableShardAllocationErrors, OverviewDisableShardAllocationResponses, OverviewEnableShardAllocationData, OverviewEnableShardAllocationErrors, OverviewEnableShardAllocationResponses, OverviewErrors, OverviewFlushIndicesData, OverviewFlushIndicesErrors, OverviewFlushIndicesResponses, OverviewForceMergeData, OverviewForceMergeErrors, OverviewForceMergeResponses, OverviewOpenIndicesData, OverviewOpenIndicesErrors, OverviewOpenIndicesResponses, OverviewRefreshIndicesData, OverviewRefreshIndicesErrors, OverviewRefreshIndicesResponses, OverviewRelocateShardData, OverviewRelocateShardErrors, OverviewRelocateShardResponses, OverviewResponses, OverviewShardStatsData, OverviewShardStatsErrors, OverviewShardStatsResponses, RepositoriesCreateData, RepositoriesCreateErrors, RepositoriesCreateResponses, RepositoriesDeleteData, RepositoriesDeleteErrors, RepositoriesDeleteResponses, RepositoriesListData, RepositoriesListErrors, RepositoriesListResponses, RestHistoryData, RestHistoryErrors, RestHistoryResponses, RestIndexData, RestIndexErrors, RestIndexResponses, RestRequestData, RestRequestErrors, RestRequestResponses, SnapshotsCreateData, SnapshotsCreateErrors, SnapshotsCreateResponses, SnapshotsDeleteData, SnapshotsDeleteErrors, SnapshotsDeleteResponses, SnapshotsGetData, SnapshotsGetErrors, SnapshotsGetResponses, SnapshotsLoadData, SnapshotsLoadErrors, SnapshotsLoadResponses, SnapshotsRestoreData, SnapshotsRestoreErrors, SnapshotsRestoreResponses, TemplatesCreateData, TemplatesCreateErrors, TemplatesCreateResponses, TemplatesDeleteData, TemplatesDeleteErrors, TemplatesDeleteResponses, TemplatesListData, TemplatesListErrors, TemplatesListResponses } from './types.gen';
+import type { AliasesGetData, AliasesGetErrors, AliasesGetResponses, AliasesUpdateData, AliasesUpdateErrors, AliasesUpdateResponses, AnalysisAnalyzeAnalyzerData, AnalysisAnalyzeAnalyzerErrors, AnalysisAnalyzeAnalyzerResponses, AnalysisAnalyzeFieldData, AnalysisAnalyzeFieldErrors, AnalysisAnalyzeFieldResponses, AnalysisAnalyzersData, AnalysisAnalyzersErrors, AnalysisAnalyzersResponses, AnalysisFieldsData, AnalysisFieldsErrors, AnalysisFieldsResponses, AnalysisIndicesData, AnalysisIndicesErrors, AnalysisIndicesResponses, CatData, CatErrors, CatResponses, ClusterChangesData, ClusterChangesErrors, ClusterChangesResponses, ClusterSettingsGetData, ClusterSettingsGetErrors, ClusterSettingsGetResponses, ClusterSettingsSaveData, ClusterSettingsSaveErrors, ClusterSettingsSaveResponses, CommonsGetIndexMappingData, CommonsGetIndexMappingErrors, CommonsGetIndexMappingResponses, CommonsGetIndexSettingsData, CommonsGetIndexSettingsErrors, CommonsGetIndexSettingsResponses, CommonsGetIndexStatsData, CommonsGetIndexStatsErrors, CommonsGetIndexStatsResponses, CommonsGetNodeStatsData, CommonsGetNodeStatsErrors, CommonsGetNodeStatsResponses, CommonsIndicesData, CommonsIndicesErrors, CommonsIndicesResponses, CommonsNodesData, CommonsNodesErrors, CommonsNodesResponses, ConnectData, ConnectErrors, ConnectHostsData, ConnectHostsErrors, ConnectHostsResponses, ConnectResponses, CreateIndexCreateData, CreateIndexCreateErrors, CreateIndexCreateResponses, CreateIndexGetMetadataData, CreateIndexGetMetadataErrors, CreateIndexGetMetadataResponses, DataExplorerSaveData, DataExplorerSaveErrors, DataExplorerSaveResponses, DataExplorerSearchData, DataExplorerSearchErrors, DataExplorerSearchResponses, DataStreamsAttachIlmData, DataStreamsAttachIlmErrors, DataStreamsAttachIlmResponses, DataStreamsCreateData, DataStreamsCreateErrors, DataStreamsCreateResponses, DataStreamsDeleteData, DataStreamsDeleteErrors, DataStreamsDeleteResponses, DataStreamsDetachIlmData, DataStreamsDetachIlmErrors, DataStreamsDetachIlmResponses, DataStreamsGetData, DataStreamsGetErrors, DataStreamsGetResponses, DataStreamsListData, DataStreamsListErrors, DataStreamsListResponses, DataStreamsRolloverData, DataStreamsRolloverErrors, DataStreamsRolloverResponses, DataStreamsUpdateLifecycleData, DataStreamsUpdateLifecycleErrors, DataStreamsUpdateLifecycleResponses, IlmPoliciesDeleteData, IlmPoliciesDeleteErrors, IlmPoliciesDeleteResponses, IlmPoliciesListData, IlmPoliciesListErrors, IlmPoliciesListResponses, IlmPoliciesSaveData, IlmPoliciesSaveErrors, IlmPoliciesSaveResponses, IndexSettingsGetData, IndexSettingsGetErrors, IndexSettingsGetResponses, IndexSettingsUpdateData, IndexSettingsUpdateErrors, IndexSettingsUpdateResponses, NavbarData, NavbarErrors, NavbarResponses, NodesData, NodesErrors, NodesResponses, OverviewClearIndicesCacheData, OverviewClearIndicesCacheErrors, OverviewClearIndicesCacheResponses, OverviewCloseIndicesData, OverviewCloseIndicesErrors, OverviewCloseIndicesResponses, OverviewData, OverviewDeleteIndicesData, OverviewDeleteIndicesErrors, OverviewDeleteIndicesResponses, OverviewDisableShardAllocationData, OverviewDisableShardAllocationErrors, OverviewDisableShardAllocationResponses, OverviewEnableShardAllocationData, OverviewEnableShardAllocationErrors, OverviewEnableShardAllocationResponses, OverviewErrors, OverviewFlushIndicesData, OverviewFlushIndicesErrors, OverviewFlushIndicesResponses, OverviewForceMergeData, OverviewForceMergeErrors, OverviewForceMergeResponses, OverviewOpenIndicesData, OverviewOpenIndicesErrors, OverviewOpenIndicesResponses, OverviewRefreshIndicesData, OverviewRefreshIndicesErrors, OverviewRefreshIndicesResponses, OverviewRelocateShardData, OverviewRelocateShardErrors, OverviewRelocateShardResponses, OverviewResponses, OverviewShardStatsData, OverviewShardStatsErrors, OverviewShardStatsResponses, RepositoriesCreateData, RepositoriesCreateErrors, RepositoriesCreateResponses, RepositoriesDeleteData, RepositoriesDeleteErrors, RepositoriesDeleteResponses, RepositoriesListData, RepositoriesListErrors, RepositoriesListResponses, RestHistoryData, RestHistoryErrors, RestHistoryResponses, RestIndexData, RestIndexErrors, RestIndexResponses, RestRequestData, RestRequestErrors, RestRequestResponses, SnapshotsCreateData, SnapshotsCreateErrors, SnapshotsCreateResponses, SnapshotsDeleteData, SnapshotsDeleteErrors, SnapshotsDeleteResponses, SnapshotsGetData, SnapshotsGetErrors, SnapshotsGetResponses, SnapshotsLoadData, SnapshotsLoadErrors, SnapshotsLoadResponses, SnapshotsRestoreData, SnapshotsRestoreErrors, SnapshotsRestoreResponses, TemplatesCreateData, TemplatesCreateErrors, TemplatesCreateResponses, TemplatesDeleteData, TemplatesDeleteErrors, TemplatesDeleteResponses, TemplatesGetData, TemplatesGetErrors, TemplatesGetResponses, TemplatesListData, TemplatesListErrors, TemplatesListResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -23,78 +23,15 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  *
  * Returns all index aliases flattened into one list.
  */
-export const aliasesGet = <ThrowOnError extends boolean = false>(options: Options<AliasesGetData, ThrowOnError>): RequestResult<AliasesGetResponses, AliasesGetErrors, ThrowOnError> => (options.client ?? client).post<AliasesGetResponses, AliasesGetErrors, ThrowOnError>({
-    url: '/aliases/get_aliases',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+export const aliasesGet = <ThrowOnError extends boolean = false>(options: Options<AliasesGetData, ThrowOnError>): RequestResult<AliasesGetResponses, AliasesGetErrors, ThrowOnError> => (options.client ?? client).get<AliasesGetResponses, AliasesGetErrors, ThrowOnError>({ url: '/clusters/{cluster}/aliases', ...options });
 
 /**
  * Update aliases
  *
  * Applies a batch of alias add/remove actions.
  */
-export const aliasesUpdate = <ThrowOnError extends boolean = false>(options: Options<AliasesUpdateData, ThrowOnError>): RequestResult<AliasesUpdateResponses, AliasesUpdateErrors, ThrowOnError> => (options.client ?? client).post<AliasesUpdateResponses, AliasesUpdateErrors, ThrowOnError>({
-    url: '/aliases/update_aliases',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Analyze text by analyzer
- *
- * Runs _analyze with the given analyzer and returns the produced tokens.
- */
-export const analysisAnalyzeAnalyzer = <ThrowOnError extends boolean = false>(options: Options<AnalysisAnalyzeAnalyzerData, ThrowOnError>): RequestResult<AnalysisAnalyzeAnalyzerResponses, AnalysisAnalyzeAnalyzerErrors, ThrowOnError> => (options.client ?? client).post<AnalysisAnalyzeAnalyzerResponses, AnalysisAnalyzeAnalyzerErrors, ThrowOnError>({
-    url: '/analysis/analyze/analyzer',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Analyze text by field
- *
- * Runs _analyze against the analyzer of the given field and returns the produced tokens.
- */
-export const analysisAnalyzeField = <ThrowOnError extends boolean = false>(options: Options<AnalysisAnalyzeFieldData, ThrowOnError>): RequestResult<AnalysisAnalyzeFieldResponses, AnalysisAnalyzeFieldErrors, ThrowOnError> => (options.client ?? client).post<AnalysisAnalyzeFieldResponses, AnalysisAnalyzeFieldErrors, ThrowOnError>({
-    url: '/analysis/analyze/field',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List index analyzers
- *
- * Returns analyzer names defined in the index settings.
- */
-export const analysisAnalyzers = <ThrowOnError extends boolean = false>(options: Options<AnalysisAnalyzersData, ThrowOnError>): RequestResult<AnalysisAnalyzersResponses, AnalysisAnalyzersErrors, ThrowOnError> => (options.client ?? client).post<AnalysisAnalyzersResponses, AnalysisAnalyzersErrors, ThrowOnError>({
-    url: '/analysis/analyzers',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List analyzable fields
- *
- * Returns text fields of the index that can be analyzed.
- */
-export const analysisFields = <ThrowOnError extends boolean = false>(options: Options<AnalysisFieldsData, ThrowOnError>): RequestResult<AnalysisFieldsResponses, AnalysisFieldsErrors, ThrowOnError> => (options.client ?? client).post<AnalysisFieldsResponses, AnalysisFieldsErrors, ThrowOnError>({
-    url: '/analysis/fields',
+export const aliasesUpdate = <ThrowOnError extends boolean = false>(options: Options<AliasesUpdateData, ThrowOnError>): RequestResult<AliasesUpdateResponses, AliasesUpdateErrors, ThrowOnError> => (options.client ?? client).put<AliasesUpdateResponses, AliasesUpdateErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/aliases',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -107,8 +44,43 @@ export const analysisFields = <ThrowOnError extends boolean = false>(options: Op
  *
  * Returns names of open indices available for analysis.
  */
-export const analysisIndices = <ThrowOnError extends boolean = false>(options: Options<AnalysisIndicesData, ThrowOnError>): RequestResult<AnalysisIndicesResponses, AnalysisIndicesErrors, ThrowOnError> => (options.client ?? client).post<AnalysisIndicesResponses, AnalysisIndicesErrors, ThrowOnError>({
-    url: '/analysis/indices',
+export const analysisIndices = <ThrowOnError extends boolean = false>(options: Options<AnalysisIndicesData, ThrowOnError>): RequestResult<AnalysisIndicesResponses, AnalysisIndicesErrors, ThrowOnError> => (options.client ?? client).get<AnalysisIndicesResponses, AnalysisIndicesErrors, ThrowOnError>({ url: '/clusters/{cluster}/analysis/indices', ...options });
+
+/**
+ * List index analyzers
+ *
+ * Returns analyzer names defined in the index settings.
+ */
+export const analysisAnalyzers = <ThrowOnError extends boolean = false>(options: Options<AnalysisAnalyzersData, ThrowOnError>): RequestResult<AnalysisAnalyzersResponses, AnalysisAnalyzersErrors, ThrowOnError> => (options.client ?? client).get<AnalysisAnalyzersResponses, AnalysisAnalyzersErrors, ThrowOnError>({ url: '/clusters/{cluster}/analysis/indices/{index}/analyzers', ...options });
+
+/**
+ * Analyze text by analyzer
+ *
+ * Runs _analyze with the given analyzer and returns the produced tokens.
+ */
+export const analysisAnalyzeAnalyzer = <ThrowOnError extends boolean = false>(options: Options<AnalysisAnalyzeAnalyzerData, ThrowOnError>): RequestResult<AnalysisAnalyzeAnalyzerResponses, AnalysisAnalyzeAnalyzerErrors, ThrowOnError> => (options.client ?? client).post<AnalysisAnalyzeAnalyzerResponses, AnalysisAnalyzeAnalyzerErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/analysis/indices/{index}/analyzers/_analyze',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List analyzable fields
+ *
+ * Returns text fields of the index that can be analyzed.
+ */
+export const analysisFields = <ThrowOnError extends boolean = false>(options: Options<AnalysisFieldsData, ThrowOnError>): RequestResult<AnalysisFieldsResponses, AnalysisFieldsErrors, ThrowOnError> => (options.client ?? client).get<AnalysisFieldsResponses, AnalysisFieldsErrors, ThrowOnError>({ url: '/clusters/{cluster}/analysis/indices/{index}/fields', ...options });
+
+/**
+ * Analyze text by field
+ *
+ * Runs _analyze against the analyzer of the given field and returns the produced tokens.
+ */
+export const analysisAnalyzeField = <ThrowOnError extends boolean = false>(options: Options<AnalysisAnalyzeFieldData, ThrowOnError>): RequestResult<AnalysisAnalyzeFieldResponses, AnalysisAnalyzeFieldErrors, ThrowOnError> => (options.client ?? client).post<AnalysisAnalyzeFieldResponses, AnalysisAnalyzeFieldErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/analysis/indices/{index}/fields/_analyze',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -121,98 +93,29 @@ export const analysisIndices = <ThrowOnError extends boolean = false>(options: O
  *
  * Proxies the given Elasticsearch _cat API and returns its JSON output verbatim.
  */
-export const cat = <ThrowOnError extends boolean = false>(options: Options<CatData, ThrowOnError>): RequestResult<CatResponses, CatErrors, ThrowOnError> => (options.client ?? client).post<CatResponses, CatErrors, ThrowOnError>({
-    url: '/cat',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+export const cat = <ThrowOnError extends boolean = false>(options: Options<CatData, ThrowOnError>): RequestResult<CatResponses, CatErrors, ThrowOnError> => (options.client ?? client).get<CatResponses, CatErrors, ThrowOnError>({ url: '/clusters/{cluster}/cat/{api}', ...options });
 
 /**
  * Get cluster changes snapshot
  *
  * Returns the current index and node names plus the cluster name, used by the UI to detect cluster topology changes.
  */
-export const clusterChanges = <ThrowOnError extends boolean = false>(options: Options<ClusterChangesData, ThrowOnError>): RequestResult<ClusterChangesResponses, ClusterChangesErrors, ThrowOnError> => (options.client ?? client).post<ClusterChangesResponses, ClusterChangesErrors, ThrowOnError>({
-    url: '/cluster_changes',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+export const clusterChanges = <ThrowOnError extends boolean = false>(options: Options<ClusterChangesData, ThrowOnError>): RequestResult<ClusterChangesResponses, ClusterChangesErrors, ThrowOnError> => (options.client ?? client).get<ClusterChangesResponses, ClusterChangesErrors, ThrowOnError>({ url: '/clusters/{cluster}/cluster_changes', ...options });
 
 /**
  * Get cluster settings
  *
  * Returns the cluster settings (persistent and transient) as reported by Elasticsearch.
  */
-export const clusterSettingsGet = <ThrowOnError extends boolean = false>(options: Options<ClusterSettingsGetData, ThrowOnError>): RequestResult<ClusterSettingsGetResponses, ClusterSettingsGetErrors, ThrowOnError> => (options.client ?? client).post<ClusterSettingsGetResponses, ClusterSettingsGetErrors, ThrowOnError>({
-    url: '/cluster_settings',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+export const clusterSettingsGet = <ThrowOnError extends boolean = false>(options: Options<ClusterSettingsGetData, ThrowOnError>): RequestResult<ClusterSettingsGetResponses, ClusterSettingsGetErrors, ThrowOnError> => (options.client ?? client).get<ClusterSettingsGetResponses, ClusterSettingsGetErrors, ThrowOnError>({ url: '/clusters/{cluster}/cluster_settings', ...options });
 
 /**
  * Save cluster settings
  *
  * Updates the cluster settings with the given document.
  */
-export const clusterSettingsSave = <ThrowOnError extends boolean = false>(options: Options<ClusterSettingsSaveData, ThrowOnError>): RequestResult<ClusterSettingsSaveResponses, ClusterSettingsSaveErrors, ThrowOnError> => (options.client ?? client).post<ClusterSettingsSaveResponses, ClusterSettingsSaveErrors, ThrowOnError>({
-    url: '/cluster_settings/save',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get index mapping
- */
-export const commonsGetIndexMapping = <ThrowOnError extends boolean = false>(options: Options<CommonsGetIndexMappingData, ThrowOnError>): RequestResult<CommonsGetIndexMappingResponses, CommonsGetIndexMappingErrors, ThrowOnError> => (options.client ?? client).post<CommonsGetIndexMappingResponses, CommonsGetIndexMappingErrors, ThrowOnError>({
-    url: '/commons/get_index_mapping',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get index settings
- */
-export const commonsGetIndexSettings = <ThrowOnError extends boolean = false>(options: Options<CommonsGetIndexSettingsData, ThrowOnError>): RequestResult<CommonsGetIndexSettingsResponses, CommonsGetIndexSettingsErrors, ThrowOnError> => (options.client ?? client).post<CommonsGetIndexSettingsResponses, CommonsGetIndexSettingsErrors, ThrowOnError>({
-    url: '/commons/get_index_settings',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get index stats
- */
-export const commonsGetIndexStats = <ThrowOnError extends boolean = false>(options: Options<CommonsGetIndexStatsData, ThrowOnError>): RequestResult<CommonsGetIndexStatsResponses, CommonsGetIndexStatsErrors, ThrowOnError> => (options.client ?? client).post<CommonsGetIndexStatsResponses, CommonsGetIndexStatsErrors, ThrowOnError>({
-    url: '/commons/get_index_stats',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get node stats
- */
-export const commonsGetNodeStats = <ThrowOnError extends boolean = false>(options: Options<CommonsGetNodeStatsData, ThrowOnError>): RequestResult<CommonsGetNodeStatsResponses, CommonsGetNodeStatsErrors, ThrowOnError> => (options.client ?? client).post<CommonsGetNodeStatsResponses, CommonsGetNodeStatsErrors, ThrowOnError>({
-    url: '/commons/get_node_stats',
+export const clusterSettingsSave = <ThrowOnError extends boolean = false>(options: Options<ClusterSettingsSaveData, ThrowOnError>): RequestResult<ClusterSettingsSaveResponses, ClusterSettingsSaveErrors, ThrowOnError> => (options.client ?? client).put<ClusterSettingsSaveResponses, ClusterSettingsSaveErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/cluster_settings',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -223,8 +126,38 @@ export const commonsGetNodeStats = <ThrowOnError extends boolean = false>(option
 /**
  * List index names
  */
-export const commonsIndices = <ThrowOnError extends boolean = false>(options: Options<CommonsIndicesData, ThrowOnError>): RequestResult<CommonsIndicesResponses, CommonsIndicesErrors, ThrowOnError> => (options.client ?? client).post<CommonsIndicesResponses, CommonsIndicesErrors, ThrowOnError>({
-    url: '/commons/indices',
+export const commonsIndices = <ThrowOnError extends boolean = false>(options: Options<CommonsIndicesData, ThrowOnError>): RequestResult<CommonsIndicesResponses, CommonsIndicesErrors, ThrowOnError> => (options.client ?? client).get<CommonsIndicesResponses, CommonsIndicesErrors, ThrowOnError>({ url: '/clusters/{cluster}/commons/indices', ...options });
+
+/**
+ * Get index mapping
+ */
+export const commonsGetIndexMapping = <ThrowOnError extends boolean = false>(options: Options<CommonsGetIndexMappingData, ThrowOnError>): RequestResult<CommonsGetIndexMappingResponses, CommonsGetIndexMappingErrors, ThrowOnError> => (options.client ?? client).get<CommonsGetIndexMappingResponses, CommonsGetIndexMappingErrors, ThrowOnError>({ url: '/clusters/{cluster}/commons/indices/{index}/mapping', ...options });
+
+/**
+ * Get index settings
+ */
+export const commonsGetIndexSettings = <ThrowOnError extends boolean = false>(options: Options<CommonsGetIndexSettingsData, ThrowOnError>): RequestResult<CommonsGetIndexSettingsResponses, CommonsGetIndexSettingsErrors, ThrowOnError> => (options.client ?? client).get<CommonsGetIndexSettingsResponses, CommonsGetIndexSettingsErrors, ThrowOnError>({ url: '/clusters/{cluster}/commons/indices/{index}/settings', ...options });
+
+/**
+ * Get index stats
+ */
+export const commonsGetIndexStats = <ThrowOnError extends boolean = false>(options: Options<CommonsGetIndexStatsData, ThrowOnError>): RequestResult<CommonsGetIndexStatsResponses, CommonsGetIndexStatsErrors, ThrowOnError> => (options.client ?? client).get<CommonsGetIndexStatsResponses, CommonsGetIndexStatsErrors, ThrowOnError>({ url: '/clusters/{cluster}/commons/indices/{index}/stats', ...options });
+
+/**
+ * List node names
+ */
+export const commonsNodes = <ThrowOnError extends boolean = false>(options: Options<CommonsNodesData, ThrowOnError>): RequestResult<CommonsNodesResponses, CommonsNodesErrors, ThrowOnError> => (options.client ?? client).get<CommonsNodesResponses, CommonsNodesErrors, ThrowOnError>({ url: '/clusters/{cluster}/commons/nodes', ...options });
+
+/**
+ * Get node stats
+ */
+export const commonsGetNodeStats = <ThrowOnError extends boolean = false>(options: Options<CommonsGetNodeStatsData, ThrowOnError>): RequestResult<CommonsGetNodeStatsResponses, CommonsGetNodeStatsErrors, ThrowOnError> => (options.client ?? client).get<CommonsGetNodeStatsResponses, CommonsGetNodeStatsErrors, ThrowOnError>({ url: '/clusters/{cluster}/commons/nodes/{node}/stats', ...options });
+
+/**
+ * Create an index
+ */
+export const createIndexCreate = <ThrowOnError extends boolean = false>(options: Options<CreateIndexCreateData, ThrowOnError>): RequestResult<CreateIndexCreateResponses, CreateIndexCreateErrors, ThrowOnError> => (options.client ?? client).put<CreateIndexCreateResponses, CreateIndexCreateErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/create_index/{index}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -233,10 +166,298 @@ export const commonsIndices = <ThrowOnError extends boolean = false>(options: Op
 });
 
 /**
- * List node names
+ * Get index metadata
+ *
+ * Returns the mappings and settings of an existing index, used to prefill the create-index form.
  */
-export const commonsNodes = <ThrowOnError extends boolean = false>(options: Options<CommonsNodesData, ThrowOnError>): RequestResult<CommonsNodesResponses, CommonsNodesErrors, ThrowOnError> => (options.client ?? client).post<CommonsNodesResponses, CommonsNodesErrors, ThrowOnError>({
-    url: '/commons/nodes',
+export const createIndexGetMetadata = <ThrowOnError extends boolean = false>(options: Options<CreateIndexGetMetadataData, ThrowOnError>): RequestResult<CreateIndexGetMetadataResponses, CreateIndexGetMetadataErrors, ThrowOnError> => (options.client ?? client).get<CreateIndexGetMetadataResponses, CreateIndexGetMetadataErrors, ThrowOnError>({ url: '/clusters/{cluster}/create_index/{index}/metadata', ...options });
+
+/**
+ * Save index document
+ *
+ * Feature-flagged document insert/update for one Elasticsearch index.
+ */
+export const dataExplorerSave = <ThrowOnError extends boolean = false>(options: Options<DataExplorerSaveData, ThrowOnError>): RequestResult<DataExplorerSaveResponses, DataExplorerSaveErrors, ThrowOnError> => (options.client ?? client).put<DataExplorerSaveResponses, DataExplorerSaveErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/data_explorer/{index}/documents',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Browse index documents
+ *
+ * Read-only, feature-flagged document browser for one Elasticsearch index.
+ */
+export const dataExplorerSearch = <ThrowOnError extends boolean = false>(options: Options<DataExplorerSearchData, ThrowOnError>): RequestResult<DataExplorerSearchResponses, DataExplorerSearchErrors, ThrowOnError> => (options.client ?? client).post<DataExplorerSearchResponses, DataExplorerSearchErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/data_explorer/{index}/search',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List data streams
+ *
+ * Returns a lightweight data stream list. Use GET /data_streams/{name} for backing indices, stats and lifecycle details.
+ */
+export const dataStreamsList = <ThrowOnError extends boolean = false>(options: Options<DataStreamsListData, ThrowOnError>): RequestResult<DataStreamsListResponses, DataStreamsListErrors, ThrowOnError> => (options.client ?? client).get<DataStreamsListResponses, DataStreamsListErrors, ThrowOnError>({ url: '/clusters/{cluster}/data_streams', ...options });
+
+/**
+ * Delete data stream
+ */
+export const dataStreamsDelete = <ThrowOnError extends boolean = false>(options: Options<DataStreamsDeleteData, ThrowOnError>): RequestResult<DataStreamsDeleteResponses, DataStreamsDeleteErrors, ThrowOnError> => (options.client ?? client).delete<DataStreamsDeleteResponses, DataStreamsDeleteErrors, ThrowOnError>({ url: '/clusters/{cluster}/data_streams/{name}', ...options });
+
+/**
+ * Get data stream details
+ *
+ * Returns backing indices, stats and lifecycle information for one data stream.
+ */
+export const dataStreamsGet = <ThrowOnError extends boolean = false>(options: Options<DataStreamsGetData, ThrowOnError>): RequestResult<DataStreamsGetResponses, DataStreamsGetErrors, ThrowOnError> => (options.client ?? client).get<DataStreamsGetResponses, DataStreamsGetErrors, ThrowOnError>({ url: '/clusters/{cluster}/data_streams/{name}', ...options });
+
+/**
+ * Create data stream
+ */
+export const dataStreamsCreate = <ThrowOnError extends boolean = false>(options: Options<DataStreamsCreateData, ThrowOnError>): RequestResult<DataStreamsCreateResponses, DataStreamsCreateErrors, ThrowOnError> => (options.client ?? client).put<DataStreamsCreateResponses, DataStreamsCreateErrors, ThrowOnError>({ url: '/clusters/{cluster}/data_streams/{name}', ...options });
+
+/**
+ * Detach ILM policy from data stream
+ */
+export const dataStreamsDetachIlm = <ThrowOnError extends boolean = false>(options: Options<DataStreamsDetachIlmData, ThrowOnError>): RequestResult<DataStreamsDetachIlmResponses, DataStreamsDetachIlmErrors, ThrowOnError> => (options.client ?? client).delete<DataStreamsDetachIlmResponses, DataStreamsDetachIlmErrors, ThrowOnError>({ url: '/clusters/{cluster}/data_streams/{name}/ilm', ...options });
+
+/**
+ * Attach ILM policy to data stream
+ */
+export const dataStreamsAttachIlm = <ThrowOnError extends boolean = false>(options: Options<DataStreamsAttachIlmData, ThrowOnError>): RequestResult<DataStreamsAttachIlmResponses, DataStreamsAttachIlmErrors, ThrowOnError> => (options.client ?? client).put<DataStreamsAttachIlmResponses, DataStreamsAttachIlmErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/data_streams/{name}/ilm',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update data stream lifecycle
+ */
+export const dataStreamsUpdateLifecycle = <ThrowOnError extends boolean = false>(options: Options<DataStreamsUpdateLifecycleData, ThrowOnError>): RequestResult<DataStreamsUpdateLifecycleResponses, DataStreamsUpdateLifecycleErrors, ThrowOnError> => (options.client ?? client).put<DataStreamsUpdateLifecycleResponses, DataStreamsUpdateLifecycleErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/data_streams/{name}/lifecycle',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Rollover data stream
+ */
+export const dataStreamsRollover = <ThrowOnError extends boolean = false>(options: Options<DataStreamsRolloverData, ThrowOnError>): RequestResult<DataStreamsRolloverResponses, DataStreamsRolloverErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsRolloverResponses, DataStreamsRolloverErrors, ThrowOnError>({ url: '/clusters/{cluster}/data_streams/{name}/rollover', ...options });
+
+/**
+ * List ILM policies
+ */
+export const ilmPoliciesList = <ThrowOnError extends boolean = false>(options: Options<IlmPoliciesListData, ThrowOnError>): RequestResult<IlmPoliciesListResponses, IlmPoliciesListErrors, ThrowOnError> => (options.client ?? client).get<IlmPoliciesListResponses, IlmPoliciesListErrors, ThrowOnError>({ url: '/clusters/{cluster}/ilm/policies', ...options });
+
+/**
+ * Delete ILM policy
+ */
+export const ilmPoliciesDelete = <ThrowOnError extends boolean = false>(options: Options<IlmPoliciesDeleteData, ThrowOnError>): RequestResult<IlmPoliciesDeleteResponses, IlmPoliciesDeleteErrors, ThrowOnError> => (options.client ?? client).delete<IlmPoliciesDeleteResponses, IlmPoliciesDeleteErrors, ThrowOnError>({ url: '/clusters/{cluster}/ilm/policies/{name}', ...options });
+
+/**
+ * Create or update ILM policy
+ */
+export const ilmPoliciesSave = <ThrowOnError extends boolean = false>(options: Options<IlmPoliciesSaveData, ThrowOnError>): RequestResult<IlmPoliciesSaveResponses, IlmPoliciesSaveErrors, ThrowOnError> => (options.client ?? client).put<IlmPoliciesSaveResponses, IlmPoliciesSaveErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/ilm/policies/{name}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get index settings (flat)
+ *
+ * Returns the index settings in flat format, including defaults.
+ */
+export const indexSettingsGet = <ThrowOnError extends boolean = false>(options: Options<IndexSettingsGetData, ThrowOnError>): RequestResult<IndexSettingsGetResponses, IndexSettingsGetErrors, ThrowOnError> => (options.client ?? client).get<IndexSettingsGetResponses, IndexSettingsGetErrors, ThrowOnError>({ url: '/clusters/{cluster}/index_settings/{index}', ...options });
+
+/**
+ * Update index settings
+ */
+export const indexSettingsUpdate = <ThrowOnError extends boolean = false>(options: Options<IndexSettingsUpdateData, ThrowOnError>): RequestResult<IndexSettingsUpdateResponses, IndexSettingsUpdateErrors, ThrowOnError> => (options.client ?? client).put<IndexSettingsUpdateResponses, IndexSettingsUpdateErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/index_settings/{index}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get navbar data
+ *
+ * Returns the cluster health document (verbatim from _cluster/health), extended with navbar metadata.
+ */
+export const navbar = <ThrowOnError extends boolean = false>(options: Options<NavbarData, ThrowOnError>): RequestResult<NavbarResponses, NavbarErrors, ThrowOnError> => (options.client ?? client).get<NavbarResponses, NavbarErrors, ThrowOnError>({ url: '/clusters/{cluster}/navbar', ...options });
+
+/**
+ * List cluster nodes
+ *
+ * Returns one entry per node with roles, heap, disk, CPU and uptime information.
+ */
+export const nodes = <ThrowOnError extends boolean = false>(options: Options<NodesData, ThrowOnError>): RequestResult<NodesResponses, NodesErrors, ThrowOnError> => (options.client ?? client).get<NodesResponses, NodesErrors, ThrowOnError>({ url: '/clusters/{cluster}/nodes', ...options });
+
+/**
+ * Get cluster overview
+ *
+ * Returns the cluster dashboard payload: health, indices with shard routing, and nodes.
+ */
+export const overview = <ThrowOnError extends boolean = false>(options: Options<OverviewData, ThrowOnError>): RequestResult<OverviewResponses, OverviewErrors, ThrowOnError> => (options.client ?? client).get<OverviewResponses, OverviewErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview', ...options });
+
+/**
+ * Relocate a shard
+ */
+export const overviewRelocateShard = <ThrowOnError extends boolean = false>(options: Options<OverviewRelocateShardData, ThrowOnError>): RequestResult<OverviewRelocateShardResponses, OverviewRelocateShardErrors, ThrowOnError> => (options.client ?? client).post<OverviewRelocateShardResponses, OverviewRelocateShardErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/overview/indices/{index}/shards/{shard}/relocation',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get shard stats
+ *
+ * Returns stats (or recovery info) for one shard of an index on a given node.
+ */
+export const overviewShardStats = <ThrowOnError extends boolean = false>(options: Options<OverviewShardStatsData, ThrowOnError>): RequestResult<OverviewShardStatsResponses, OverviewShardStatsErrors, ThrowOnError> => (options.client ?? client).get<OverviewShardStatsResponses, OverviewShardStatsErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview/indices/{index}/shards/{shard}/stats', ...options });
+
+/**
+ * Delete indices
+ */
+export const overviewDeleteIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewDeleteIndicesData, ThrowOnError>): RequestResult<OverviewDeleteIndicesResponses, OverviewDeleteIndicesErrors, ThrowOnError> => (options.client ?? client).delete<OverviewDeleteIndicesResponses, OverviewDeleteIndicesErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview/indices/{indices}', ...options });
+
+/**
+ * Clear indices cache
+ */
+export const overviewClearIndicesCache = <ThrowOnError extends boolean = false>(options: Options<OverviewClearIndicesCacheData, ThrowOnError>): RequestResult<OverviewClearIndicesCacheResponses, OverviewClearIndicesCacheErrors, ThrowOnError> => (options.client ?? client).post<OverviewClearIndicesCacheResponses, OverviewClearIndicesCacheErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview/indices/{indices}/cache/clear', ...options });
+
+/**
+ * Close indices
+ */
+export const overviewCloseIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewCloseIndicesData, ThrowOnError>): RequestResult<OverviewCloseIndicesResponses, OverviewCloseIndicesErrors, ThrowOnError> => (options.client ?? client).post<OverviewCloseIndicesResponses, OverviewCloseIndicesErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview/indices/{indices}/close', ...options });
+
+/**
+ * Flush indices
+ */
+export const overviewFlushIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewFlushIndicesData, ThrowOnError>): RequestResult<OverviewFlushIndicesResponses, OverviewFlushIndicesErrors, ThrowOnError> => (options.client ?? client).post<OverviewFlushIndicesResponses, OverviewFlushIndicesErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview/indices/{indices}/flush', ...options });
+
+/**
+ * Force merge indices
+ */
+export const overviewForceMerge = <ThrowOnError extends boolean = false>(options: Options<OverviewForceMergeData, ThrowOnError>): RequestResult<OverviewForceMergeResponses, OverviewForceMergeErrors, ThrowOnError> => (options.client ?? client).post<OverviewForceMergeResponses, OverviewForceMergeErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview/indices/{indices}/forcemerge', ...options });
+
+/**
+ * Open indices
+ */
+export const overviewOpenIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewOpenIndicesData, ThrowOnError>): RequestResult<OverviewOpenIndicesResponses, OverviewOpenIndicesErrors, ThrowOnError> => (options.client ?? client).post<OverviewOpenIndicesResponses, OverviewOpenIndicesErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview/indices/{indices}/open', ...options });
+
+/**
+ * Refresh indices
+ */
+export const overviewRefreshIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewRefreshIndicesData, ThrowOnError>): RequestResult<OverviewRefreshIndicesResponses, OverviewRefreshIndicesErrors, ThrowOnError> => (options.client ?? client).post<OverviewRefreshIndicesResponses, OverviewRefreshIndicesErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview/indices/{indices}/refresh', ...options });
+
+/**
+ * Enable shard allocation
+ */
+export const overviewEnableShardAllocation = <ThrowOnError extends boolean = false>(options: Options<OverviewEnableShardAllocationData, ThrowOnError>): RequestResult<OverviewEnableShardAllocationResponses, OverviewEnableShardAllocationErrors, ThrowOnError> => (options.client ?? client).delete<OverviewEnableShardAllocationResponses, OverviewEnableShardAllocationErrors, ThrowOnError>({ url: '/clusters/{cluster}/overview/shard_allocation', ...options });
+
+/**
+ * Disable shard allocation
+ */
+export const overviewDisableShardAllocation = <ThrowOnError extends boolean = false>(options: Options<OverviewDisableShardAllocationData, ThrowOnError>): RequestResult<OverviewDisableShardAllocationResponses, OverviewDisableShardAllocationErrors, ThrowOnError> => (options.client ?? client).put<OverviewDisableShardAllocationResponses, OverviewDisableShardAllocationErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/overview/shard_allocation',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List snapshot repositories
+ */
+export const repositoriesList = <ThrowOnError extends boolean = false>(options: Options<RepositoriesListData, ThrowOnError>): RequestResult<RepositoriesListResponses, RepositoriesListErrors, ThrowOnError> => (options.client ?? client).get<RepositoriesListResponses, RepositoriesListErrors, ThrowOnError>({ url: '/clusters/{cluster}/repositories', ...options });
+
+/**
+ * Delete a snapshot repository
+ */
+export const repositoriesDelete = <ThrowOnError extends boolean = false>(options: Options<RepositoriesDeleteData, ThrowOnError>): RequestResult<RepositoriesDeleteResponses, RepositoriesDeleteErrors, ThrowOnError> => (options.client ?? client).delete<RepositoriesDeleteResponses, RepositoriesDeleteErrors, ThrowOnError>({ url: '/clusters/{cluster}/repositories/{name}', ...options });
+
+/**
+ * Create a snapshot repository
+ */
+export const repositoriesCreate = <ThrowOnError extends boolean = false>(options: Options<RepositoriesCreateData, ThrowOnError>): RequestResult<RepositoriesCreateResponses, RepositoriesCreateErrors, ThrowOnError> => (options.client ?? client).put<RepositoriesCreateResponses, RepositoriesCreateErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/repositories/{name}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const restIndex = <ThrowOnError extends boolean = false>(options: Options<RestIndexData, ThrowOnError>): RequestResult<RestIndexResponses, RestIndexErrors, ThrowOnError> => (options.client ?? client).get<RestIndexResponses, RestIndexErrors, ThrowOnError>({ url: '/clusters/{cluster}/rest', ...options });
+
+export const restHistory = <ThrowOnError extends boolean = false>(options: Options<RestHistoryData, ThrowOnError>): RequestResult<RestHistoryResponses, RestHistoryErrors, ThrowOnError> => (options.client ?? client).get<RestHistoryResponses, RestHistoryErrors, ThrowOnError>({ url: '/clusters/{cluster}/rest/history', ...options });
+
+export const restRequest = <ThrowOnError extends boolean = false>(options: Options<RestRequestData, ThrowOnError>): RequestResult<RestRequestResponses, RestRequestErrors, ThrowOnError> => (options.client ?? client).post<RestRequestResponses, RestRequestErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/rest/requests',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const snapshotsGet = <ThrowOnError extends boolean = false>(options: Options<SnapshotsGetData, ThrowOnError>): RequestResult<SnapshotsGetResponses, SnapshotsGetErrors, ThrowOnError> => (options.client ?? client).get<SnapshotsGetResponses, SnapshotsGetErrors, ThrowOnError>({ url: '/clusters/{cluster}/snapshots', ...options });
+
+export const snapshotsLoad = <ThrowOnError extends boolean = false>(options: Options<SnapshotsLoadData, ThrowOnError>): RequestResult<SnapshotsLoadResponses, SnapshotsLoadErrors, ThrowOnError> => (options.client ?? client).get<SnapshotsLoadResponses, SnapshotsLoadErrors, ThrowOnError>({ url: '/clusters/{cluster}/snapshots/{repository}', ...options });
+
+export const snapshotsDelete = <ThrowOnError extends boolean = false>(options: Options<SnapshotsDeleteData, ThrowOnError>): RequestResult<SnapshotsDeleteResponses, SnapshotsDeleteErrors, ThrowOnError> => (options.client ?? client).delete<SnapshotsDeleteResponses, SnapshotsDeleteErrors, ThrowOnError>({ url: '/clusters/{cluster}/snapshots/{repository}/{snapshot}', ...options });
+
+export const snapshotsCreate = <ThrowOnError extends boolean = false>(options: Options<SnapshotsCreateData, ThrowOnError>): RequestResult<SnapshotsCreateResponses, SnapshotsCreateErrors, ThrowOnError> => (options.client ?? client).put<SnapshotsCreateResponses, SnapshotsCreateErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/snapshots/{repository}/{snapshot}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const snapshotsRestore = <ThrowOnError extends boolean = false>(options: Options<SnapshotsRestoreData, ThrowOnError>): RequestResult<SnapshotsRestoreResponses, SnapshotsRestoreErrors, ThrowOnError> => (options.client ?? client).post<SnapshotsRestoreResponses, SnapshotsRestoreErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/snapshots/{repository}/{snapshot}/restore',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const templatesList = <ThrowOnError extends boolean = false>(options: Options<TemplatesListData, ThrowOnError>): RequestResult<TemplatesListResponses, TemplatesListErrors, ThrowOnError> => (options.client ?? client).get<TemplatesListResponses, TemplatesListErrors, ThrowOnError>({ url: '/clusters/{cluster}/templates', ...options });
+
+export const templatesDelete = <ThrowOnError extends boolean = false>(options: Options<TemplatesDeleteData, ThrowOnError>): RequestResult<TemplatesDeleteResponses, TemplatesDeleteErrors, ThrowOnError> => (options.client ?? client).delete<TemplatesDeleteResponses, TemplatesDeleteErrors, ThrowOnError>({ url: '/clusters/{cluster}/templates/{kind}/{name}', ...options });
+
+export const templatesGet = <ThrowOnError extends boolean = false>(options: Options<TemplatesGetData, ThrowOnError>): RequestResult<TemplatesGetResponses, TemplatesGetErrors, ThrowOnError> => (options.client ?? client).get<TemplatesGetResponses, TemplatesGetErrors, ThrowOnError>({ url: '/clusters/{cluster}/templates/{kind}/{name}', ...options });
+
+export const templatesCreate = <ThrowOnError extends boolean = false>(options: Options<TemplatesCreateData, ThrowOnError>): RequestResult<TemplatesCreateResponses, TemplatesCreateErrors, ThrowOnError> => (options.client ?? client).put<TemplatesCreateResponses, TemplatesCreateErrors, ThrowOnError>({
+    url: '/clusters/{cluster}/templates/{kind}/{name}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -264,516 +485,3 @@ export const connect = <ThrowOnError extends boolean = false>(options: Options<C
  * Returns the names of the Elasticsearch hosts configured in Cerebro.
  */
 export const connectHosts = <ThrowOnError extends boolean = false>(options?: Options<ConnectHostsData, ThrowOnError>): RequestResult<ConnectHostsResponses, ConnectHostsErrors, ThrowOnError> => (options?.client ?? client).get<ConnectHostsResponses, ConnectHostsErrors, ThrowOnError>({ url: '/connect/hosts', ...options });
-
-/**
- * Create an index
- */
-export const createIndexCreate = <ThrowOnError extends boolean = false>(options: Options<CreateIndexCreateData, ThrowOnError>): RequestResult<CreateIndexCreateResponses, CreateIndexCreateErrors, ThrowOnError> => (options.client ?? client).post<CreateIndexCreateResponses, CreateIndexCreateErrors, ThrowOnError>({
-    url: '/create_index/create',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get index metadata
- *
- * Returns the mappings and settings of an existing index, used to prefill the create-index form.
- */
-export const createIndexGetMetadata = <ThrowOnError extends boolean = false>(options: Options<CreateIndexGetMetadataData, ThrowOnError>): RequestResult<CreateIndexGetMetadataResponses, CreateIndexGetMetadataErrors, ThrowOnError> => (options.client ?? client).post<CreateIndexGetMetadataResponses, CreateIndexGetMetadataErrors, ThrowOnError>({
-    url: '/create_index/get_index_metadata',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Save index document
- *
- * Feature-flagged document insert/update for one Elasticsearch index.
- */
-export const dataExplorerSave = <ThrowOnError extends boolean = false>(options: Options<DataExplorerSaveData, ThrowOnError>): RequestResult<DataExplorerSaveResponses, DataExplorerSaveErrors, ThrowOnError> => (options.client ?? client).post<DataExplorerSaveResponses, DataExplorerSaveErrors, ThrowOnError>({
-    url: '/data_explorer/save',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Browse index documents
- *
- * Read-only, feature-flagged document browser for one Elasticsearch index.
- */
-export const dataExplorerSearch = <ThrowOnError extends boolean = false>(options: Options<DataExplorerSearchData, ThrowOnError>): RequestResult<DataExplorerSearchResponses, DataExplorerSearchErrors, ThrowOnError> => (options.client ?? client).post<DataExplorerSearchResponses, DataExplorerSearchErrors, ThrowOnError>({
-    url: '/data_explorer/search',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List data streams
- *
- * Returns data streams with backing index, stats and lifecycle information when supported by Elasticsearch.
- */
-export const dataStreamsList = <ThrowOnError extends boolean = false>(options: Options<DataStreamsListData, ThrowOnError>): RequestResult<DataStreamsListResponses, DataStreamsListErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsListResponses, DataStreamsListErrors, ThrowOnError>({
-    url: '/data_streams',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Attach ILM policy to data stream
- */
-export const dataStreamsAttachIlm = <ThrowOnError extends boolean = false>(options: Options<DataStreamsAttachIlmData, ThrowOnError>): RequestResult<DataStreamsAttachIlmResponses, DataStreamsAttachIlmErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsAttachIlmResponses, DataStreamsAttachIlmErrors, ThrowOnError>({
-    url: '/data_streams/attach_ilm',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Create data stream
- */
-export const dataStreamsCreate = <ThrowOnError extends boolean = false>(options: Options<DataStreamsCreateData, ThrowOnError>): RequestResult<DataStreamsCreateResponses, DataStreamsCreateErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsCreateResponses, DataStreamsCreateErrors, ThrowOnError>({
-    url: '/data_streams/create',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete data stream
- */
-export const dataStreamsDelete = <ThrowOnError extends boolean = false>(options: Options<DataStreamsDeleteData, ThrowOnError>): RequestResult<DataStreamsDeleteResponses, DataStreamsDeleteErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsDeleteResponses, DataStreamsDeleteErrors, ThrowOnError>({
-    url: '/data_streams/delete',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Detach ILM policy from data stream
- */
-export const dataStreamsDetachIlm = <ThrowOnError extends boolean = false>(options: Options<DataStreamsDetachIlmData, ThrowOnError>): RequestResult<DataStreamsDetachIlmResponses, DataStreamsDetachIlmErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsDetachIlmResponses, DataStreamsDetachIlmErrors, ThrowOnError>({
-    url: '/data_streams/detach_ilm',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Update data stream lifecycle
- */
-export const dataStreamsUpdateLifecycle = <ThrowOnError extends boolean = false>(options: Options<DataStreamsUpdateLifecycleData, ThrowOnError>): RequestResult<DataStreamsUpdateLifecycleResponses, DataStreamsUpdateLifecycleErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsUpdateLifecycleResponses, DataStreamsUpdateLifecycleErrors, ThrowOnError>({
-    url: '/data_streams/lifecycle',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Rollover data stream
- */
-export const dataStreamsRollover = <ThrowOnError extends boolean = false>(options: Options<DataStreamsRolloverData, ThrowOnError>): RequestResult<DataStreamsRolloverResponses, DataStreamsRolloverErrors, ThrowOnError> => (options.client ?? client).post<DataStreamsRolloverResponses, DataStreamsRolloverErrors, ThrowOnError>({
-    url: '/data_streams/rollover',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List ILM policies
- */
-export const ilmPoliciesList = <ThrowOnError extends boolean = false>(options: Options<IlmPoliciesListData, ThrowOnError>): RequestResult<IlmPoliciesListResponses, IlmPoliciesListErrors, ThrowOnError> => (options.client ?? client).post<IlmPoliciesListResponses, IlmPoliciesListErrors, ThrowOnError>({
-    url: '/ilm/policies',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete ILM policy
- */
-export const ilmPoliciesDelete = <ThrowOnError extends boolean = false>(options: Options<IlmPoliciesDeleteData, ThrowOnError>): RequestResult<IlmPoliciesDeleteResponses, IlmPoliciesDeleteErrors, ThrowOnError> => (options.client ?? client).post<IlmPoliciesDeleteResponses, IlmPoliciesDeleteErrors, ThrowOnError>({
-    url: '/ilm/policies/delete',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Create or update ILM policy
- */
-export const ilmPoliciesSave = <ThrowOnError extends boolean = false>(options: Options<IlmPoliciesSaveData, ThrowOnError>): RequestResult<IlmPoliciesSaveResponses, IlmPoliciesSaveErrors, ThrowOnError> => (options.client ?? client).post<IlmPoliciesSaveResponses, IlmPoliciesSaveErrors, ThrowOnError>({
-    url: '/ilm/policies/save',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get index settings (flat)
- *
- * Returns the index settings in flat format, including defaults.
- */
-export const indexSettingsGet = <ThrowOnError extends boolean = false>(options: Options<IndexSettingsGetData, ThrowOnError>): RequestResult<IndexSettingsGetResponses, IndexSettingsGetErrors, ThrowOnError> => (options.client ?? client).post<IndexSettingsGetResponses, IndexSettingsGetErrors, ThrowOnError>({
-    url: '/index_settings',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Update index settings
- */
-export const indexSettingsUpdate = <ThrowOnError extends boolean = false>(options: Options<IndexSettingsUpdateData, ThrowOnError>): RequestResult<IndexSettingsUpdateResponses, IndexSettingsUpdateErrors, ThrowOnError> => (options.client ?? client).post<IndexSettingsUpdateResponses, IndexSettingsUpdateErrors, ThrowOnError>({
-    url: '/index_settings/update',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get navbar data
- *
- * Returns the cluster health document (verbatim from _cluster/health), extended with a "username" field when authentication is enabled.
- */
-export const navbar = <ThrowOnError extends boolean = false>(options: Options<NavbarData, ThrowOnError>): RequestResult<NavbarResponses, NavbarErrors, ThrowOnError> => (options.client ?? client).post<NavbarResponses, NavbarErrors, ThrowOnError>({
-    url: '/navbar',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List cluster nodes
- *
- * Returns one entry per node with roles, heap, disk, CPU and uptime information.
- */
-export const nodes = <ThrowOnError extends boolean = false>(options: Options<NodesData, ThrowOnError>): RequestResult<NodesResponses, NodesErrors, ThrowOnError> => (options.client ?? client).post<NodesResponses, NodesErrors, ThrowOnError>({
-    url: '/nodes',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get cluster overview
- *
- * Returns the cluster dashboard payload: health, indices with shard routing, and nodes.
- */
-export const overview = <ThrowOnError extends boolean = false>(options: Options<OverviewData, ThrowOnError>): RequestResult<OverviewResponses, OverviewErrors, ThrowOnError> => (options.client ?? client).post<OverviewResponses, OverviewErrors, ThrowOnError>({
-    url: '/overview',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Clear indices cache
- */
-export const overviewClearIndicesCache = <ThrowOnError extends boolean = false>(options: Options<OverviewClearIndicesCacheData, ThrowOnError>): RequestResult<OverviewClearIndicesCacheResponses, OverviewClearIndicesCacheErrors, ThrowOnError> => (options.client ?? client).post<OverviewClearIndicesCacheResponses, OverviewClearIndicesCacheErrors, ThrowOnError>({
-    url: '/overview/clear_indices_cache',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Close indices
- */
-export const overviewCloseIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewCloseIndicesData, ThrowOnError>): RequestResult<OverviewCloseIndicesResponses, OverviewCloseIndicesErrors, ThrowOnError> => (options.client ?? client).post<OverviewCloseIndicesResponses, OverviewCloseIndicesErrors, ThrowOnError>({
-    url: '/overview/close_indices',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete indices
- */
-export const overviewDeleteIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewDeleteIndicesData, ThrowOnError>): RequestResult<OverviewDeleteIndicesResponses, OverviewDeleteIndicesErrors, ThrowOnError> => (options.client ?? client).post<OverviewDeleteIndicesResponses, OverviewDeleteIndicesErrors, ThrowOnError>({
-    url: '/overview/delete_indices',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Disable shard allocation
- */
-export const overviewDisableShardAllocation = <ThrowOnError extends boolean = false>(options: Options<OverviewDisableShardAllocationData, ThrowOnError>): RequestResult<OverviewDisableShardAllocationResponses, OverviewDisableShardAllocationErrors, ThrowOnError> => (options.client ?? client).post<OverviewDisableShardAllocationResponses, OverviewDisableShardAllocationErrors, ThrowOnError>({
-    url: '/overview/disable_shard_allocation',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Enable shard allocation
- */
-export const overviewEnableShardAllocation = <ThrowOnError extends boolean = false>(options: Options<OverviewEnableShardAllocationData, ThrowOnError>): RequestResult<OverviewEnableShardAllocationResponses, OverviewEnableShardAllocationErrors, ThrowOnError> => (options.client ?? client).post<OverviewEnableShardAllocationResponses, OverviewEnableShardAllocationErrors, ThrowOnError>({
-    url: '/overview/enable_shard_allocation',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Flush indices
- */
-export const overviewFlushIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewFlushIndicesData, ThrowOnError>): RequestResult<OverviewFlushIndicesResponses, OverviewFlushIndicesErrors, ThrowOnError> => (options.client ?? client).post<OverviewFlushIndicesResponses, OverviewFlushIndicesErrors, ThrowOnError>({
-    url: '/overview/flush_indices',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Force merge indices
- */
-export const overviewForceMerge = <ThrowOnError extends boolean = false>(options: Options<OverviewForceMergeData, ThrowOnError>): RequestResult<OverviewForceMergeResponses, OverviewForceMergeErrors, ThrowOnError> => (options.client ?? client).post<OverviewForceMergeResponses, OverviewForceMergeErrors, ThrowOnError>({
-    url: '/overview/force_merge',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get shard stats
- *
- * Returns stats (or recovery info) for one shard of an index on a given node.
- */
-export const overviewShardStats = <ThrowOnError extends boolean = false>(options: Options<OverviewShardStatsData, ThrowOnError>): RequestResult<OverviewShardStatsResponses, OverviewShardStatsErrors, ThrowOnError> => (options.client ?? client).post<OverviewShardStatsResponses, OverviewShardStatsErrors, ThrowOnError>({
-    url: '/overview/get_shard_stats',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Open indices
- */
-export const overviewOpenIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewOpenIndicesData, ThrowOnError>): RequestResult<OverviewOpenIndicesResponses, OverviewOpenIndicesErrors, ThrowOnError> => (options.client ?? client).post<OverviewOpenIndicesResponses, OverviewOpenIndicesErrors, ThrowOnError>({
-    url: '/overview/open_indices',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Refresh indices
- */
-export const overviewRefreshIndices = <ThrowOnError extends boolean = false>(options: Options<OverviewRefreshIndicesData, ThrowOnError>): RequestResult<OverviewRefreshIndicesResponses, OverviewRefreshIndicesErrors, ThrowOnError> => (options.client ?? client).post<OverviewRefreshIndicesResponses, OverviewRefreshIndicesErrors, ThrowOnError>({
-    url: '/overview/refresh_indices',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Relocate a shard
- */
-export const overviewRelocateShard = <ThrowOnError extends boolean = false>(options: Options<OverviewRelocateShardData, ThrowOnError>): RequestResult<OverviewRelocateShardResponses, OverviewRelocateShardErrors, ThrowOnError> => (options.client ?? client).post<OverviewRelocateShardResponses, OverviewRelocateShardErrors, ThrowOnError>({
-    url: '/overview/relocate_shard',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List snapshot repositories
- */
-export const repositoriesList = <ThrowOnError extends boolean = false>(options: Options<RepositoriesListData, ThrowOnError>): RequestResult<RepositoriesListResponses, RepositoriesListErrors, ThrowOnError> => (options.client ?? client).post<RepositoriesListResponses, RepositoriesListErrors, ThrowOnError>({
-    url: '/repositories',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Create a snapshot repository
- */
-export const repositoriesCreate = <ThrowOnError extends boolean = false>(options: Options<RepositoriesCreateData, ThrowOnError>): RequestResult<RepositoriesCreateResponses, RepositoriesCreateErrors, ThrowOnError> => (options.client ?? client).post<RepositoriesCreateResponses, RepositoriesCreateErrors, ThrowOnError>({
-    url: '/repositories/create',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete a snapshot repository
- */
-export const repositoriesDelete = <ThrowOnError extends boolean = false>(options: Options<RepositoriesDeleteData, ThrowOnError>): RequestResult<RepositoriesDeleteResponses, RepositoriesDeleteErrors, ThrowOnError> => (options.client ?? client).post<RepositoriesDeleteResponses, RepositoriesDeleteErrors, ThrowOnError>({
-    url: '/repositories/delete',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const restIndex = <ThrowOnError extends boolean = false>(options: Options<RestIndexData, ThrowOnError>): RequestResult<RestIndexResponses, RestIndexErrors, ThrowOnError> => (options.client ?? client).post<RestIndexResponses, RestIndexErrors, ThrowOnError>({
-    url: '/rest',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const restHistory = <ThrowOnError extends boolean = false>(options: Options<RestHistoryData, ThrowOnError>): RequestResult<RestHistoryResponses, RestHistoryErrors, ThrowOnError> => (options.client ?? client).post<RestHistoryResponses, RestHistoryErrors, ThrowOnError>({
-    url: '/rest/history',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const restRequest = <ThrowOnError extends boolean = false>(options: Options<RestRequestData, ThrowOnError>): RequestResult<RestRequestResponses, RestRequestErrors, ThrowOnError> => (options.client ?? client).post<RestRequestResponses, RestRequestErrors, ThrowOnError>({
-    url: '/rest/request',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const snapshotsGet = <ThrowOnError extends boolean = false>(options: Options<SnapshotsGetData, ThrowOnError>): RequestResult<SnapshotsGetResponses, SnapshotsGetErrors, ThrowOnError> => (options.client ?? client).post<SnapshotsGetResponses, SnapshotsGetErrors, ThrowOnError>({
-    url: '/snapshots',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const snapshotsCreate = <ThrowOnError extends boolean = false>(options: Options<SnapshotsCreateData, ThrowOnError>): RequestResult<SnapshotsCreateResponses, SnapshotsCreateErrors, ThrowOnError> => (options.client ?? client).post<SnapshotsCreateResponses, SnapshotsCreateErrors, ThrowOnError>({
-    url: '/snapshots/create',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const snapshotsDelete = <ThrowOnError extends boolean = false>(options: Options<SnapshotsDeleteData, ThrowOnError>): RequestResult<SnapshotsDeleteResponses, SnapshotsDeleteErrors, ThrowOnError> => (options.client ?? client).post<SnapshotsDeleteResponses, SnapshotsDeleteErrors, ThrowOnError>({
-    url: '/snapshots/delete',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const snapshotsLoad = <ThrowOnError extends boolean = false>(options: Options<SnapshotsLoadData, ThrowOnError>): RequestResult<SnapshotsLoadResponses, SnapshotsLoadErrors, ThrowOnError> => (options.client ?? client).post<SnapshotsLoadResponses, SnapshotsLoadErrors, ThrowOnError>({
-    url: '/snapshots/load',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const snapshotsRestore = <ThrowOnError extends boolean = false>(options: Options<SnapshotsRestoreData, ThrowOnError>): RequestResult<SnapshotsRestoreResponses, SnapshotsRestoreErrors, ThrowOnError> => (options.client ?? client).post<SnapshotsRestoreResponses, SnapshotsRestoreErrors, ThrowOnError>({
-    url: '/snapshots/restore',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const templatesList = <ThrowOnError extends boolean = false>(options: Options<TemplatesListData, ThrowOnError>): RequestResult<TemplatesListResponses, TemplatesListErrors, ThrowOnError> => (options.client ?? client).post<TemplatesListResponses, TemplatesListErrors, ThrowOnError>({
-    url: '/templates',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const templatesCreate = <ThrowOnError extends boolean = false>(options: Options<TemplatesCreateData, ThrowOnError>): RequestResult<TemplatesCreateResponses, TemplatesCreateErrors, ThrowOnError> => (options.client ?? client).post<TemplatesCreateResponses, TemplatesCreateErrors, ThrowOnError>({
-    url: '/templates/create',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-export const templatesDelete = <ThrowOnError extends boolean = false>(options: Options<TemplatesDeleteData, ThrowOnError>): RequestResult<TemplatesDeleteResponses, TemplatesDeleteErrors, ThrowOnError> => (options.client ?? client).post<TemplatesDeleteResponses, TemplatesDeleteErrors, ThrowOnError>({
-    url: '/templates/delete',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});

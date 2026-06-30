@@ -3,12 +3,14 @@ import { Link } from '@tanstack/react-router';
 import { useStore } from '@tanstack/react-store';
 
 import { clusterSettingsGet, clusterSettingsSave, type HostBodyWritable } from '../api/client';
+import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
 import { SettingsPageLayout } from '../components/SettingsPageLayout';
 import { SettingValueInput } from '../components/SettingValueInput';
 import { isDynamicSetting, normalizeSettingValue, settingInput, settingSuggestions, type SettingInput } from '../settingsCatalog';
 import { clusterSettingsActions, clusterSettingsStore } from '../stores/clusterSettingsStore';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 
 type Setting = { input: SettingInput; name: string; static: boolean };
@@ -34,7 +36,7 @@ export function ClusterSettingsPage({
 
   async function load() {
     try {
-      const result = await clusterSettingsGet<true>({ body: connection, throwOnError: true });
+      const result = await clusterSettingsGet<true>({ path: clusterPath(connection), throwOnError: true });
       const flat = flattenSettings(result.data.data, majorVersion);
       clusterSettingsActions.applyLoaded(hostKey, flat);
     } catch (error) {
@@ -48,7 +50,7 @@ export function ClusterSettingsPage({
       body[change.transient ? 'transient' : 'persistent'][setting] = change.value.length > 0 ? change.value : null;
     });
     try {
-      await clusterSettingsSave<true>({ body: { ...connection, settings: body }, throwOnError: true });
+      await clusterSettingsSave<true>({ body, path: clusterPath(connection), throwOnError: true });
       notify('info', 'Settings successfully saved');
       clusterSettingsActions.clearChanges();
       await load();
@@ -106,7 +108,7 @@ export function ClusterSettingsPage({
           </div>
         </div>
       ))}
-      pendingFooter={<button className="btn btn-success" type="button" onClick={() => void save()}>save</button>}
+      pendingFooter={<Button icon="save" variant="success" onClick={() => void save()}>save</Button>}
       renderSetting={(setting) => (
         <div className="grid gap-2 px-3 py-2 lg:grid-cols-[minmax(260px,42%)_minmax(220px,1fr)] lg:items-center" key={setting.name}>
           <label className="mb-0 min-w-0 font-normal text-[#d0d0d0]">

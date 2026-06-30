@@ -13,29 +13,25 @@ import (
 )
 
 type SnapshotsGetIn struct {
-	Body HostBody
+	ClusterPath
 }
 
 type SnapshotsLoadIn struct {
-	Body struct {
-		HostBody
-		Repository string `json:"repository" required:"true"`
-	}
+	ClusterPath
+	Repository string `path:"repository" doc:"Repository name."`
 }
 
 type SnapshotsDeleteIn struct {
-	Body struct {
-		HostBody
-		Repository string `json:"repository" required:"true"`
-		Snapshot   string `json:"snapshot" required:"true"`
-	}
+	ClusterPath
+	Repository string `path:"repository" doc:"Repository name."`
+	Snapshot   string `path:"snapshot" doc:"Snapshot name."`
 }
 
 type SnapshotsCreateIn struct {
-	Body struct {
-		HostBody
-		Repository         string   `json:"repository" required:"true"`
-		Snapshot           string   `json:"snapshot" required:"true"`
+	ClusterPath
+	Repository string `path:"repository" doc:"Repository name."`
+	Snapshot   string `path:"snapshot" doc:"Snapshot name."`
+	Body       struct {
 		Indices            []string `json:"indices,omitempty"`
 		IgnoreUnavailable  bool     `json:"ignoreUnavailable"`
 		IncludeGlobalState bool     `json:"includeGlobalState"`
@@ -43,10 +39,10 @@ type SnapshotsCreateIn struct {
 }
 
 type SnapshotsRestoreIn struct {
-	Body struct {
-		HostBody
-		Repository         string   `json:"repository" required:"true"`
-		Snapshot           string   `json:"snapshot" required:"true"`
+	ClusterPath
+	Repository string `path:"repository" doc:"Repository name."`
+	Snapshot   string `path:"snapshot" doc:"Snapshot name."`
+	Body       struct {
 		RenamePattern      string   `json:"renamePattern,omitempty"`
 		RenameReplacement  string   `json:"renameReplacement,omitempty"`
 		IgnoreUnavailable  bool     `json:"ignoreUnavailable"`
@@ -59,11 +55,11 @@ type SnapshotsRestoreIn struct {
 func (d *Deps) RegisterSnapshots(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "snapshots-get",
-		Method:      http.MethodPost,
+		Method:      http.MethodGet,
 		Path:        "/snapshots",
 		Tags:        []string{"snapshots"},
 	}, func(ctx context.Context, in *SnapshotsGetIn) (*RawOutput, error) {
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[RawResponse](400, err.Error())
 		}
@@ -92,32 +88,32 @@ func (d *Deps) RegisterSnapshots(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "snapshots-load",
-		Method:      http.MethodPost,
-		Path:        "/snapshots/load",
+		Method:      http.MethodGet,
+		Path:        "/snapshots/{repository}",
 		Tags:        []string{"snapshots"},
 	}, func(ctx context.Context, in *SnapshotsLoadIn) (*RawOutput, error) {
-		return transformRawResp(ctx, d, in.Body.HostBody,
+		return transformRawResp(ctx, d,
 			func(c context.Context, t elastic.Server) (elastic.Response, error) {
-				return d.Client.GetSnapshots(c, in.Body.Repository, t)
+				return d.Client.GetSnapshots(c, in.Repository, t)
 			},
 			transform.SnapshotsList)
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "snapshots-delete",
-		Method:      http.MethodPost,
-		Path:        "/snapshots/delete",
+		Method:      http.MethodDelete,
+		Path:        "/snapshots/{repository}/{snapshot}",
 		Tags:        []string{"snapshots"},
 	}, func(ctx context.Context, in *SnapshotsDeleteIn) (*RawOutput, error) {
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
-			return d.Client.DeleteSnapshot(c, in.Body.Repository, in.Body.Snapshot, t)
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+			return d.Client.DeleteSnapshot(c, in.Repository, in.Snapshot, t)
 		})
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "snapshots-create",
-		Method:      http.MethodPost,
-		Path:        "/snapshots/create",
+		Method:      http.MethodPut,
+		Path:        "/snapshots/{repository}/{snapshot}",
 		Tags:        []string{"snapshots"},
 	}, func(ctx context.Context, in *SnapshotsCreateIn) (*RawOutput, error) {
 		var indices *string
@@ -125,15 +121,15 @@ func (d *Deps) RegisterSnapshots(api huma.API) {
 			joined := strings.Join(in.Body.Indices, ",")
 			indices = &joined
 		}
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
-			return d.Client.CreateSnapshot(c, in.Body.Repository, in.Body.Snapshot, in.Body.IgnoreUnavailable, in.Body.IncludeGlobalState, indices, t)
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+			return d.Client.CreateSnapshot(c, in.Repository, in.Snapshot, in.Body.IgnoreUnavailable, in.Body.IncludeGlobalState, indices, t)
 		})
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "snapshots-restore",
 		Method:      http.MethodPost,
-		Path:        "/snapshots/restore",
+		Path:        "/snapshots/{repository}/{snapshot}/restore",
 		Tags:        []string{"snapshots"},
 	}, func(ctx context.Context, in *SnapshotsRestoreIn) (*RawOutput, error) {
 		var indices *string
@@ -148,8 +144,8 @@ func (d *Deps) RegisterSnapshots(api huma.API) {
 		if in.Body.RenameReplacement != "" {
 			rr = &in.Body.RenameReplacement
 		}
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
-			return d.Client.RestoreSnapshot(c, in.Body.Repository, in.Body.Snapshot, rp, rr,
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+			return d.Client.RestoreSnapshot(c, in.Repository, in.Snapshot, rp, rr,
 				in.Body.IgnoreUnavailable, in.Body.IncludeAliases, in.Body.IncludeGlobalState, indices, t)
 		})
 	})

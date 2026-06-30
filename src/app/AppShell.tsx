@@ -4,10 +4,11 @@ import { useStore } from '@tanstack/react-store';
 
 import { Alerts } from '../components/Alerts';
 import { Navbar } from '../components/Navbar';
-import { navbar } from '../api/client';
+import { connectHosts, navbar } from '../api/client';
 import { alertsStore } from '../stores/alertsStore';
 import { refreshActions, refreshStore } from '../stores/refreshStore';
 import { getConnection, sessionActions, sessionStore, type ClusterHealthIssue } from '../stores/sessionStore';
+import { clusterPath } from '../utils/connection';
 import { textValue } from '../utils/format';
 
 export function AppShell() {
@@ -15,6 +16,7 @@ export function AppShell() {
   const connected = useStore(sessionStore, (state) => state.connected);
   const healthIssue = useStore(sessionStore, (state) => state.healthIssue);
   const host = useStore(sessionStore, (state) => state.host);
+  const hostName = useStore(sessionStore, (state) => state.hostName);
   const status = useStore(sessionStore, (state) => state.status);
   const refreshInterval = useStore(refreshStore, (state) => state.interval);
   const refreshTick = useStore(refreshStore, (state) => state.tick);
@@ -32,10 +34,29 @@ export function AppShell() {
 
   useEffect(() => {
     if (!connected || !host) return;
+    if (hostName && hostName !== host) return;
+    let ignore = false;
+    async function loadHostName() {
+      try {
+        const result = await connectHosts<true>({ throwOnError: true });
+        const match = result.data.items?.find((item) => item.slug === host);
+        if (!ignore && match) sessionActions.setHostName(match.name);
+      } catch {
+        // Keep the slug as a fallback display value.
+      }
+    }
+    void loadHostName();
+    return () => {
+      ignore = true;
+    };
+  }, [connected, host, hostName]);
+
+  useEffect(() => {
+    if (!connected || !host) return;
     let ignore = false;
     async function loadStatus() {
       try {
-        const result = await navbar<true>({ body: getConnection(), throwOnError: true });
+        const result = await navbar<true>({ path: clusterPath(getConnection()), throwOnError: true });
         if (!ignore) {
           const data = result.data.data as
             | { features?: { data_explorer?: unknown }; health_issue?: unknown; status?: unknown; version?: { number?: unknown } }
@@ -72,7 +93,7 @@ export function AppShell() {
         connection={getConnection()}
         disconnect={disconnect}
         healthIssue={healthIssue}
-        host={host}
+        host={hostName || host}
         onHealthFixed={refreshActions.tick}
         refreshInterval={refreshInterval}
         setRefreshInterval={refreshActions.setInterval}

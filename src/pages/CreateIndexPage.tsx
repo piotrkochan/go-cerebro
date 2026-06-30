@@ -13,6 +13,7 @@ import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { SplitPane } from '../components/SplitPane';
 import { createIndexFormDefaults, type CreateIndexFormValues } from '../forms/createIndexForm';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, formatJson } from '../utils/format';
 
 export function CreateIndexPage({
@@ -37,7 +38,7 @@ export function CreateIndexPage({
 
     async function load() {
       try {
-        const result = await commonsIndices<true>({ body: connection, throwOnError: true });
+        const result = await commonsIndices<true>({ path: clusterPath(connection), throwOnError: true });
         if (!ignore) setIndices((result.data.items ?? []).sort((left, right) => left.localeCompare(right)));
       } catch (error) {
         notify('danger', errorMessage(error));
@@ -56,7 +57,7 @@ export function CreateIndexPage({
 
     try {
       const result = await createIndexGetMetadata<true>({
-        body: { ...connection, index },
+        path: { ...clusterPath(connection), index },
         throwOnError: true,
       });
       form.setFieldValue('settings', formatJson({ settings: result.data.settings, mappings: result.data.mappings }));
@@ -88,7 +89,8 @@ export function CreateIndexPage({
 
     try {
       await createIndexCreate<true>({
-        body: { ...connection, index: values.name.trim(), metadata },
+        body: metadata,
+        path: { ...clusterPath(connection), index: values.name.trim() },
         throwOnError: true,
       });
       notify('success', 'Index successfully created');

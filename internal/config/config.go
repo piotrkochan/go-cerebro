@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"gopkg.in/yaml.v3"
 )
@@ -25,6 +26,11 @@ type Host struct {
 	Host             string   `yaml:"host"`
 	Auth             *ESAuth  `yaml:"auth,omitempty"`
 	HeadersWhitelist []string `yaml:"headers_whitelist,omitempty"`
+}
+
+type HostRef struct {
+	Name string `json:"name"`
+	Slug string `json:"slug"`
 }
 
 type GroupSearch struct {
@@ -263,10 +269,62 @@ func (c *Config) HostByName(name string) (Host, bool) {
 	return Host{}, false
 }
 
+func (c *Config) HostBySlug(slug string) (Host, bool) {
+	for i, ref := range c.HostRefs() {
+		if ref.Slug == slug {
+			return c.Hosts[i], true
+		}
+	}
+	return Host{}, false
+}
+
 func (c *Config) HostNames() []string {
 	names := make([]string, 0, len(c.Hosts))
 	for _, h := range c.Hosts {
 		names = append(names, h.Name)
 	}
 	return names
+}
+
+func (c *Config) HostRefs() []HostRef {
+	refs := make([]HostRef, 0, len(c.Hosts))
+	seen := map[string]int{}
+	for _, h := range c.Hosts {
+		base := HostSlug(h.Name)
+		seen[base]++
+		slug := base
+		if seen[base] > 1 {
+			slug = fmt.Sprintf("%s-%d", base, seen[base])
+		}
+		refs = append(refs, HostRef{Name: h.Name, Slug: slug})
+	}
+	return refs
+}
+
+func HostSlug(name string) string {
+	var b strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(strings.TrimSpace(name)) {
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			if dash && b.Len() > 0 {
+				b.WriteByte('-')
+			}
+			b.WriteRune(r)
+			dash = false
+			continue
+		}
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			if dash && b.Len() > 0 {
+				b.WriteByte('-')
+			}
+			b.WriteRune(r)
+			dash = false
+			continue
+		}
+		dash = b.Len() > 0
+	}
+	if b.Len() == 0 {
+		return "cluster"
+	}
+	return b.String()
 }

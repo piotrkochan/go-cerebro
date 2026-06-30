@@ -36,18 +36,6 @@ export type AliasesUpdateInBody = {
      * Alias actions in Elasticsearch _aliases format, e.g. {"add": {...}} / {"remove": {...}}.
      */
     changes?: Array<unknown> | null;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type AnalysisAnalyzerInBody = {
@@ -60,25 +48,9 @@ export type AnalysisAnalyzerInBody = {
      */
     analyzer: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
      * Text to analyze.
      */
     text: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type AnalysisFieldInBody = {
@@ -91,71 +63,9 @@ export type AnalysisFieldInBody = {
      */
     field: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
      * Text to analyze.
      */
     text: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type AnalysisIndexInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CatInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the _cat API to call, e.g. "indices", "shards", "allocation".
-     */
-    api: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type Changes = {
@@ -175,125 +85,6 @@ export type Changes = {
      * Distinct node names.
      */
     nodes: Array<unknown> | null;
-};
-
-export type ClusterSettingsSaveInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Cluster settings document to PUT to _cluster/settings.
-     */
-    settings: unknown;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CommonsIndexInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CommonsNodeInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Node name or id.
-     */
-    node: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CreateIndexCreateInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Name of the index to create.
-     */
-    index: string;
-    /**
-     * Index creation body (settings, mappings, aliases). Defaults to {}.
-     */
-    metadata?: unknown;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CreateIndexGetMetaInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index to copy mappings/settings from.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type DataExplorerResult = {
@@ -327,25 +118,9 @@ export type DataExplorerSaveInBody = {
      */
     document: unknown;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
      * Optional document id. Empty creates a new document id.
      */
     id?: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type DataExplorerSearchInBody = {
@@ -354,21 +129,9 @@ export type DataExplorerSearchInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
      * Zero-based page number.
      */
     page?: number;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
     /**
      * Optional simple query string.
      */
@@ -389,13 +152,13 @@ export type DataExplorerSearchInBody = {
      * Sort direction.
      */
     sort_order?: 'asc' | 'desc';
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type DataStream = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
     backing_indices: Array<DataStreamBackingIndex> | null;
     backing_indices_count: number;
     generation: number;
@@ -420,18 +183,6 @@ export type DataStreamAttachIlmInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Data stream name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
      * ILM policy name.
      */
     policy: string;
@@ -443,10 +194,6 @@ export type DataStreamAttachIlmInBody = {
      * Whether existing backing indices should get index.lifecycle.name.
      */
     update_backing_indices: boolean;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type DataStreamAttachIlmResult = {
@@ -479,33 +226,6 @@ export type DataStreamBackingIndex = {
     write_index: boolean;
 };
 
-export type DataStreamDetachIlmInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Data stream name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Whether existing backing indices should have index.lifecycle.name removed.
-     */
-    update_backing_indices: boolean;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
 export type DataStreamDetachIlmResult = {
     /**
      * A URL to the JSON Schema for this object.
@@ -523,48 +243,9 @@ export type DataStreamLifecycleInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
      * Data stream lifecycle body.
      */
     lifecycle: unknown;
-    /**
-     * Data stream name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type DataStreamNameInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Data stream name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type DataStreamsResult = {
@@ -637,14 +318,11 @@ export type HostBody = {
      * Name of the target Elasticsearch host as configured.
      */
     host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
+};
+
+export type HostRef = {
+    name: string;
+    slug: string;
 };
 
 export type IlmPolicy = {
@@ -662,104 +340,15 @@ export type IlmPolicyInUseBy = {
     indices: Array<string> | null;
 };
 
-export type IlmPolicyNameInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * ILM policy name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
 export type IlmPolicySaveInBody = {
     /**
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * ILM policy name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
      * ILM policy body.
      */
     policy: unknown;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type IndexSettingsGetInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type IndexSettingsUpdateInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Settings document to PUT to the index _settings.
-     */
-    settings: unknown;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type ListAlias = {
@@ -771,6 +360,17 @@ export type ListAlias = {
      * Collection items.
      */
     items: Array<Alias> | null;
+};
+
+export type ListHostRef = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Collection items.
+     */
+    items: Array<HostRef> | null;
 };
 
 export type ListIlmPolicy = {
@@ -817,7 +417,7 @@ export type ListString = {
     items: Array<string> | null;
 };
 
-export type ListTemplate = {
+export type ListTemplateSummary = {
     /**
      * A URL to the JSON Schema for this object.
      */
@@ -825,7 +425,7 @@ export type ListTemplate = {
     /**
      * Collection items.
      */
-    items: Array<Template> | null;
+    items: Array<TemplateSummary> | null;
 };
 
 export type Metadata = {
@@ -1057,29 +657,6 @@ export type OverviewIndex = {
     unhealthy: boolean;
 };
 
-export type OverviewIndicesInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Comma-separated index names.
-     */
-    indices: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
 export type OverviewNode = {
     /**
      * Custom node attributes (internal ES attributes filtered out).
@@ -1142,29 +719,9 @@ export type OverviewRelocateInBody = {
      */
     from: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Shard number.
-     */
-    shard: number;
-    /**
      * Destination node.
      */
     to: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type OverviewShardKindInBody = {
@@ -1173,52 +730,9 @@ export type OverviewShardKindInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
      * Allocation kind to keep enabled, e.g. "primaries" or "none".
      */
     kind: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type OverviewShardStatsInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Node id the shard is allocated on.
-     */
-    node: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Shard number.
-     */
-    shard: number;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type RawResponse = {
@@ -1238,18 +752,6 @@ export type RepositoriesCreateInBody = {
      */
     readonly $schema?: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Repository name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
      * Repository settings, type-specific.
      */
     settings: unknown;
@@ -1257,33 +759,6 @@ export type RepositoriesCreateInBody = {
      * Repository type (fs, s3, url, ...).
      */
     type: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type RepositoriesDeleteInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Repository name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type Repository = {
@@ -1307,20 +782,8 @@ export type RestRequestInBody = {
      */
     readonly $schema?: string;
     data?: unknown;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
     method: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
     path: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type RestRequestResponse = {
@@ -1343,64 +806,9 @@ export type SnapshotsCreateInBody = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
     ignoreUnavailable: boolean;
     includeGlobalState: boolean;
     indices?: Array<string> | null;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    repository: string;
-    snapshot: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type SnapshotsDeleteInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    repository: string;
-    snapshot: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type SnapshotsLoadInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    repository: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type SnapshotsRestoreInBody = {
@@ -1408,29 +816,23 @@ export type SnapshotsRestoreInBody = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
     ignoreUnavailable: boolean;
     includeAliases: boolean;
     includeGlobalState: boolean;
     indices?: Array<string> | null;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
     renamePattern?: string;
     renameReplacement?: string;
-    repository: string;
-    snapshot: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type Template = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Template kind: index, component, or legacy.
+     */
+    kind: string;
     /**
      * Template name.
      */
@@ -1441,45 +843,23 @@ export type Template = {
     template: unknown;
 };
 
-export type TemplatesCreateInBody = {
+export type TemplateSummary = {
     /**
-     * A URL to the JSON Schema for this object.
+     * Template kind: index, component, or legacy.
      */
-    readonly $schema?: string;
+    kind: string;
     /**
-     * Name of the target Elasticsearch host as configured.
+     * Whether the template appears to be managed by Elasticsearch or an integration.
      */
-    host: string;
+    managed: boolean;
+    /**
+     * Template name.
+     */
     name: string;
     /**
-     * Optional per-request basic auth password override.
+     * Template index pattern, when applicable.
      */
-    password?: string;
-    template: unknown;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type TemplatesDeleteInBody = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
+    pattern?: string;
 };
 
 export type AliasesUpdateInBodyWritable = {
@@ -1487,18 +867,6 @@ export type AliasesUpdateInBodyWritable = {
      * Alias actions in Elasticsearch _aliases format, e.g. {"add": {...}} / {"remove": {...}}.
      */
     changes?: Array<unknown> | null;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type AnalysisAnalyzerInBodyWritable = {
@@ -1507,25 +875,9 @@ export type AnalysisAnalyzerInBodyWritable = {
      */
     analyzer: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
      * Text to analyze.
      */
     text: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type AnalysisFieldInBodyWritable = {
@@ -1534,63 +886,9 @@ export type AnalysisFieldInBodyWritable = {
      */
     field: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
      * Text to analyze.
      */
     text: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type AnalysisIndexInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CatInBodyWritable = {
-    /**
-     * Name of the _cat API to call, e.g. "indices", "shards", "allocation".
-     */
-    api: string;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type ChangesWritable = {
@@ -1606,105 +904,6 @@ export type ChangesWritable = {
      * Distinct node names.
      */
     nodes: Array<unknown> | null;
-};
-
-export type ClusterSettingsSaveInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Cluster settings document to PUT to _cluster/settings.
-     */
-    settings: unknown;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CommonsIndexInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CommonsNodeInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Node name or id.
-     */
-    node: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CreateIndexCreateInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Name of the index to create.
-     */
-    index: string;
-    /**
-     * Index creation body (settings, mappings, aliases). Defaults to {}.
-     */
-    metadata?: unknown;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type CreateIndexGetMetaInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index to copy mappings/settings from.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type DataExplorerResultWritable = {
@@ -1730,44 +929,16 @@ export type DataExplorerSaveInBodyWritable = {
      */
     document: unknown;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
      * Optional document id. Empty creates a new document id.
      */
     id?: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type DataExplorerSearchInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
      * Zero-based page number.
      */
     page?: number;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
     /**
      * Optional simple query string.
      */
@@ -1788,25 +959,28 @@ export type DataExplorerSearchInBodyWritable = {
      * Sort direction.
      */
     sort_order?: 'asc' | 'desc';
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
+};
+
+export type DataStreamWritable = {
+    backing_indices: Array<DataStreamBackingIndex> | null;
+    backing_indices_count: number;
+    generation: number;
+    hidden: boolean;
+    lifecycle?: unknown;
+    managed_by?: string;
+    maximum_timestamp?: unknown;
+    name: string;
+    next_generation_managed_by?: string;
+    prefer_ilm: boolean;
+    rollover_on_write: boolean;
+    status?: string;
+    store_size_bytes: number;
+    system: boolean;
+    template?: string;
+    timestamp_field?: string;
 };
 
 export type DataStreamAttachIlmInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Data stream name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
     /**
      * ILM policy name.
      */
@@ -1819,10 +993,6 @@ export type DataStreamAttachIlmInBodyWritable = {
      * Whether existing backing indices should get index.lifecycle.name.
      */
     update_backing_indices: boolean;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type DataStreamAttachIlmResultWritable = {
@@ -1834,29 +1004,6 @@ export type DataStreamAttachIlmResultWritable = {
     template_updated: boolean;
 };
 
-export type DataStreamDetachIlmInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Data stream name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Whether existing backing indices should have index.lifecycle.name removed.
-     */
-    update_backing_indices: boolean;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
 export type DataStreamDetachIlmResultWritable = {
     backing_indices_updated: boolean;
     data_stream: string;
@@ -1866,51 +1013,16 @@ export type DataStreamDetachIlmResultWritable = {
 
 export type DataStreamLifecycleInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
      * Data stream lifecycle body.
      */
     lifecycle: unknown;
-    /**
-     * Data stream name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type DataStreamNameInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Data stream name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type DataStreamsResultWritable = {
     /**
      * Data streams.
      */
-    items: Array<DataStream> | null;
+    items: Array<DataStreamWritable> | null;
     /**
      * Whether the target Elasticsearch supports data streams.
      */
@@ -1949,98 +1061,13 @@ export type HostBodyWritable = {
      * Name of the target Elasticsearch host as configured.
      */
     host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type IlmPolicyNameInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * ILM policy name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type IlmPolicySaveInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * ILM policy name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
      * ILM policy body.
      */
     policy: unknown;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type IndexSettingsGetInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type IndexSettingsUpdateInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Settings document to PUT to the index _settings.
-     */
-    settings: unknown;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type ListAliasWritable = {
@@ -2048,6 +1075,13 @@ export type ListAliasWritable = {
      * Collection items.
      */
     items: Array<Alias> | null;
+};
+
+export type ListHostRefWritable = {
+    /**
+     * Collection items.
+     */
+    items: Array<HostRef> | null;
 };
 
 export type ListIlmPolicyWritable = {
@@ -2078,11 +1112,11 @@ export type ListStringWritable = {
     items: Array<string> | null;
 };
 
-export type ListTemplateWritable = {
+export type ListTemplateSummaryWritable = {
     /**
      * Collection items.
      */
-    items: Array<Template> | null;
+    items: Array<TemplateSummary> | null;
 };
 
 export type MetadataWritable = {
@@ -2136,100 +1170,22 @@ export type OverviewWritable = {
     unassigned_shards: unknown;
 };
 
-export type OverviewIndicesInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Comma-separated index names.
-     */
-    indices: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
 export type OverviewRelocateInBodyWritable = {
     /**
      * Source node.
      */
     from: string;
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Shard number.
-     */
-    shard: number;
-    /**
      * Destination node.
      */
     to: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type OverviewShardKindInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
      * Allocation kind to keep enabled, e.g. "primaries" or "none".
      */
     kind: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type OverviewShardStatsInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Index name.
-     */
-    index: string;
-    /**
-     * Node id the shard is allocated on.
-     */
-    node: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Shard number.
-     */
-    shard: number;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type RawResponseWritable = {
@@ -2241,18 +1197,6 @@ export type RawResponseWritable = {
 
 export type RepositoriesCreateInBodyWritable = {
     /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Repository name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
      * Repository settings, type-specific.
      */
     settings: unknown;
@@ -2260,47 +1204,12 @@ export type RepositoriesCreateInBodyWritable = {
      * Repository type (fs, s3, url, ...).
      */
     type: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type RepositoriesDeleteInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Repository name.
-     */
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type RestRequestInBodyWritable = {
     data?: unknown;
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
     method: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
     path: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type RestRequestResponseWritable = {
@@ -2315,119 +1224,45 @@ export type RestRequestResponseWritable = {
 };
 
 export type SnapshotsCreateInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
     ignoreUnavailable: boolean;
     includeGlobalState: boolean;
     indices?: Array<string> | null;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    repository: string;
-    snapshot: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type SnapshotsDeleteInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    repository: string;
-    snapshot: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type SnapshotsLoadInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    repository: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type SnapshotsRestoreInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
     ignoreUnavailable: boolean;
     includeAliases: boolean;
     includeGlobalState: boolean;
     indices?: Array<string> | null;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
     renamePattern?: string;
     renameReplacement?: string;
-    repository: string;
-    snapshot: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
-export type TemplatesCreateInBodyWritable = {
+export type TemplateWritable = {
     /**
-     * Name of the target Elasticsearch host as configured.
+     * Template kind: index, component, or legacy.
      */
-    host: string;
+    kind: string;
+    /**
+     * Template name.
+     */
     name: string;
     /**
-     * Optional per-request basic auth password override.
+     * Raw template definition.
      */
-    password?: string;
     template: unknown;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
-};
-
-export type TemplatesDeleteInBodyWritable = {
-    /**
-     * Name of the target Elasticsearch host as configured.
-     */
-    host: string;
-    name: string;
-    /**
-     * Optional per-request basic auth password override.
-     */
-    password?: string;
-    /**
-     * Optional per-request basic auth username override.
-     */
-    username?: string;
 };
 
 export type AliasesGetData = {
-    body: HostBodyWritable;
-    path?: never;
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
     query?: never;
-    url: '/aliases/get_aliases';
+    url: '/clusters/{cluster}/aliases';
 };
 
 export type AliasesGetErrors = {
@@ -2450,9 +1285,14 @@ export type AliasesGetResponse = AliasesGetResponses[keyof AliasesGetResponses];
 
 export type AliasesUpdateData = {
     body: AliasesUpdateInBodyWritable;
-    path?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
     query?: never;
-    url: '/aliases/update_aliases';
+    url: '/clusters/{cluster}/aliases';
 };
 
 export type AliasesUpdateErrors = {
@@ -2473,111 +1313,16 @@ export type AliasesUpdateResponses = {
 
 export type AliasesUpdateResponse = AliasesUpdateResponses[keyof AliasesUpdateResponses];
 
-export type AnalysisAnalyzeAnalyzerData = {
-    body: AnalysisAnalyzerInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/analysis/analyze/analyzer';
-};
-
-export type AnalysisAnalyzeAnalyzerErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type AnalysisAnalyzeAnalyzerError = AnalysisAnalyzeAnalyzerErrors[keyof AnalysisAnalyzeAnalyzerErrors];
-
-export type AnalysisAnalyzeAnalyzerResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type AnalysisAnalyzeAnalyzerResponse = AnalysisAnalyzeAnalyzerResponses[keyof AnalysisAnalyzeAnalyzerResponses];
-
-export type AnalysisAnalyzeFieldData = {
-    body: AnalysisFieldInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/analysis/analyze/field';
-};
-
-export type AnalysisAnalyzeFieldErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type AnalysisAnalyzeFieldError = AnalysisAnalyzeFieldErrors[keyof AnalysisAnalyzeFieldErrors];
-
-export type AnalysisAnalyzeFieldResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type AnalysisAnalyzeFieldResponse = AnalysisAnalyzeFieldResponses[keyof AnalysisAnalyzeFieldResponses];
-
-export type AnalysisAnalyzersData = {
-    body: AnalysisIndexInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/analysis/analyzers';
-};
-
-export type AnalysisAnalyzersErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type AnalysisAnalyzersError = AnalysisAnalyzersErrors[keyof AnalysisAnalyzersErrors];
-
-export type AnalysisAnalyzersResponses = {
-    /**
-     * OK
-     */
-    200: ListString;
-};
-
-export type AnalysisAnalyzersResponse = AnalysisAnalyzersResponses[keyof AnalysisAnalyzersResponses];
-
-export type AnalysisFieldsData = {
-    body: AnalysisIndexInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/analysis/fields';
-};
-
-export type AnalysisFieldsErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type AnalysisFieldsError = AnalysisFieldsErrors[keyof AnalysisFieldsErrors];
-
-export type AnalysisFieldsResponses = {
-    /**
-     * OK
-     */
-    200: ListString;
-};
-
-export type AnalysisFieldsResponse = AnalysisFieldsResponses[keyof AnalysisFieldsResponses];
-
 export type AnalysisIndicesData = {
-    body: HostBodyWritable;
-    path?: never;
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
     query?: never;
-    url: '/analysis/indices';
+    url: '/clusters/{cluster}/analysis/indices';
 };
 
 export type AnalysisIndicesErrors = {
@@ -2598,11 +1343,156 @@ export type AnalysisIndicesResponses = {
 
 export type AnalysisIndicesResponse = AnalysisIndicesResponses[keyof AnalysisIndicesResponses];
 
-export type CatData = {
-    body: CatInBodyWritable;
-    path?: never;
+export type AnalysisAnalyzersData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
     query?: never;
-    url: '/cat';
+    url: '/clusters/{cluster}/analysis/indices/{index}/analyzers';
+};
+
+export type AnalysisAnalyzersErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type AnalysisAnalyzersError = AnalysisAnalyzersErrors[keyof AnalysisAnalyzersErrors];
+
+export type AnalysisAnalyzersResponses = {
+    /**
+     * OK
+     */
+    200: ListString;
+};
+
+export type AnalysisAnalyzersResponse = AnalysisAnalyzersResponses[keyof AnalysisAnalyzersResponses];
+
+export type AnalysisAnalyzeAnalyzerData = {
+    body: AnalysisAnalyzerInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/analysis/indices/{index}/analyzers/_analyze';
+};
+
+export type AnalysisAnalyzeAnalyzerErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type AnalysisAnalyzeAnalyzerError = AnalysisAnalyzeAnalyzerErrors[keyof AnalysisAnalyzeAnalyzerErrors];
+
+export type AnalysisAnalyzeAnalyzerResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type AnalysisAnalyzeAnalyzerResponse = AnalysisAnalyzeAnalyzerResponses[keyof AnalysisAnalyzeAnalyzerResponses];
+
+export type AnalysisFieldsData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/analysis/indices/{index}/fields';
+};
+
+export type AnalysisFieldsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type AnalysisFieldsError = AnalysisFieldsErrors[keyof AnalysisFieldsErrors];
+
+export type AnalysisFieldsResponses = {
+    /**
+     * OK
+     */
+    200: ListString;
+};
+
+export type AnalysisFieldsResponse = AnalysisFieldsResponses[keyof AnalysisFieldsResponses];
+
+export type AnalysisAnalyzeFieldData = {
+    body: AnalysisFieldInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/analysis/indices/{index}/fields/_analyze';
+};
+
+export type AnalysisAnalyzeFieldErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type AnalysisAnalyzeFieldError = AnalysisAnalyzeFieldErrors[keyof AnalysisAnalyzeFieldErrors];
+
+export type AnalysisAnalyzeFieldResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type AnalysisAnalyzeFieldResponse = AnalysisAnalyzeFieldResponses[keyof AnalysisAnalyzeFieldResponses];
+
+export type CatData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Name of the _cat API to call, e.g. "indices", "shards", "allocation".
+         */
+        api: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/cat/{api}';
 };
 
 export type CatErrors = {
@@ -2624,10 +1514,15 @@ export type CatResponses = {
 export type CatResponse = CatResponses[keyof CatResponses];
 
 export type ClusterChangesData = {
-    body: HostBodyWritable;
-    path?: never;
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
     query?: never;
-    url: '/cluster_changes';
+    url: '/clusters/{cluster}/cluster_changes';
 };
 
 export type ClusterChangesErrors = {
@@ -2649,10 +1544,15 @@ export type ClusterChangesResponses = {
 export type ClusterChangesResponse = ClusterChangesResponses[keyof ClusterChangesResponses];
 
 export type ClusterSettingsGetData = {
-    body: HostBodyWritable;
-    path?: never;
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
     query?: never;
-    url: '/cluster_settings';
+    url: '/clusters/{cluster}/cluster_settings';
 };
 
 export type ClusterSettingsGetErrors = {
@@ -2674,10 +1574,18 @@ export type ClusterSettingsGetResponses = {
 export type ClusterSettingsGetResponse = ClusterSettingsGetResponses[keyof ClusterSettingsGetResponses];
 
 export type ClusterSettingsSaveData = {
-    body: ClusterSettingsSaveInBodyWritable;
-    path?: never;
+    /**
+     * Cluster settings document to PUT to _cluster/settings.
+     */
+    body: unknown;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
     query?: never;
-    url: '/cluster_settings/save';
+    url: '/clusters/{cluster}/cluster_settings';
 };
 
 export type ClusterSettingsSaveErrors = {
@@ -2698,11 +1606,50 @@ export type ClusterSettingsSaveResponses = {
 
 export type ClusterSettingsSaveResponse = ClusterSettingsSaveResponses[keyof ClusterSettingsSaveResponses];
 
-export type CommonsGetIndexMappingData = {
-    body: CommonsIndexInBodyWritable;
-    path?: never;
+export type CommonsIndicesData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
     query?: never;
-    url: '/commons/get_index_mapping';
+    url: '/clusters/{cluster}/commons/indices';
+};
+
+export type CommonsIndicesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type CommonsIndicesError = CommonsIndicesErrors[keyof CommonsIndicesErrors];
+
+export type CommonsIndicesResponses = {
+    /**
+     * OK
+     */
+    200: ListString;
+};
+
+export type CommonsIndicesResponse = CommonsIndicesResponses[keyof CommonsIndicesResponses];
+
+export type CommonsGetIndexMappingData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/commons/indices/{index}/mapping';
 };
 
 export type CommonsGetIndexMappingErrors = {
@@ -2724,10 +1671,19 @@ export type CommonsGetIndexMappingResponses = {
 export type CommonsGetIndexMappingResponse = CommonsGetIndexMappingResponses[keyof CommonsGetIndexMappingResponses];
 
 export type CommonsGetIndexSettingsData = {
-    body: CommonsIndexInBodyWritable;
-    path?: never;
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
     query?: never;
-    url: '/commons/get_index_settings';
+    url: '/clusters/{cluster}/commons/indices/{index}/settings';
 };
 
 export type CommonsGetIndexSettingsErrors = {
@@ -2749,10 +1705,19 @@ export type CommonsGetIndexSettingsResponses = {
 export type CommonsGetIndexSettingsResponse = CommonsGetIndexSettingsResponses[keyof CommonsGetIndexSettingsResponses];
 
 export type CommonsGetIndexStatsData = {
-    body: CommonsIndexInBodyWritable;
-    path?: never;
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
     query?: never;
-    url: '/commons/get_index_stats';
+    url: '/clusters/{cluster}/commons/indices/{index}/stats';
 };
 
 export type CommonsGetIndexStatsErrors = {
@@ -2773,11 +1738,50 @@ export type CommonsGetIndexStatsResponses = {
 
 export type CommonsGetIndexStatsResponse = CommonsGetIndexStatsResponses[keyof CommonsGetIndexStatsResponses];
 
-export type CommonsGetNodeStatsData = {
-    body: CommonsNodeInBodyWritable;
-    path?: never;
+export type CommonsNodesData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
     query?: never;
-    url: '/commons/get_node_stats';
+    url: '/clusters/{cluster}/commons/nodes';
+};
+
+export type CommonsNodesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type CommonsNodesError = CommonsNodesErrors[keyof CommonsNodesErrors];
+
+export type CommonsNodesResponses = {
+    /**
+     * OK
+     */
+    200: ListString;
+};
+
+export type CommonsNodesResponse = CommonsNodesResponses[keyof CommonsNodesResponses];
+
+export type CommonsGetNodeStatsData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Node name or id.
+         */
+        node: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/commons/nodes/{node}/stats';
 };
 
 export type CommonsGetNodeStatsErrors = {
@@ -2798,55 +1802,1568 @@ export type CommonsGetNodeStatsResponses = {
 
 export type CommonsGetNodeStatsResponse = CommonsGetNodeStatsResponses[keyof CommonsGetNodeStatsResponses];
 
-export type CommonsIndicesData = {
-    body: HostBodyWritable;
-    path?: never;
+export type CreateIndexCreateData = {
+    /**
+     * Index creation body (settings, mappings, aliases). Defaults to {}.
+     */
+    body: unknown;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Name of the index to create.
+         */
+        index: string;
+    };
     query?: never;
-    url: '/commons/indices';
+    url: '/clusters/{cluster}/create_index/{index}';
 };
 
-export type CommonsIndicesErrors = {
+export type CreateIndexCreateErrors = {
     /**
      * Error
      */
     default: ErrorModel;
 };
 
-export type CommonsIndicesError = CommonsIndicesErrors[keyof CommonsIndicesErrors];
+export type CreateIndexCreateError = CreateIndexCreateErrors[keyof CreateIndexCreateErrors];
 
-export type CommonsIndicesResponses = {
+export type CreateIndexCreateResponses = {
     /**
      * OK
      */
-    200: ListString;
+    200: RawResponse;
 };
 
-export type CommonsIndicesResponse = CommonsIndicesResponses[keyof CommonsIndicesResponses];
+export type CreateIndexCreateResponse = CreateIndexCreateResponses[keyof CreateIndexCreateResponses];
 
-export type CommonsNodesData = {
-    body: HostBodyWritable;
-    path?: never;
+export type CreateIndexGetMetadataData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index to copy mappings/settings from.
+         */
+        index: string;
+    };
     query?: never;
-    url: '/commons/nodes';
+    url: '/clusters/{cluster}/create_index/{index}/metadata';
 };
 
-export type CommonsNodesErrors = {
+export type CreateIndexGetMetadataErrors = {
     /**
      * Error
      */
     default: ErrorModel;
 };
 
-export type CommonsNodesError = CommonsNodesErrors[keyof CommonsNodesErrors];
+export type CreateIndexGetMetadataError = CreateIndexGetMetadataErrors[keyof CreateIndexGetMetadataErrors];
 
-export type CommonsNodesResponses = {
+export type CreateIndexGetMetadataResponses = {
     /**
      * OK
      */
-    200: ListString;
+    200: Metadata;
 };
 
-export type CommonsNodesResponse = CommonsNodesResponses[keyof CommonsNodesResponses];
+export type CreateIndexGetMetadataResponse = CreateIndexGetMetadataResponses[keyof CreateIndexGetMetadataResponses];
+
+export type DataExplorerSaveData = {
+    body: DataExplorerSaveInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/data_explorer/{index}/documents';
+};
+
+export type DataExplorerSaveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataExplorerSaveError = DataExplorerSaveErrors[keyof DataExplorerSaveErrors];
+
+export type DataExplorerSaveResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataExplorerSaveResponse = DataExplorerSaveResponses[keyof DataExplorerSaveResponses];
+
+export type DataExplorerSearchData = {
+    body: DataExplorerSearchInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/data_explorer/{index}/search';
+};
+
+export type DataExplorerSearchErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataExplorerSearchError = DataExplorerSearchErrors[keyof DataExplorerSearchErrors];
+
+export type DataExplorerSearchResponses = {
+    /**
+     * OK
+     */
+    200: DataExplorerResult;
+};
+
+export type DataExplorerSearchResponse = DataExplorerSearchResponses[keyof DataExplorerSearchResponses];
+
+export type DataStreamsListData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/data_streams';
+};
+
+export type DataStreamsListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsListError = DataStreamsListErrors[keyof DataStreamsListErrors];
+
+export type DataStreamsListResponses = {
+    /**
+     * OK
+     */
+    200: DataStreamsResult;
+};
+
+export type DataStreamsListResponse = DataStreamsListResponses[keyof DataStreamsListResponses];
+
+export type DataStreamsDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Data stream name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/data_streams/{name}';
+};
+
+export type DataStreamsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsDeleteError = DataStreamsDeleteErrors[keyof DataStreamsDeleteErrors];
+
+export type DataStreamsDeleteResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataStreamsDeleteResponse = DataStreamsDeleteResponses[keyof DataStreamsDeleteResponses];
+
+export type DataStreamsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Data stream name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/data_streams/{name}';
+};
+
+export type DataStreamsGetErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsGetError = DataStreamsGetErrors[keyof DataStreamsGetErrors];
+
+export type DataStreamsGetResponses = {
+    /**
+     * OK
+     */
+    200: DataStream;
+};
+
+export type DataStreamsGetResponse = DataStreamsGetResponses[keyof DataStreamsGetResponses];
+
+export type DataStreamsCreateData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Data stream name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/data_streams/{name}';
+};
+
+export type DataStreamsCreateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsCreateError = DataStreamsCreateErrors[keyof DataStreamsCreateErrors];
+
+export type DataStreamsCreateResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataStreamsCreateResponse = DataStreamsCreateResponses[keyof DataStreamsCreateResponses];
+
+export type DataStreamsDetachIlmData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Data stream name.
+         */
+        name: string;
+    };
+    query?: {
+        /**
+         * Whether existing backing indices should have index.lifecycle.name removed.
+         */
+        update_backing_indices?: boolean;
+    };
+    url: '/clusters/{cluster}/data_streams/{name}/ilm';
+};
+
+export type DataStreamsDetachIlmErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsDetachIlmError = DataStreamsDetachIlmErrors[keyof DataStreamsDetachIlmErrors];
+
+export type DataStreamsDetachIlmResponses = {
+    /**
+     * OK
+     */
+    200: DataStreamDetachIlmResult;
+};
+
+export type DataStreamsDetachIlmResponse = DataStreamsDetachIlmResponses[keyof DataStreamsDetachIlmResponses];
+
+export type DataStreamsAttachIlmData = {
+    body: DataStreamAttachIlmInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Data stream name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/data_streams/{name}/ilm';
+};
+
+export type DataStreamsAttachIlmErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsAttachIlmError = DataStreamsAttachIlmErrors[keyof DataStreamsAttachIlmErrors];
+
+export type DataStreamsAttachIlmResponses = {
+    /**
+     * OK
+     */
+    200: DataStreamAttachIlmResult;
+};
+
+export type DataStreamsAttachIlmResponse = DataStreamsAttachIlmResponses[keyof DataStreamsAttachIlmResponses];
+
+export type DataStreamsUpdateLifecycleData = {
+    body: DataStreamLifecycleInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Data stream name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/data_streams/{name}/lifecycle';
+};
+
+export type DataStreamsUpdateLifecycleErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsUpdateLifecycleError = DataStreamsUpdateLifecycleErrors[keyof DataStreamsUpdateLifecycleErrors];
+
+export type DataStreamsUpdateLifecycleResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataStreamsUpdateLifecycleResponse = DataStreamsUpdateLifecycleResponses[keyof DataStreamsUpdateLifecycleResponses];
+
+export type DataStreamsRolloverData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Data stream name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/data_streams/{name}/rollover';
+};
+
+export type DataStreamsRolloverErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type DataStreamsRolloverError = DataStreamsRolloverErrors[keyof DataStreamsRolloverErrors];
+
+export type DataStreamsRolloverResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type DataStreamsRolloverResponse = DataStreamsRolloverResponses[keyof DataStreamsRolloverResponses];
+
+export type IlmPoliciesListData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/ilm/policies';
+};
+
+export type IlmPoliciesListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type IlmPoliciesListError = IlmPoliciesListErrors[keyof IlmPoliciesListErrors];
+
+export type IlmPoliciesListResponses = {
+    /**
+     * OK
+     */
+    200: ListIlmPolicy;
+};
+
+export type IlmPoliciesListResponse = IlmPoliciesListResponses[keyof IlmPoliciesListResponses];
+
+export type IlmPoliciesDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * ILM policy name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/ilm/policies/{name}';
+};
+
+export type IlmPoliciesDeleteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type IlmPoliciesDeleteError = IlmPoliciesDeleteErrors[keyof IlmPoliciesDeleteErrors];
+
+export type IlmPoliciesDeleteResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type IlmPoliciesDeleteResponse = IlmPoliciesDeleteResponses[keyof IlmPoliciesDeleteResponses];
+
+export type IlmPoliciesSaveData = {
+    body: IlmPolicySaveInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * ILM policy name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/ilm/policies/{name}';
+};
+
+export type IlmPoliciesSaveErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type IlmPoliciesSaveError = IlmPoliciesSaveErrors[keyof IlmPoliciesSaveErrors];
+
+export type IlmPoliciesSaveResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type IlmPoliciesSaveResponse = IlmPoliciesSaveResponses[keyof IlmPoliciesSaveResponses];
+
+export type IndexSettingsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/index_settings/{index}';
+};
+
+export type IndexSettingsGetErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type IndexSettingsGetError = IndexSettingsGetErrors[keyof IndexSettingsGetErrors];
+
+export type IndexSettingsGetResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type IndexSettingsGetResponse = IndexSettingsGetResponses[keyof IndexSettingsGetResponses];
+
+export type IndexSettingsUpdateData = {
+    /**
+     * Settings document to PUT to the index _settings.
+     */
+    body: unknown;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/index_settings/{index}';
+};
+
+export type IndexSettingsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type IndexSettingsUpdateError = IndexSettingsUpdateErrors[keyof IndexSettingsUpdateErrors];
+
+export type IndexSettingsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type IndexSettingsUpdateResponse = IndexSettingsUpdateResponses[keyof IndexSettingsUpdateResponses];
+
+export type NavbarData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/navbar';
+};
+
+export type NavbarErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type NavbarError = NavbarErrors[keyof NavbarErrors];
+
+export type NavbarResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type NavbarResponse = NavbarResponses[keyof NavbarResponses];
+
+export type NodesData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/nodes';
+};
+
+export type NodesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type NodesError = NodesErrors[keyof NodesErrors];
+
+export type NodesResponses = {
+    /**
+     * OK
+     */
+    200: ListNode;
+};
+
+export type NodesResponse = NodesResponses[keyof NodesResponses];
+
+export type OverviewData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview';
+};
+
+export type OverviewErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewError = OverviewErrors[keyof OverviewErrors];
+
+export type OverviewResponses = {
+    /**
+     * OK
+     */
+    200: Overview;
+};
+
+export type OverviewResponse = OverviewResponses[keyof OverviewResponses];
+
+export type OverviewRelocateShardData = {
+    body: OverviewRelocateInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+        /**
+         * Shard number.
+         */
+        shard: number;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/indices/{index}/shards/{shard}/relocation';
+};
+
+export type OverviewRelocateShardErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewRelocateShardError = OverviewRelocateShardErrors[keyof OverviewRelocateShardErrors];
+
+export type OverviewRelocateShardResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewRelocateShardResponse = OverviewRelocateShardResponses[keyof OverviewRelocateShardResponses];
+
+export type OverviewShardStatsData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Index name.
+         */
+        index: string;
+        /**
+         * Shard number.
+         */
+        shard: number;
+    };
+    query: {
+        /**
+         * Node id the shard is allocated on.
+         */
+        node: string;
+    };
+    url: '/clusters/{cluster}/overview/indices/{index}/shards/{shard}/stats';
+};
+
+export type OverviewShardStatsErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewShardStatsError = OverviewShardStatsErrors[keyof OverviewShardStatsErrors];
+
+export type OverviewShardStatsResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewShardStatsResponse = OverviewShardStatsResponses[keyof OverviewShardStatsResponses];
+
+export type OverviewDeleteIndicesData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Comma-separated index names.
+         */
+        indices: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/indices/{indices}';
+};
+
+export type OverviewDeleteIndicesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewDeleteIndicesError = OverviewDeleteIndicesErrors[keyof OverviewDeleteIndicesErrors];
+
+export type OverviewDeleteIndicesResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewDeleteIndicesResponse = OverviewDeleteIndicesResponses[keyof OverviewDeleteIndicesResponses];
+
+export type OverviewClearIndicesCacheData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Comma-separated index names.
+         */
+        indices: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/indices/{indices}/cache/clear';
+};
+
+export type OverviewClearIndicesCacheErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewClearIndicesCacheError = OverviewClearIndicesCacheErrors[keyof OverviewClearIndicesCacheErrors];
+
+export type OverviewClearIndicesCacheResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewClearIndicesCacheResponse = OverviewClearIndicesCacheResponses[keyof OverviewClearIndicesCacheResponses];
+
+export type OverviewCloseIndicesData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Comma-separated index names.
+         */
+        indices: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/indices/{indices}/close';
+};
+
+export type OverviewCloseIndicesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewCloseIndicesError = OverviewCloseIndicesErrors[keyof OverviewCloseIndicesErrors];
+
+export type OverviewCloseIndicesResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewCloseIndicesResponse = OverviewCloseIndicesResponses[keyof OverviewCloseIndicesResponses];
+
+export type OverviewFlushIndicesData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Comma-separated index names.
+         */
+        indices: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/indices/{indices}/flush';
+};
+
+export type OverviewFlushIndicesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewFlushIndicesError = OverviewFlushIndicesErrors[keyof OverviewFlushIndicesErrors];
+
+export type OverviewFlushIndicesResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewFlushIndicesResponse = OverviewFlushIndicesResponses[keyof OverviewFlushIndicesResponses];
+
+export type OverviewForceMergeData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Comma-separated index names.
+         */
+        indices: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/indices/{indices}/forcemerge';
+};
+
+export type OverviewForceMergeErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewForceMergeError = OverviewForceMergeErrors[keyof OverviewForceMergeErrors];
+
+export type OverviewForceMergeResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewForceMergeResponse = OverviewForceMergeResponses[keyof OverviewForceMergeResponses];
+
+export type OverviewOpenIndicesData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Comma-separated index names.
+         */
+        indices: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/indices/{indices}/open';
+};
+
+export type OverviewOpenIndicesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewOpenIndicesError = OverviewOpenIndicesErrors[keyof OverviewOpenIndicesErrors];
+
+export type OverviewOpenIndicesResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewOpenIndicesResponse = OverviewOpenIndicesResponses[keyof OverviewOpenIndicesResponses];
+
+export type OverviewRefreshIndicesData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Comma-separated index names.
+         */
+        indices: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/indices/{indices}/refresh';
+};
+
+export type OverviewRefreshIndicesErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewRefreshIndicesError = OverviewRefreshIndicesErrors[keyof OverviewRefreshIndicesErrors];
+
+export type OverviewRefreshIndicesResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewRefreshIndicesResponse = OverviewRefreshIndicesResponses[keyof OverviewRefreshIndicesResponses];
+
+export type OverviewEnableShardAllocationData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/shard_allocation';
+};
+
+export type OverviewEnableShardAllocationErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewEnableShardAllocationError = OverviewEnableShardAllocationErrors[keyof OverviewEnableShardAllocationErrors];
+
+export type OverviewEnableShardAllocationResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewEnableShardAllocationResponse = OverviewEnableShardAllocationResponses[keyof OverviewEnableShardAllocationResponses];
+
+export type OverviewDisableShardAllocationData = {
+    body: OverviewShardKindInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/overview/shard_allocation';
+};
+
+export type OverviewDisableShardAllocationErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type OverviewDisableShardAllocationError = OverviewDisableShardAllocationErrors[keyof OverviewDisableShardAllocationErrors];
+
+export type OverviewDisableShardAllocationResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type OverviewDisableShardAllocationResponse = OverviewDisableShardAllocationResponses[keyof OverviewDisableShardAllocationResponses];
+
+export type RepositoriesListData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/repositories';
+};
+
+export type RepositoriesListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type RepositoriesListError = RepositoriesListErrors[keyof RepositoriesListErrors];
+
+export type RepositoriesListResponses = {
+    /**
+     * OK
+     */
+    200: ListRepository;
+};
+
+export type RepositoriesListResponse = RepositoriesListResponses[keyof RepositoriesListResponses];
+
+export type RepositoriesDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Repository name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/repositories/{name}';
+};
+
+export type RepositoriesDeleteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type RepositoriesDeleteError = RepositoriesDeleteErrors[keyof RepositoriesDeleteErrors];
+
+export type RepositoriesDeleteResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type RepositoriesDeleteResponse = RepositoriesDeleteResponses[keyof RepositoriesDeleteResponses];
+
+export type RepositoriesCreateData = {
+    body: RepositoriesCreateInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Repository name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/repositories/{name}';
+};
+
+export type RepositoriesCreateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type RepositoriesCreateError = RepositoriesCreateErrors[keyof RepositoriesCreateErrors];
+
+export type RepositoriesCreateResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type RepositoriesCreateResponse = RepositoriesCreateResponses[keyof RepositoriesCreateResponses];
+
+export type RestIndexData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/rest';
+};
+
+export type RestIndexErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type RestIndexError = RestIndexErrors[keyof RestIndexErrors];
+
+export type RestIndexResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type RestIndexResponse = RestIndexResponses[keyof RestIndexResponses];
+
+export type RestHistoryData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/rest/history';
+};
+
+export type RestHistoryErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type RestHistoryError = RestHistoryErrors[keyof RestHistoryErrors];
+
+export type RestHistoryResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type RestHistoryResponse = RestHistoryResponses[keyof RestHistoryResponses];
+
+export type RestRequestData = {
+    body: RestRequestInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/rest/requests';
+};
+
+export type RestRequestErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type RestRequestError = RestRequestErrors[keyof RestRequestErrors];
+
+export type RestRequestResponses = {
+    /**
+     * OK
+     */
+    200: RestRequestResponse;
+};
+
+export type RestRequestResponse2 = RestRequestResponses[keyof RestRequestResponses];
+
+export type SnapshotsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/snapshots';
+};
+
+export type SnapshotsGetErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type SnapshotsGetError = SnapshotsGetErrors[keyof SnapshotsGetErrors];
+
+export type SnapshotsGetResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type SnapshotsGetResponse = SnapshotsGetResponses[keyof SnapshotsGetResponses];
+
+export type SnapshotsLoadData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Repository name.
+         */
+        repository: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/snapshots/{repository}';
+};
+
+export type SnapshotsLoadErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type SnapshotsLoadError = SnapshotsLoadErrors[keyof SnapshotsLoadErrors];
+
+export type SnapshotsLoadResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type SnapshotsLoadResponse = SnapshotsLoadResponses[keyof SnapshotsLoadResponses];
+
+export type SnapshotsDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Repository name.
+         */
+        repository: string;
+        /**
+         * Snapshot name.
+         */
+        snapshot: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/snapshots/{repository}/{snapshot}';
+};
+
+export type SnapshotsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type SnapshotsDeleteError = SnapshotsDeleteErrors[keyof SnapshotsDeleteErrors];
+
+export type SnapshotsDeleteResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type SnapshotsDeleteResponse = SnapshotsDeleteResponses[keyof SnapshotsDeleteResponses];
+
+export type SnapshotsCreateData = {
+    body: SnapshotsCreateInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Repository name.
+         */
+        repository: string;
+        /**
+         * Snapshot name.
+         */
+        snapshot: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/snapshots/{repository}/{snapshot}';
+};
+
+export type SnapshotsCreateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type SnapshotsCreateError = SnapshotsCreateErrors[keyof SnapshotsCreateErrors];
+
+export type SnapshotsCreateResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type SnapshotsCreateResponse = SnapshotsCreateResponses[keyof SnapshotsCreateResponses];
+
+export type SnapshotsRestoreData = {
+    body: SnapshotsRestoreInBodyWritable;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Repository name.
+         */
+        repository: string;
+        /**
+         * Snapshot name.
+         */
+        snapshot: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/snapshots/{repository}/{snapshot}/restore';
+};
+
+export type SnapshotsRestoreErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type SnapshotsRestoreError = SnapshotsRestoreErrors[keyof SnapshotsRestoreErrors];
+
+export type SnapshotsRestoreResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type SnapshotsRestoreResponse = SnapshotsRestoreResponses[keyof SnapshotsRestoreResponses];
+
+export type TemplatesListData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/templates';
+};
+
+export type TemplatesListErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type TemplatesListError = TemplatesListErrors[keyof TemplatesListErrors];
+
+export type TemplatesListResponses = {
+    /**
+     * OK
+     */
+    200: ListTemplateSummary;
+};
+
+export type TemplatesListResponse = TemplatesListResponses[keyof TemplatesListResponses];
+
+export type TemplatesDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Template kind.
+         */
+        kind: 'index' | 'component' | 'legacy';
+        /**
+         * Template name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/templates/{kind}/{name}';
+};
+
+export type TemplatesDeleteErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type TemplatesDeleteError = TemplatesDeleteErrors[keyof TemplatesDeleteErrors];
+
+export type TemplatesDeleteResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type TemplatesDeleteResponse = TemplatesDeleteResponses[keyof TemplatesDeleteResponses];
+
+export type TemplatesGetData = {
+    body?: never;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Template kind.
+         */
+        kind: 'index' | 'component' | 'legacy';
+        /**
+         * Template name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/templates/{kind}/{name}';
+};
+
+export type TemplatesGetErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type TemplatesGetError = TemplatesGetErrors[keyof TemplatesGetErrors];
+
+export type TemplatesGetResponses = {
+    /**
+     * OK
+     */
+    200: Template;
+};
+
+export type TemplatesGetResponse = TemplatesGetResponses[keyof TemplatesGetResponses];
+
+export type TemplatesCreateData = {
+    /**
+     * Raw template definition.
+     */
+    body: unknown;
+    path: {
+        /**
+         * Configured Elasticsearch host slug.
+         */
+        cluster: string;
+        /**
+         * Template kind.
+         */
+        kind: 'index' | 'component' | 'legacy';
+        /**
+         * Template name.
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/templates/{kind}/{name}';
+};
+
+export type TemplatesCreateErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type TemplatesCreateError = TemplatesCreateErrors[keyof TemplatesCreateErrors];
+
+export type TemplatesCreateResponses = {
+    /**
+     * OK
+     */
+    200: RawResponse;
+};
+
+export type TemplatesCreateResponse = TemplatesCreateResponses[keyof TemplatesCreateResponses];
 
 export type ConnectData = {
     body: HostBodyWritable;
@@ -2893,1107 +3410,7 @@ export type ConnectHostsResponses = {
     /**
      * OK
      */
-    200: ListString;
+    200: ListHostRef;
 };
 
 export type ConnectHostsResponse = ConnectHostsResponses[keyof ConnectHostsResponses];
-
-export type CreateIndexCreateData = {
-    body: CreateIndexCreateInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/create_index/create';
-};
-
-export type CreateIndexCreateErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type CreateIndexCreateError = CreateIndexCreateErrors[keyof CreateIndexCreateErrors];
-
-export type CreateIndexCreateResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type CreateIndexCreateResponse = CreateIndexCreateResponses[keyof CreateIndexCreateResponses];
-
-export type CreateIndexGetMetadataData = {
-    body: CreateIndexGetMetaInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/create_index/get_index_metadata';
-};
-
-export type CreateIndexGetMetadataErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type CreateIndexGetMetadataError = CreateIndexGetMetadataErrors[keyof CreateIndexGetMetadataErrors];
-
-export type CreateIndexGetMetadataResponses = {
-    /**
-     * OK
-     */
-    200: Metadata;
-};
-
-export type CreateIndexGetMetadataResponse = CreateIndexGetMetadataResponses[keyof CreateIndexGetMetadataResponses];
-
-export type DataExplorerSaveData = {
-    body: DataExplorerSaveInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/data_explorer/save';
-};
-
-export type DataExplorerSaveErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type DataExplorerSaveError = DataExplorerSaveErrors[keyof DataExplorerSaveErrors];
-
-export type DataExplorerSaveResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type DataExplorerSaveResponse = DataExplorerSaveResponses[keyof DataExplorerSaveResponses];
-
-export type DataExplorerSearchData = {
-    body: DataExplorerSearchInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/data_explorer/search';
-};
-
-export type DataExplorerSearchErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type DataExplorerSearchError = DataExplorerSearchErrors[keyof DataExplorerSearchErrors];
-
-export type DataExplorerSearchResponses = {
-    /**
-     * OK
-     */
-    200: DataExplorerResult;
-};
-
-export type DataExplorerSearchResponse = DataExplorerSearchResponses[keyof DataExplorerSearchResponses];
-
-export type DataStreamsListData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/data_streams';
-};
-
-export type DataStreamsListErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type DataStreamsListError = DataStreamsListErrors[keyof DataStreamsListErrors];
-
-export type DataStreamsListResponses = {
-    /**
-     * OK
-     */
-    200: DataStreamsResult;
-};
-
-export type DataStreamsListResponse = DataStreamsListResponses[keyof DataStreamsListResponses];
-
-export type DataStreamsAttachIlmData = {
-    body: DataStreamAttachIlmInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/data_streams/attach_ilm';
-};
-
-export type DataStreamsAttachIlmErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type DataStreamsAttachIlmError = DataStreamsAttachIlmErrors[keyof DataStreamsAttachIlmErrors];
-
-export type DataStreamsAttachIlmResponses = {
-    /**
-     * OK
-     */
-    200: DataStreamAttachIlmResult;
-};
-
-export type DataStreamsAttachIlmResponse = DataStreamsAttachIlmResponses[keyof DataStreamsAttachIlmResponses];
-
-export type DataStreamsCreateData = {
-    body: DataStreamNameInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/data_streams/create';
-};
-
-export type DataStreamsCreateErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type DataStreamsCreateError = DataStreamsCreateErrors[keyof DataStreamsCreateErrors];
-
-export type DataStreamsCreateResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type DataStreamsCreateResponse = DataStreamsCreateResponses[keyof DataStreamsCreateResponses];
-
-export type DataStreamsDeleteData = {
-    body: DataStreamNameInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/data_streams/delete';
-};
-
-export type DataStreamsDeleteErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type DataStreamsDeleteError = DataStreamsDeleteErrors[keyof DataStreamsDeleteErrors];
-
-export type DataStreamsDeleteResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type DataStreamsDeleteResponse = DataStreamsDeleteResponses[keyof DataStreamsDeleteResponses];
-
-export type DataStreamsDetachIlmData = {
-    body: DataStreamDetachIlmInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/data_streams/detach_ilm';
-};
-
-export type DataStreamsDetachIlmErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type DataStreamsDetachIlmError = DataStreamsDetachIlmErrors[keyof DataStreamsDetachIlmErrors];
-
-export type DataStreamsDetachIlmResponses = {
-    /**
-     * OK
-     */
-    200: DataStreamDetachIlmResult;
-};
-
-export type DataStreamsDetachIlmResponse = DataStreamsDetachIlmResponses[keyof DataStreamsDetachIlmResponses];
-
-export type DataStreamsUpdateLifecycleData = {
-    body: DataStreamLifecycleInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/data_streams/lifecycle';
-};
-
-export type DataStreamsUpdateLifecycleErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type DataStreamsUpdateLifecycleError = DataStreamsUpdateLifecycleErrors[keyof DataStreamsUpdateLifecycleErrors];
-
-export type DataStreamsUpdateLifecycleResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type DataStreamsUpdateLifecycleResponse = DataStreamsUpdateLifecycleResponses[keyof DataStreamsUpdateLifecycleResponses];
-
-export type DataStreamsRolloverData = {
-    body: DataStreamNameInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/data_streams/rollover';
-};
-
-export type DataStreamsRolloverErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type DataStreamsRolloverError = DataStreamsRolloverErrors[keyof DataStreamsRolloverErrors];
-
-export type DataStreamsRolloverResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type DataStreamsRolloverResponse = DataStreamsRolloverResponses[keyof DataStreamsRolloverResponses];
-
-export type IlmPoliciesListData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/ilm/policies';
-};
-
-export type IlmPoliciesListErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type IlmPoliciesListError = IlmPoliciesListErrors[keyof IlmPoliciesListErrors];
-
-export type IlmPoliciesListResponses = {
-    /**
-     * OK
-     */
-    200: ListIlmPolicy;
-};
-
-export type IlmPoliciesListResponse = IlmPoliciesListResponses[keyof IlmPoliciesListResponses];
-
-export type IlmPoliciesDeleteData = {
-    body: IlmPolicyNameInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/ilm/policies/delete';
-};
-
-export type IlmPoliciesDeleteErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type IlmPoliciesDeleteError = IlmPoliciesDeleteErrors[keyof IlmPoliciesDeleteErrors];
-
-export type IlmPoliciesDeleteResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type IlmPoliciesDeleteResponse = IlmPoliciesDeleteResponses[keyof IlmPoliciesDeleteResponses];
-
-export type IlmPoliciesSaveData = {
-    body: IlmPolicySaveInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/ilm/policies/save';
-};
-
-export type IlmPoliciesSaveErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type IlmPoliciesSaveError = IlmPoliciesSaveErrors[keyof IlmPoliciesSaveErrors];
-
-export type IlmPoliciesSaveResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type IlmPoliciesSaveResponse = IlmPoliciesSaveResponses[keyof IlmPoliciesSaveResponses];
-
-export type IndexSettingsGetData = {
-    body: IndexSettingsGetInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/index_settings';
-};
-
-export type IndexSettingsGetErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type IndexSettingsGetError = IndexSettingsGetErrors[keyof IndexSettingsGetErrors];
-
-export type IndexSettingsGetResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type IndexSettingsGetResponse = IndexSettingsGetResponses[keyof IndexSettingsGetResponses];
-
-export type IndexSettingsUpdateData = {
-    body: IndexSettingsUpdateInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/index_settings/update';
-};
-
-export type IndexSettingsUpdateErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type IndexSettingsUpdateError = IndexSettingsUpdateErrors[keyof IndexSettingsUpdateErrors];
-
-export type IndexSettingsUpdateResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type IndexSettingsUpdateResponse = IndexSettingsUpdateResponses[keyof IndexSettingsUpdateResponses];
-
-export type NavbarData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/navbar';
-};
-
-export type NavbarErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type NavbarError = NavbarErrors[keyof NavbarErrors];
-
-export type NavbarResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type NavbarResponse = NavbarResponses[keyof NavbarResponses];
-
-export type NodesData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/nodes';
-};
-
-export type NodesErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type NodesError = NodesErrors[keyof NodesErrors];
-
-export type NodesResponses = {
-    /**
-     * OK
-     */
-    200: ListNode;
-};
-
-export type NodesResponse = NodesResponses[keyof NodesResponses];
-
-export type OverviewData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview';
-};
-
-export type OverviewErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewError = OverviewErrors[keyof OverviewErrors];
-
-export type OverviewResponses = {
-    /**
-     * OK
-     */
-    200: Overview;
-};
-
-export type OverviewResponse = OverviewResponses[keyof OverviewResponses];
-
-export type OverviewClearIndicesCacheData = {
-    body: OverviewIndicesInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/clear_indices_cache';
-};
-
-export type OverviewClearIndicesCacheErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewClearIndicesCacheError = OverviewClearIndicesCacheErrors[keyof OverviewClearIndicesCacheErrors];
-
-export type OverviewClearIndicesCacheResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewClearIndicesCacheResponse = OverviewClearIndicesCacheResponses[keyof OverviewClearIndicesCacheResponses];
-
-export type OverviewCloseIndicesData = {
-    body: OverviewIndicesInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/close_indices';
-};
-
-export type OverviewCloseIndicesErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewCloseIndicesError = OverviewCloseIndicesErrors[keyof OverviewCloseIndicesErrors];
-
-export type OverviewCloseIndicesResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewCloseIndicesResponse = OverviewCloseIndicesResponses[keyof OverviewCloseIndicesResponses];
-
-export type OverviewDeleteIndicesData = {
-    body: OverviewIndicesInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/delete_indices';
-};
-
-export type OverviewDeleteIndicesErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewDeleteIndicesError = OverviewDeleteIndicesErrors[keyof OverviewDeleteIndicesErrors];
-
-export type OverviewDeleteIndicesResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewDeleteIndicesResponse = OverviewDeleteIndicesResponses[keyof OverviewDeleteIndicesResponses];
-
-export type OverviewDisableShardAllocationData = {
-    body: OverviewShardKindInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/disable_shard_allocation';
-};
-
-export type OverviewDisableShardAllocationErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewDisableShardAllocationError = OverviewDisableShardAllocationErrors[keyof OverviewDisableShardAllocationErrors];
-
-export type OverviewDisableShardAllocationResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewDisableShardAllocationResponse = OverviewDisableShardAllocationResponses[keyof OverviewDisableShardAllocationResponses];
-
-export type OverviewEnableShardAllocationData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/enable_shard_allocation';
-};
-
-export type OverviewEnableShardAllocationErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewEnableShardAllocationError = OverviewEnableShardAllocationErrors[keyof OverviewEnableShardAllocationErrors];
-
-export type OverviewEnableShardAllocationResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewEnableShardAllocationResponse = OverviewEnableShardAllocationResponses[keyof OverviewEnableShardAllocationResponses];
-
-export type OverviewFlushIndicesData = {
-    body: OverviewIndicesInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/flush_indices';
-};
-
-export type OverviewFlushIndicesErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewFlushIndicesError = OverviewFlushIndicesErrors[keyof OverviewFlushIndicesErrors];
-
-export type OverviewFlushIndicesResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewFlushIndicesResponse = OverviewFlushIndicesResponses[keyof OverviewFlushIndicesResponses];
-
-export type OverviewForceMergeData = {
-    body: OverviewIndicesInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/force_merge';
-};
-
-export type OverviewForceMergeErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewForceMergeError = OverviewForceMergeErrors[keyof OverviewForceMergeErrors];
-
-export type OverviewForceMergeResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewForceMergeResponse = OverviewForceMergeResponses[keyof OverviewForceMergeResponses];
-
-export type OverviewShardStatsData = {
-    body: OverviewShardStatsInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/get_shard_stats';
-};
-
-export type OverviewShardStatsErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewShardStatsError = OverviewShardStatsErrors[keyof OverviewShardStatsErrors];
-
-export type OverviewShardStatsResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewShardStatsResponse = OverviewShardStatsResponses[keyof OverviewShardStatsResponses];
-
-export type OverviewOpenIndicesData = {
-    body: OverviewIndicesInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/open_indices';
-};
-
-export type OverviewOpenIndicesErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewOpenIndicesError = OverviewOpenIndicesErrors[keyof OverviewOpenIndicesErrors];
-
-export type OverviewOpenIndicesResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewOpenIndicesResponse = OverviewOpenIndicesResponses[keyof OverviewOpenIndicesResponses];
-
-export type OverviewRefreshIndicesData = {
-    body: OverviewIndicesInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/refresh_indices';
-};
-
-export type OverviewRefreshIndicesErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewRefreshIndicesError = OverviewRefreshIndicesErrors[keyof OverviewRefreshIndicesErrors];
-
-export type OverviewRefreshIndicesResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewRefreshIndicesResponse = OverviewRefreshIndicesResponses[keyof OverviewRefreshIndicesResponses];
-
-export type OverviewRelocateShardData = {
-    body: OverviewRelocateInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/overview/relocate_shard';
-};
-
-export type OverviewRelocateShardErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type OverviewRelocateShardError = OverviewRelocateShardErrors[keyof OverviewRelocateShardErrors];
-
-export type OverviewRelocateShardResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type OverviewRelocateShardResponse = OverviewRelocateShardResponses[keyof OverviewRelocateShardResponses];
-
-export type RepositoriesListData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/repositories';
-};
-
-export type RepositoriesListErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type RepositoriesListError = RepositoriesListErrors[keyof RepositoriesListErrors];
-
-export type RepositoriesListResponses = {
-    /**
-     * OK
-     */
-    200: ListRepository;
-};
-
-export type RepositoriesListResponse = RepositoriesListResponses[keyof RepositoriesListResponses];
-
-export type RepositoriesCreateData = {
-    body: RepositoriesCreateInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/repositories/create';
-};
-
-export type RepositoriesCreateErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type RepositoriesCreateError = RepositoriesCreateErrors[keyof RepositoriesCreateErrors];
-
-export type RepositoriesCreateResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type RepositoriesCreateResponse = RepositoriesCreateResponses[keyof RepositoriesCreateResponses];
-
-export type RepositoriesDeleteData = {
-    body: RepositoriesDeleteInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/repositories/delete';
-};
-
-export type RepositoriesDeleteErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type RepositoriesDeleteError = RepositoriesDeleteErrors[keyof RepositoriesDeleteErrors];
-
-export type RepositoriesDeleteResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type RepositoriesDeleteResponse = RepositoriesDeleteResponses[keyof RepositoriesDeleteResponses];
-
-export type RestIndexData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/rest';
-};
-
-export type RestIndexErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type RestIndexError = RestIndexErrors[keyof RestIndexErrors];
-
-export type RestIndexResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type RestIndexResponse = RestIndexResponses[keyof RestIndexResponses];
-
-export type RestHistoryData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/rest/history';
-};
-
-export type RestHistoryErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type RestHistoryError = RestHistoryErrors[keyof RestHistoryErrors];
-
-export type RestHistoryResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type RestHistoryResponse = RestHistoryResponses[keyof RestHistoryResponses];
-
-export type RestRequestData = {
-    body: RestRequestInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/rest/request';
-};
-
-export type RestRequestErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type RestRequestError = RestRequestErrors[keyof RestRequestErrors];
-
-export type RestRequestResponses = {
-    /**
-     * OK
-     */
-    200: RestRequestResponse;
-};
-
-export type RestRequestResponse2 = RestRequestResponses[keyof RestRequestResponses];
-
-export type SnapshotsGetData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/snapshots';
-};
-
-export type SnapshotsGetErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type SnapshotsGetError = SnapshotsGetErrors[keyof SnapshotsGetErrors];
-
-export type SnapshotsGetResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type SnapshotsGetResponse = SnapshotsGetResponses[keyof SnapshotsGetResponses];
-
-export type SnapshotsCreateData = {
-    body: SnapshotsCreateInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/snapshots/create';
-};
-
-export type SnapshotsCreateErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type SnapshotsCreateError = SnapshotsCreateErrors[keyof SnapshotsCreateErrors];
-
-export type SnapshotsCreateResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type SnapshotsCreateResponse = SnapshotsCreateResponses[keyof SnapshotsCreateResponses];
-
-export type SnapshotsDeleteData = {
-    body: SnapshotsDeleteInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/snapshots/delete';
-};
-
-export type SnapshotsDeleteErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type SnapshotsDeleteError = SnapshotsDeleteErrors[keyof SnapshotsDeleteErrors];
-
-export type SnapshotsDeleteResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type SnapshotsDeleteResponse = SnapshotsDeleteResponses[keyof SnapshotsDeleteResponses];
-
-export type SnapshotsLoadData = {
-    body: SnapshotsLoadInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/snapshots/load';
-};
-
-export type SnapshotsLoadErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type SnapshotsLoadError = SnapshotsLoadErrors[keyof SnapshotsLoadErrors];
-
-export type SnapshotsLoadResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type SnapshotsLoadResponse = SnapshotsLoadResponses[keyof SnapshotsLoadResponses];
-
-export type SnapshotsRestoreData = {
-    body: SnapshotsRestoreInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/snapshots/restore';
-};
-
-export type SnapshotsRestoreErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type SnapshotsRestoreError = SnapshotsRestoreErrors[keyof SnapshotsRestoreErrors];
-
-export type SnapshotsRestoreResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type SnapshotsRestoreResponse = SnapshotsRestoreResponses[keyof SnapshotsRestoreResponses];
-
-export type TemplatesListData = {
-    body: HostBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/templates';
-};
-
-export type TemplatesListErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type TemplatesListError = TemplatesListErrors[keyof TemplatesListErrors];
-
-export type TemplatesListResponses = {
-    /**
-     * OK
-     */
-    200: ListTemplate;
-};
-
-export type TemplatesListResponse = TemplatesListResponses[keyof TemplatesListResponses];
-
-export type TemplatesCreateData = {
-    body: TemplatesCreateInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/templates/create';
-};
-
-export type TemplatesCreateErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type TemplatesCreateError = TemplatesCreateErrors[keyof TemplatesCreateErrors];
-
-export type TemplatesCreateResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type TemplatesCreateResponse = TemplatesCreateResponses[keyof TemplatesCreateResponses];
-
-export type TemplatesDeleteData = {
-    body: TemplatesDeleteInBodyWritable;
-    path?: never;
-    query?: never;
-    url: '/templates/delete';
-};
-
-export type TemplatesDeleteErrors = {
-    /**
-     * Error
-     */
-    default: ErrorModel;
-};
-
-export type TemplatesDeleteError = TemplatesDeleteErrors[keyof TemplatesDeleteErrors];
-
-export type TemplatesDeleteResponses = {
-    /**
-     * OK
-     */
-    200: RawResponse;
-};
-
-export type TemplatesDeleteResponse = TemplatesDeleteResponses[keyof TemplatesDeleteResponses];

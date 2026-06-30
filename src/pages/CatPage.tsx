@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
 import { cat, type HostBodyWritable } from '../api/client';
-import { DataTable, type DataTableColumn } from '../components/DataTable';
-import { Icon } from '../components/Icon';
+import { Button } from '../components/Button';
+import { DataTable, SortIndicator, type DataTableColumn } from '../components/DataTable';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 
 const catApis = [
@@ -37,7 +38,7 @@ export function CatPage({ connection, notify }: { connection: HostBodyWritable; 
 
   async function run() {
     try {
-      const result = await cat<true>({ body: { ...connection, api: api.replace(/ /g, '_') }, throwOnError: true });
+      const result = await cat<true>({ path: { ...clusterPath(connection), api: api.replace(/ /g, '_') }, throwOnError: true });
       const nextRows = Array.isArray(result.data.data) ? (result.data.data as CatRow[]) : [];
       const nextHeaders = nextRows.length ? Object.keys(nextRows[0]).filter(Boolean) : [];
       setRows(nextRows);
@@ -70,7 +71,7 @@ export function CatPage({ connection, notify }: { connection: HostBodyWritable; 
   const columns: DataTableColumn<CatRow>[] = headers.map((header) => ({
     header: (
       <button className="normal-action border-0 bg-transparent p-0 text-inherit" type="button" onClick={() => sort(header)}>
-        {header} {header === sortCol ? <Icon name={sortAsc ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+        {header} <SortIndicator active={header === sortCol} order={sortAsc ? 'asc' : 'desc'} />
       </button>
     ),
     key: header,
@@ -93,9 +94,9 @@ export function CatPage({ connection, notify }: { connection: HostBodyWritable; 
           </div>
         </div>
         <div className="col-xs-12 text-right">
-          <button className="btn btn-success" type="button" onClick={() => void run()}>
+          <Button icon="bolt" variant="success" onClick={() => void run()}>
             execute
-          </button>
+          </Button>
         </div>
       </div>
       <div className="row">

@@ -8,6 +8,7 @@ import { DataTable, type DataTableColumn } from './DataTable';
 import { Icon } from './Icon';
 import { ConfirmModal, ModalFrame } from './Modal';
 import type { ClusterHealthFix, ClusterHealthIssue } from '../stores/sessionStore';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, timeInterval } from '../utils/format';
 
 const refreshOptions = [5000, 10000, 15000, 30000, 60000];
@@ -44,7 +45,8 @@ export function Navbar({
     if (fix.action !== 'set_index_replicas') return;
     try {
       await indexSettingsUpdate<true>({
-        body: { ...connection, index: fix.index, settings: { [fix.setting]: fix.value } },
+        body: { [fix.setting]: fix.value },
+        path: { ...clusterPath(connection), index: fix.index },
         throwOnError: true,
       });
       alertsActions.notify('info', `Applied fix: ${fix.summary}`);
@@ -55,7 +57,7 @@ export function Navbar({
   }
 
   if (!connected) return null;
-  const search = { host };
+  const search = { host: connection.host };
   const statusValue = status.toLowerCase();
   const showHealthIssue = statusValue === 'yellow' || statusValue === 'red';
   const statusBorder =

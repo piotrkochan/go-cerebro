@@ -11,19 +11,19 @@ import (
 )
 
 type ClusterChangesIn struct {
-	Body HostBody
+	ClusterPath
 }
 
 func (d *Deps) RegisterClusterChanges(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "cluster-changes",
-		Method:      http.MethodPost,
+		Method:      http.MethodGet,
 		Path:        "/cluster_changes",
 		Summary:     "Get cluster changes snapshot",
 		Description: "Returns the current index and node names plus the cluster name, used by the UI to detect cluster topology changes.",
 		Tags:        []string{"cluster"},
 	}, func(ctx context.Context, in *ClusterChangesIn) (*Output[transform.Changes], error) {
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[transform.Changes](400, err.Error())
 		}

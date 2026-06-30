@@ -82,20 +82,26 @@ func raw(status int, body json.RawMessage) (*RawOutput, error) {
 	return ok(status, RawResponse{Data: body})
 }
 
-// HostBody is embedded by every request body — the host name field that selects the cluster target.
+// HostBody is embedded by request bodies that need to select a cluster target.
+// Elasticsearch credentials are intentionally resolved only from backend config.
 type HostBody struct {
-	Host     string `json:"host" required:"true" doc:"Name of the target Elasticsearch host as configured."`
-	Username string `json:"username,omitempty" doc:"Optional per-request basic auth username override."`
-	Password string `json:"password,omitempty" doc:"Optional per-request basic auth password override."`
+	Host string `json:"host" required:"true" doc:"Name of the target Elasticsearch host as configured."`
 }
 
-// resolveTarget converts the "host" field on the request body into an elastic.Server, applying
-// the per-request override of credentials and forwarding any whitelisted headers.
+// ClusterPath selects the target cluster for REST-style endpoints.
+type ClusterPath struct {
+	Cluster string `path:"cluster" doc:"Configured Elasticsearch host slug."`
+}
+
+// resolveTarget converts the selected host into an elastic.Server and forwards whitelisted headers.
 func (d *Deps) resolveTarget(r *http.Request, hb HostBody) (elastic.Server, error) {
 	if hb.Host == "" {
 		return elastic.Server{}, errors.New("missing required parameter host")
 	}
 	host, ok := d.Cfg.HostByName(hb.Host)
+	if !ok {
+		host, ok = d.Cfg.HostBySlug(hb.Host)
+	}
 	if !ok {
 		if !d.Cfg.ES.AllowAdHocHosts {
 			return elastic.Server{}, errors.New("unknown elasticsearch host; add it to configuration or enable es.allow_ad_hoc_hosts")
@@ -105,9 +111,21 @@ func (d *Deps) resolveTarget(r *http.Request, hb HostBody) (elastic.Server, erro
 		}
 		host = config.Host{Name: hb.Host, Host: hb.Host}
 	}
-	if host.Auth == nil && hb.Username != "" && hb.Password != "" {
-		host.Auth = &config.ESAuth{Username: hb.Username, Password: hb.Password}
+	return elasticServer(r, host), nil
+}
+
+func (d *Deps) resolveClusterTarget(r *http.Request, slug string) (elastic.Server, error) {
+	if slug == "" {
+		return elastic.Server{}, errors.New("missing required parameter cluster")
 	}
+	host, ok := d.Cfg.HostBySlug(slug)
+	if !ok {
+		return elastic.Server{}, errors.New("unknown elasticsearch cluster slug")
+	}
+	return elasticServer(r, host), nil
+}
+
+func elasticServer(r *http.Request, host config.Host) elastic.Server {
 	headers := [][2]string{}
 	for _, h := range host.HeadersWhitelist {
 		if r != nil {
@@ -116,7 +134,29 @@ func (d *Deps) resolveTarget(r *http.Request, hb HostBody) (elastic.Server, erro
 			}
 		}
 	}
-	return elastic.Server{Host: host, Headers: headers}, nil
+	return elastic.Server{Host: host, Headers: headers}
+}
+
+type clusterTargetKey struct{}
+
+type clusterTargetResult struct {
+	target elastic.Server
+	err    error
+}
+
+// ClusterTargetMiddleware resolves the `{cluster}` path once for the whole request.
+func (d *Deps) ClusterTargetMiddleware(ctx huma.Context, next func(huma.Context)) {
+	result := clusterTargetResult{}
+	result.target, result.err = d.resolveClusterTarget(httpRequest(ctx.Context()), ctx.Param("cluster"))
+	next(huma.WithValue(ctx, clusterTargetKey{}, result))
+}
+
+func clusterTarget(ctx context.Context) (elastic.Server, error) {
+	result, ok := ctx.Value(clusterTargetKey{}).(clusterTargetResult)
+	if !ok {
+		return elastic.Server{}, errors.New("missing cluster target")
+	}
+	return result.target, result.err
 }
 
 func validateAdHocHost(raw string) error {
@@ -159,8 +199,8 @@ func WithHTTPRequest(ctx context.Context, r *http.Request) context.Context {
 
 // passthrough is the universal handler shape for proxy endpoints: resolve the target host,
 // run the Elasticsearch call and return its status and body verbatim.
-func (d *Deps) passthrough(ctx context.Context, hb HostBody, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error)) (*RawOutput, error) {
-	t, err := d.resolveTarget(httpRequest(ctx), hb)
+func (d *Deps) passthrough(ctx context.Context, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error)) (*RawOutput, error) {
+	t, err := clusterTarget(ctx)
 	if err != nil {
 		return failMsg[RawResponse](400, err.Error())
 	}
@@ -172,8 +212,8 @@ func (d *Deps) passthrough(ctx context.Context, hb HostBody, fn func(ctx context
 }
 
 // transformResp converts a successful ES response into a typed payload via tf; errors pass straight through.
-func transformResp[T any](ctx context.Context, d *Deps, hb HostBody, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error), tf func(json.RawMessage) T) (*Output[T], error) {
-	t, err := d.resolveTarget(httpRequest(ctx), hb)
+func transformResp[T any](ctx context.Context, d *Deps, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error), tf func(json.RawMessage) T) (*Output[T], error) {
+	t, err := clusterTarget(ctx)
 	if err != nil {
 		return failMsg[T](400, err.Error())
 	}
@@ -187,8 +227,8 @@ func transformResp[T any](ctx context.Context, d *Deps, hb HostBody, fn func(ctx
 	return ok(resp.Status, tf(resp.Body))
 }
 
-func transformRawResp(ctx context.Context, d *Deps, hb HostBody, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error), tf func(json.RawMessage) json.RawMessage) (*RawOutput, error) {
-	t, err := d.resolveTarget(httpRequest(ctx), hb)
+func transformRawResp(ctx context.Context, d *Deps, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error), tf func(json.RawMessage) json.RawMessage) (*RawOutput, error) {
+	t, err := clusterTarget(ctx)
 	if err != nil {
 		return failMsg[RawResponse](400, err.Error())
 	}
@@ -202,8 +242,8 @@ func transformRawResp(ctx context.Context, d *Deps, hb HostBody, fn func(ctx con
 	return raw(resp.Status, tf(resp.Body))
 }
 
-func transformListResp[T any](ctx context.Context, d *Deps, hb HostBody, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error), tf func(json.RawMessage) []T) (*Output[List[T]], error) {
-	t, err := d.resolveTarget(httpRequest(ctx), hb)
+func transformListResp[T any](ctx context.Context, d *Deps, fn func(ctx context.Context, t elastic.Server) (elastic.Response, error), tf func(json.RawMessage) []T) (*Output[List[T]], error) {
+	t, err := clusterTarget(ctx)
 	if err != nil {
 		return failMsg[List[T]](400, err.Error())
 	}

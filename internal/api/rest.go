@@ -13,12 +13,12 @@ import (
 )
 
 type RestIndexIn struct {
-	Body HostBody
+	ClusterPath
 }
 
 type RestRequestIn struct {
+	ClusterPath
 	Body struct {
-		HostBody
 		Method string          `json:"method" required:"true"`
 		Path   string          `json:"path" required:"true"`
 		Data   json.RawMessage `json:"data,omitempty"`
@@ -26,7 +26,7 @@ type RestRequestIn struct {
 }
 
 type RestHistoryIn struct {
-	Body HostBody
+	ClusterPath
 }
 
 type RestRequestResponse struct {
@@ -37,11 +37,11 @@ type RestRequestResponse struct {
 func (d *Deps) RegisterRest(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "rest-index",
-		Method:      http.MethodPost,
+		Method:      http.MethodGet,
 		Path:        "/rest",
 		Tags:        []string{"rest"},
 	}, func(ctx context.Context, in *RestIndexIn) (*RawOutput, error) {
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[RawResponse](400, err.Error())
 		}
@@ -63,10 +63,10 @@ func (d *Deps) RegisterRest(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "rest-request",
 		Method:      http.MethodPost,
-		Path:        "/rest/request",
+		Path:        "/rest/requests",
 		Tags:        []string{"rest"},
 	}, func(ctx context.Context, in *RestRequestIn) (*Output[RestRequestResponse], error) {
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body.HostBody)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[RestRequestResponse](400, err.Error())
 		}
@@ -94,7 +94,7 @@ func (d *Deps) RegisterRest(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "rest-history",
-		Method:      http.MethodPost,
+		Method:      http.MethodGet,
 		Path:        "/rest/history",
 		Tags:        []string{"rest"},
 	}, func(ctx context.Context, _ *RestHistoryIn) (*RawOutput, error) {

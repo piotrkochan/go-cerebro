@@ -11,19 +11,19 @@ import (
 )
 
 type NodesIn struct {
-	Body HostBody
+	ClusterPath
 }
 
 func (d *Deps) RegisterNodes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "nodes",
-		Method:      http.MethodPost,
+		Method:      http.MethodGet,
 		Path:        "/nodes",
 		Summary:     "List cluster nodes",
 		Description: "Returns one entry per node with roles, heap, disk, CPU and uptime information.",
 		Tags:        []string{"nodes"},
 	}, func(ctx context.Context, in *NodesIn) (*Output[List[transform.Node]], error) {
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[List[transform.Node]](400, err.Error())
 		}

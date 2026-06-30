@@ -1,16 +1,15 @@
 import type { HostBodyWritable } from '../api/client';
-import type { ConnectionAuth } from '../types';
-import { cleanConnection, savedHostKey } from '../utils/connection';
+import { cleanConnection, savedHostKey, savedHostNameKey } from '../utils/connection';
 import { createStore } from '@tanstack/react-store';
 
 type SessionState = {
-  auth: ConnectionAuth;
   connected: boolean;
   features: {
     dataExplorer: boolean;
   };
   healthIssue: ClusterHealthIssue | null;
   host: string;
+  hostName: string;
   status: string;
   version: string;
 };
@@ -43,30 +42,33 @@ export type ClusterUnassignedShard = {
 };
 
 const initialHost = window.localStorage.getItem(savedHostKey) ?? '';
+const initialHostName = window.localStorage.getItem(savedHostNameKey) ?? initialHost;
 
 export const sessionStore = createStore<SessionState>({
-  auth: {},
   connected: Boolean(initialHost),
   features: { dataExplorer: false },
   healthIssue: null,
   host: initialHost,
+  hostName: initialHostName,
   status: '',
   version: '',
 });
 
 export const sessionActions = {
-  connect(host: string, auth: ConnectionAuth = {}) {
+  connect(host: string, hostName = host) {
     window.localStorage.setItem(savedHostKey, host);
-    sessionStore.setState((state) => ({ ...state, auth, connected: true, healthIssue: null, host }));
+    window.localStorage.setItem(savedHostNameKey, hostName);
+    sessionStore.setState((state) => ({ ...state, connected: true, healthIssue: null, host, hostName }));
   },
   disconnect() {
     window.localStorage.removeItem(savedHostKey);
+    window.localStorage.removeItem(savedHostNameKey);
     sessionStore.setState(() => ({
-      auth: {},
       connected: false,
       features: { dataExplorer: false },
       healthIssue: null,
       host: '',
+      hostName: '',
       status: '',
       version: '',
     }));
@@ -77,6 +79,10 @@ export const sessionActions = {
   setHealthIssue(healthIssue: ClusterHealthIssue | null) {
     sessionStore.setState((state) => ({ ...state, healthIssue }));
   },
+  setHostName(hostName: string) {
+    window.localStorage.setItem(savedHostNameKey, hostName);
+    sessionStore.setState((state) => (state.hostName === hostName ? state : { ...state, hostName }));
+  },
   setStatus(status: string) {
     sessionStore.setState((state) => (state.status === status ? state : { ...state, status }));
   },
@@ -86,5 +92,5 @@ export const sessionActions = {
 };
 
 export function getConnection(state = sessionStore.state): HostBodyWritable {
-  return cleanConnection({ host: state.host, ...state.auth });
+  return cleanConnection({ host: state.host });
 }

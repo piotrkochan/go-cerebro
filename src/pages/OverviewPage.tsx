@@ -37,6 +37,7 @@ import {
 import { ConfirmModal, ModalFrame, useEscape } from '../components/Modal';
 import { sessionStore } from '../stores/sessionStore';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, formatJson, formatNumber, numberValue, textValue } from '../utils/format';
 
 type JsonDialog = {
@@ -92,7 +93,7 @@ export function OverviewPage({
 
   async function loadOverview(onData?: (nextData: Overview) => void) {
     try {
-      const result = await overview<true>({ body: connection, throwOnError: true });
+      const result = await overview<true>({ path: clusterPath(connection), throwOnError: true });
       if (onData) onData(result.data);
       else {
         setData(result.data);
@@ -138,11 +139,11 @@ export function OverviewPage({
   const indexActions = {
     clearCache: (index: OverviewIndex) =>
       void runAction('index cache cleared', () =>
-        overviewClearIndicesCache<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+        overviewClearIndicesCache<true>({ path: { ...clusterPath(connection), indices: index.name }, throwOnError: true }),
       ),
     closeIndex: (index: OverviewIndex) =>
       void runAction('index closed', () =>
-        overviewCloseIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+        overviewCloseIndices<true>({ path: { ...clusterPath(connection), indices: index.name }, throwOnError: true }),
       ),
     deleteIndex: (index: OverviewIndex) =>
       confirmDelete(
@@ -150,36 +151,36 @@ export function OverviewPage({
         `Delete index ${index.name}? This operation cannot be undone.`,
         () =>
           runAction('index deleted', () =>
-            overviewDeleteIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+            overviewDeleteIndices<true>({ path: { ...clusterPath(connection), indices: index.name }, throwOnError: true }),
           ),
       ),
     flushIndex: (index: OverviewIndex) =>
       void runAction('index flushed', () =>
-        overviewFlushIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+        overviewFlushIndices<true>({ path: { ...clusterPath(connection), indices: index.name }, throwOnError: true }),
       ),
     forceMerge: (index: OverviewIndex) =>
       void runAction('force merge started', () =>
-        overviewForceMerge<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+        overviewForceMerge<true>({ path: { ...clusterPath(connection), indices: index.name }, throwOnError: true }),
       ),
     openIndex: (index: OverviewIndex) =>
       void runAction('index opened', () =>
-        overviewOpenIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+        overviewOpenIndices<true>({ path: { ...clusterPath(connection), indices: index.name }, throwOnError: true }),
       ),
     refreshIndex: (index: OverviewIndex) =>
       void runAction('index refreshed', () =>
-        overviewRefreshIndices<true>({ body: { ...connection, indices: index.name }, throwOnError: true }),
+        overviewRefreshIndices<true>({ path: { ...clusterPath(connection), indices: index.name }, throwOnError: true }),
       ),
     showMappings: (index: OverviewIndex) =>
       void showJson(`${index.name} mappings`, () =>
-        commonsGetIndexMapping<true>({ body: { ...connection, index: index.name }, throwOnError: true }),
+        commonsGetIndexMapping<true>({ path: { ...clusterPath(connection), index: index.name }, throwOnError: true }),
       ),
     showSettings: (index: OverviewIndex) =>
       void showJson(`${index.name} settings`, () =>
-        commonsGetIndexSettings<true>({ body: { ...connection, index: index.name }, throwOnError: true }),
+        commonsGetIndexSettings<true>({ path: { ...clusterPath(connection), index: index.name }, throwOnError: true }),
       ),
     showStats: (index: OverviewIndex) =>
       void showJson(`${index.name} stats`, () =>
-        commonsGetIndexStats<true>({ body: { ...connection, index: index.name }, throwOnError: true }),
+        commonsGetIndexStats<true>({ path: { ...clusterPath(connection), index: index.name }, throwOnError: true }),
       ),
   };
 
@@ -212,7 +213,8 @@ export function OverviewPage({
     showStats: (shard: ShardRef) =>
       void showJson(`${shard.index} shard ${shard.shard} stats`, () =>
         overviewShardStats<true>({
-          body: { ...connection, index: shard.index, node: shard.node, shard: shard.shard },
+          path: { ...clusterPath(connection), index: shard.index, shard: shard.shard },
+          query: { node: shard.node },
           throwOnError: true,
         }),
       ),
@@ -223,12 +225,10 @@ export function OverviewPage({
     await runAction('relocation started', () =>
       overviewRelocateShard<true>({
         body: {
-          ...connection,
           from: relocatingShard.node,
-          index: relocatingShard.index,
-          shard: relocatingShard.shard,
           to,
         },
+        path: { ...clusterPath(connection), index: relocatingShard.index, shard: relocatingShard.shard },
         throwOnError: true,
       }),
     );
@@ -347,7 +347,8 @@ export function OverviewPage({
                               onClick={() =>
                                 void runAction('shard allocation disabled', () =>
                                   overviewDisableShardAllocation<true>({
-                                    body: { ...connection, kind },
+                                    body: { kind },
+                                    path: clusterPath(connection),
                                     throwOnError: true,
                                   }),
                                 )
@@ -368,7 +369,7 @@ export function OverviewPage({
                       title="enable shard allocation"
                       onClick={() =>
                         void runAction('shard allocation enabled', () =>
-                          overviewEnableShardAllocation<true>({ body: connection, throwOnError: true }),
+                          overviewEnableShardAllocation<true>({ path: clusterPath(connection), throwOnError: true }),
                         )
                       }
                     />
@@ -398,32 +399,32 @@ export function OverviewPage({
                   </span>
                   <ul className="absolute top-full left-0 z-[1000] hidden min-w-[160px] list-none border border-[#55595c] bg-[#373a3c] py-[5px] text-left shadow-lg group-hover:block group-focus-within:block [&>li>a]:block [&>li>a]:whitespace-nowrap [&>li>a]:px-5 [&>li>a]:py-[3px] [&>li>a:hover]:bg-[#434749] [&>li>a:hover]:text-white">
                     <li>
-                      <a onClick={() => void runAction('selected indices closed', () => overviewCloseIndices<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                      <a onClick={() => void runAction('selected indices closed', () => overviewCloseIndices<true>({ path: { ...clusterPath(connection), indices: selectedIndices }, throwOnError: true }))}>
                         <Icon name="folder" /> close selected
                       </a>
                     </li>
                     <li>
-                      <a onClick={() => void runAction('selected indices opened', () => overviewOpenIndices<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                      <a onClick={() => void runAction('selected indices opened', () => overviewOpenIndices<true>({ path: { ...clusterPath(connection), indices: selectedIndices }, throwOnError: true }))}>
                         <Icon name="folder-open" /> open selected
                       </a>
                     </li>
                     <li>
-                      <a onClick={() => void runAction('force merge started', () => overviewForceMerge<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                      <a onClick={() => void runAction('force merge started', () => overviewForceMerge<true>({ path: { ...clusterPath(connection), indices: selectedIndices }, throwOnError: true }))}>
                         <Icon name="wrench" /> force merge selected
                       </a>
                     </li>
                     <li>
-                      <a onClick={() => void runAction('selected indices refreshed', () => overviewRefreshIndices<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                      <a onClick={() => void runAction('selected indices refreshed', () => overviewRefreshIndices<true>({ path: { ...clusterPath(connection), indices: selectedIndices }, throwOnError: true }))}>
                         <Icon name="refresh" /> refresh selected
                       </a>
                     </li>
                     <li>
-                      <a onClick={() => void runAction('selected indices flushed', () => overviewFlushIndices<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                      <a onClick={() => void runAction('selected indices flushed', () => overviewFlushIndices<true>({ path: { ...clusterPath(connection), indices: selectedIndices }, throwOnError: true }))}>
                         <Icon name="gavel" /> flush selected
                       </a>
                     </li>
                     <li>
-                      <a onClick={() => void runAction('selected caches cleared', () => overviewClearIndicesCache<true>({ body: { ...connection, indices: selectedIndices }, throwOnError: true }))}>
+                      <a onClick={() => void runAction('selected caches cleared', () => overviewClearIndicesCache<true>({ path: { ...clusterPath(connection), indices: selectedIndices }, throwOnError: true }))}>
                         <Icon name="circle" /> clear selected caches
                       </a>
                     </li>
@@ -437,7 +438,7 @@ export function OverviewPage({
                             () =>
                               runAction('selected indices deleted', () =>
                                 overviewDeleteIndices<true>({
-                                  body: { ...connection, indices: selectedIndices },
+                                  path: { ...clusterPath(connection), indices: selectedIndices },
                                   throwOnError: true,
                                 }),
                               ),

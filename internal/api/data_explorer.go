@@ -26,9 +26,9 @@ var dataExplorerRangeOperator = regexp.MustCompile(`([_@A-Za-z0-9][_.@A-Za-z0-9-
 var dataExplorerBoolOperator = regexp.MustCompile(`(?i)\b(and|or|not)\b`)
 
 type DataExplorerSearchIn struct {
-	Body struct {
-		HostBody
-		Index     string `json:"index" required:"true" doc:"Index name."`
+	ClusterPath
+	Index string `path:"index" doc:"Index name."`
+	Body  struct {
 		Page      int    `json:"page,omitempty" minimum:"0" maximum:"10000" doc:"Zero-based page number."`
 		Size      int    `json:"size,omitempty" minimum:"1" maximum:"100" doc:"Rows per page."`
 		Query     string `json:"query,omitempty" maxLength:"512" doc:"Optional simple query string."`
@@ -39,9 +39,9 @@ type DataExplorerSearchIn struct {
 }
 
 type DataExplorerSaveIn struct {
-	Body struct {
-		HostBody
-		Index    string          `json:"index" required:"true" doc:"Index name."`
+	ClusterPath
+	Index string `path:"index" doc:"Index name."`
+	Body  struct {
 		ID       string          `json:"id,omitempty" maxLength:"512" doc:"Optional document id. Empty creates a new document id."`
 		Document json.RawMessage `json:"document" required:"true" doc:"Document _source JSON object."`
 	}
@@ -51,7 +51,7 @@ func (d *Deps) RegisterDataExplorer(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "data-explorer-search",
 		Method:      http.MethodPost,
-		Path:        "/data_explorer/search",
+		Path:        "/data_explorer/{index}/search",
 		Summary:     "Browse index documents",
 		Description: "Read-only, feature-flagged document browser for one Elasticsearch index.",
 		Tags:        []string{"data-explorer"},
@@ -66,17 +66,17 @@ func (d *Deps) RegisterDataExplorer(api huma.API) {
 		if err != nil {
 			return failMsg[transform.DataExplorerResult](http.StatusBadRequest, err.Error())
 		}
-		return transformResp(ctx, d, in.Body.HostBody,
+		return transformResp(ctx, d,
 			func(c context.Context, t elastic.Server) (elastic.Response, error) {
-				return d.Client.SearchIndexDocuments(c, in.Body.Index, query, t)
+				return d.Client.SearchIndexDocuments(c, in.Index, query, t)
 			},
 			transform.DataExplorerSearch)
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "data-explorer-save",
-		Method:      http.MethodPost,
-		Path:        "/data_explorer/save",
+		Method:      http.MethodPut,
+		Path:        "/data_explorer/{index}/documents",
 		Summary:     "Save index document",
 		Description: "Feature-flagged document insert/update for one Elasticsearch index.",
 		Tags:        []string{"data-explorer"},
@@ -87,21 +87,21 @@ func (d *Deps) RegisterDataExplorer(api huma.API) {
 		if err := validateDataExplorerSave(in); err != nil {
 			return failMsg[RawResponse](http.StatusBadRequest, err.Error())
 		}
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body.HostBody)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[RawResponse](http.StatusBadRequest, err.Error())
 		}
-		settings, err := d.Client.GetIndexSettings(ctx, in.Body.Index, t)
+		settings, err := d.Client.GetIndexSettings(ctx, in.Index, t)
 		if err != nil {
 			return failMsg[RawResponse](http.StatusInternalServerError, err.Error())
 		}
 		if !settings.IsSuccess() {
 			return fail[RawResponse](settings.Status, settings.Body)
 		}
-		if dataExplorerIndexReadOnly(settings.Body, in.Body.Index) {
+		if dataExplorerIndexReadOnly(settings.Body, in.Index) {
 			return failMsg[RawResponse](http.StatusConflict, "index is read-only")
 		}
-		resp, err := d.Client.SaveIndexDocument(ctx, in.Body.Index, in.Body.ID, in.Body.Document, t)
+		resp, err := d.Client.SaveIndexDocument(ctx, in.Index, in.Body.ID, in.Body.Document, t)
 		if err != nil {
 			return failMsg[RawResponse](http.StatusInternalServerError, err.Error())
 		}
@@ -110,11 +110,11 @@ func (d *Deps) RegisterDataExplorer(api huma.API) {
 }
 
 func validateDataExplorerRequest(in *DataExplorerSearchIn) error {
-	index := strings.TrimSpace(in.Body.Index)
+	index := strings.TrimSpace(in.Index)
 	if err := validateDataExplorerIndex(index); err != nil {
 		return err
 	}
-	in.Body.Index = index
+	in.Index = index
 	if len(in.Body.Query) > dataExplorerMaxQueryLen {
 		return huma.Error400BadRequest("query is too long")
 	}
@@ -147,11 +147,11 @@ func validateDataExplorerRequest(in *DataExplorerSearchIn) error {
 }
 
 func validateDataExplorerSave(in *DataExplorerSaveIn) error {
-	index := strings.TrimSpace(in.Body.Index)
+	index := strings.TrimSpace(in.Index)
 	if err := validateDataExplorerIndex(index); err != nil {
 		return err
 	}
-	in.Body.Index = index
+	in.Index = index
 	in.Body.ID = strings.TrimSpace(in.Body.ID)
 	if len(in.Body.ID) > dataExplorerMaxIDLen || strings.ContainsAny(in.Body.ID, "\x00\r\n") {
 		return huma.Error400BadRequest("document id contains unsupported characters")

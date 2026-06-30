@@ -11,34 +11,32 @@ import (
 )
 
 type RepositoriesListIn struct {
-	Body HostBody
+	ClusterPath
 }
 
 type RepositoriesCreateIn struct {
+	ClusterPath
+	Name string `path:"name" doc:"Repository name."`
 	Body struct {
-		HostBody
-		Name     string          `json:"name" required:"true" doc:"Repository name."`
 		Type     string          `json:"type" required:"true" doc:"Repository type (fs, s3, url, ...)."`
 		Settings json.RawMessage `json:"settings" required:"true" doc:"Repository settings, type-specific."`
 	}
 }
 
 type RepositoriesDeleteIn struct {
-	Body struct {
-		HostBody
-		Name string `json:"name" required:"true" doc:"Repository name."`
-	}
+	ClusterPath
+	Name string `path:"name" doc:"Repository name."`
 }
 
 func (d *Deps) RegisterRepositories(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "repositories-list",
-		Method:      http.MethodPost,
+		Method:      http.MethodGet,
 		Path:        "/repositories",
 		Summary:     "List snapshot repositories",
 		Tags:        []string{"repositories"},
 	}, func(ctx context.Context, in *RepositoriesListIn) (*Output[List[transform.Repository]], error) {
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[List[transform.Repository]](400, err.Error())
 		}
@@ -58,25 +56,25 @@ func (d *Deps) RegisterRepositories(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "repositories-create",
-		Method:      http.MethodPost,
-		Path:        "/repositories/create",
+		Method:      http.MethodPut,
+		Path:        "/repositories/{name}",
 		Summary:     "Create a snapshot repository",
 		Tags:        []string{"repositories"},
 	}, func(ctx context.Context, in *RepositoriesCreateIn) (*RawOutput, error) {
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
-			return d.Client.CreateRepository(c, in.Body.Name, in.Body.Type, in.Body.Settings, t)
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+			return d.Client.CreateRepository(c, in.Name, in.Body.Type, in.Body.Settings, t)
 		})
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "repositories-delete",
-		Method:      http.MethodPost,
-		Path:        "/repositories/delete",
+		Method:      http.MethodDelete,
+		Path:        "/repositories/{name}",
 		Summary:     "Delete a snapshot repository",
 		Tags:        []string{"repositories"},
 	}, func(ctx context.Context, in *RepositoriesDeleteIn) (*RawOutput, error) {
-		return d.passthrough(ctx, in.Body.HostBody, func(c context.Context, t elastic.Server) (elastic.Response, error) {
-			return d.Client.DeleteRepository(c, in.Body.Name, t)
+		return d.passthrough(ctx, func(c context.Context, t elastic.Server) (elastic.Response, error) {
+			return d.Client.DeleteRepository(c, in.Name, t)
 		})
 	})
 }

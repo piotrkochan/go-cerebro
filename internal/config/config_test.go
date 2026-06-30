@@ -66,6 +66,24 @@ hosts:
 	assert.False(t, ok)
 }
 
+func TestHostRefs_UsesStableUniqueSlugs(t *testing.T) {
+	cfg := &Config{Hosts: []Host{
+		{Name: "Moj klaster 01", Host: "http://one:9200"},
+		{Name: "Moj-klaster 01", Host: "http://two:9200"},
+		{Name: "Prod", Host: "http://prod:9200"},
+	}}
+
+	assert.Equal(t, []HostRef{
+		{Name: "Moj klaster 01", Slug: "moj-klaster-01"},
+		{Name: "Moj-klaster 01", Slug: "moj-klaster-01-2"},
+		{Name: "Prod", Slug: "prod"},
+	}, cfg.HostRefs())
+
+	host, ok := cfg.HostBySlug("moj-klaster-01-2")
+	require.True(t, ok)
+	assert.Equal(t, "http://two:9200", host.Host)
+}
+
 func TestLoad_RequiresESClientCertAndKeyTogether(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")
@@ -77,6 +95,19 @@ es:
 	_, err := Load(path)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "client_cert_file")
+}
+
+func TestLoad_RejectsCredentialsInHostURL(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+hosts:
+  - host: "https://elastic:secret@example.com:9200"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "credentials in host URL are not allowed")
 }
 
 func TestLoad_RequiresServerTLSCertAndKeyTogether(t *testing.T) {

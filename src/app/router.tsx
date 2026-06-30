@@ -32,13 +32,19 @@ import { sessionActions, sessionStore } from '../stores/sessionStore';
 type AppSearch = {
   host?: string;
   index?: string;
+  kind?: 'index' | 'component' | 'legacy';
   policy?: string;
+  stream?: string;
+  template?: string;
 };
 
 const validateSearch = (search: Record<string, unknown>): AppSearch => ({
   host: typeof search.host === 'string' ? search.host : undefined,
   index: typeof search.index === 'string' ? search.index : undefined,
+  kind: search.kind === 'index' || search.kind === 'component' || search.kind === 'legacy' ? search.kind : undefined,
   policy: typeof search.policy === 'string' ? search.policy : undefined,
+  stream: typeof search.stream === 'string' ? search.stream : undefined,
+  template: typeof search.template === 'string' ? search.template : undefined,
 });
 
 const rootRoute = createRootRoute({
@@ -55,8 +61,15 @@ const connectRoute = createRoute({
 function appRoute<TPath extends string>(path: TPath, component: () => ReactNode) {
   return createRoute({
     beforeLoad: ({ search }) => {
-      if (!sessionStore.state.connected || (search.host && search.host !== sessionStore.state.host)) {
+      const session = sessionStore.state;
+      if (!session.connected) {
         throw redirect({ search: search.host ? { host: search.host } : {}, to: '/connect' });
+      }
+      if (search.host && search.host !== session.host) {
+        if (search.host === session.hostName) {
+          throw redirect({ search: { ...search, host: session.host } });
+        }
+        throw redirect({ search: { host: search.host }, to: '/connect' });
       }
     },
     component,

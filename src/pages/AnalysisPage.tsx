@@ -11,6 +11,7 @@ import {
 import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
 
@@ -41,7 +42,7 @@ export function AnalysisPage({
   useEffect(() => {
     async function load() {
       try {
-        const result = await analysisIndices<true>({ body: connection, throwOnError: true });
+        const result = await analysisIndices<true>({ path: clusterPath(connection), throwOnError: true });
         setIndices((result.data.items ?? []).sort());
       } catch (error) {
         notify('danger', `Error loading indices: ${errorMessage(error)}`);
@@ -55,7 +56,7 @@ export function AnalysisPage({
     setField('');
     if (!index) return setFields([]);
     try {
-      const result = await analysisFields<true>({ body: { ...connection, index }, throwOnError: true });
+      const result = await analysisFields<true>({ path: { ...clusterPath(connection), index }, throwOnError: true });
       setFields((result.data.items ?? []).sort());
     } catch (error) {
       setFields([]);
@@ -68,7 +69,7 @@ export function AnalysisPage({
     setAnalyzer('');
     if (!index) return setAnalyzers([]);
     try {
-      const result = await analysisAnalyzers<true>({ body: { ...connection, index }, throwOnError: true });
+      const result = await analysisAnalyzers<true>({ path: { ...clusterPath(connection), index }, throwOnError: true });
       setAnalyzers((result.data.items ?? []).sort());
     } catch (error) {
       setAnalyzers([]);
@@ -80,7 +81,8 @@ export function AnalysisPage({
     if (!fieldIndex || !field || !fieldText) return;
     try {
       const result = await analysisAnalyzeField<true>({
-        body: { ...connection, field, index: fieldIndex, text: fieldText },
+        body: { field, text: fieldText },
+        path: { ...clusterPath(connection), index: fieldIndex },
         throwOnError: true,
       });
       setFieldTokens(tokens(result.data.data));
@@ -93,7 +95,8 @@ export function AnalysisPage({
     if (!analyzerIndex || !analyzer || !analyzerText) return;
     try {
       const result = await analysisAnalyzeAnalyzer<true>({
-        body: { ...connection, analyzer, index: analyzerIndex, text: analyzerText },
+        body: { analyzer, text: analyzerText },
+        path: { ...clusterPath(connection), index: analyzerIndex },
         throwOnError: true,
       });
       setAnalyzerTokens(tokens(result.data.data));

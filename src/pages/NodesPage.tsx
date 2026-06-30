@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { nodes, type HostBodyWritable, type Node } from '../api/client';
 import { NodeCell, SortLink, compareNodes, roleIcon } from '../components/LegacyUi';
 import { Icon } from '../components/Icon';
+import { clusterPath } from '../utils/connection';
 import { formatBytes, formatFixed, formatNumber, textValue, timeInterval } from '../utils/format';
 
 type NodeSort = keyof Node | 'cpu.load' | 'cpu.process' | 'heap.percent' | 'disk.percent';
@@ -24,7 +25,7 @@ export function NodesPage({ connection, refreshTick }: { connection: HostBodyWri
   useEffect(() => {
     let ignore = false;
     async function load() {
-      const result = await nodes<true>({ body: connection, throwOnError: true });
+      const result = await nodes<true>({ path: clusterPath(connection), throwOnError: true });
       if (!ignore) setData(result.data.items ?? []);
     }
     void load();

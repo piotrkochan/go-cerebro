@@ -26,6 +26,7 @@ export default defineConfig({
   publicDir: false,
   server: {
     proxy: {
+      '/clusters': apiTarget,
       '/aliases': apiTarget,
       '/analysis': apiTarget,
       '/auth': apiTarget,

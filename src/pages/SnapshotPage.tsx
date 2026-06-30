@@ -14,6 +14,7 @@ import { Icon } from '../components/Icon';
 import { ConfirmModal } from '../components/Modal';
 import { SplitPane } from '../components/SplitPane';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
 
@@ -45,7 +46,7 @@ export function SnapshotPage({
   useEffect(() => {
     async function load() {
       try {
-        const result = await snapshotsGet<true>({ body: connection, throwOnError: true });
+        const result = await snapshotsGet<true>({ path: clusterPath(connection), throwOnError: true });
         const data = result.data.data as SnapshotLoad;
         setIndices(data.indices ?? []);
         setRepositories((data.repositories ?? []).sort());
@@ -60,7 +61,7 @@ export function SnapshotPage({
     setRepository(nextRepository);
     if (!nextRepository) return setSnapshots([]);
     try {
-      const result = await snapshotsLoad<true>({ body: { ...connection, repository: nextRepository }, throwOnError: true });
+      const result = await snapshotsLoad<true>({ path: { ...clusterPath(connection), repository: nextRepository }, throwOnError: true });
       setSnapshots(Array.isArray(result.data.data) ? result.data.data as Snapshot[] : []);
     } catch (error) {
       notify('danger', `Error loading snapshots: ${errorMessage(error)}`);
@@ -69,7 +70,15 @@ export function SnapshotPage({
 
   async function createSnapshot() {
     try {
-      await snapshotsCreate<true>({ body: { ...connection, ...createForm }, throwOnError: true });
+      await snapshotsCreate<true>({
+        body: {
+          ignoreUnavailable: createForm.ignoreUnavailable,
+          includeGlobalState: createForm.includeGlobalState,
+          indices: createForm.indices,
+        },
+        path: { ...clusterPath(connection), repository: createForm.repository, snapshot: createForm.snapshot },
+        throwOnError: true,
+      });
       notify('info', 'Snapshot successfully created');
       await loadSnapshots(repository);
     } catch (error) {
@@ -79,7 +88,7 @@ export function SnapshotPage({
 
   async function deleteSnapshot(snapshot: string) {
     try {
-      await snapshotsDelete<true>({ body: { ...connection, repository, snapshot }, throwOnError: true });
+      await snapshotsDelete<true>({ path: { ...clusterPath(connection), repository, snapshot }, throwOnError: true });
       setDeleteSnapshotName('');
       notify('info', 'Snapshot successfully deleted');
       await loadSnapshots(repository);
@@ -91,7 +100,7 @@ export function SnapshotPage({
   async function restoreSnapshot(snapshot: string) {
     const form = restoreForms[snapshot] ?? defaultRestoreForm;
     try {
-      await snapshotsRestore<true>({ body: { ...connection, repository, snapshot, ...form }, throwOnError: true });
+      await snapshotsRestore<true>({ body: form, path: { ...clusterPath(connection), repository, snapshot }, throwOnError: true });
       notify('info', 'Snapshot successfully restored');
     } catch (error) {
       notify('danger', `Error restoring snapshot: ${errorMessage(error)}`);

@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 
 import { indexSettingsGet, indexSettingsUpdate, type HostBodyWritable } from '../api/client';
+import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
 import { SettingsPageLayout } from '../components/SettingsPageLayout';
 import { SettingValueInput } from '../components/SettingValueInput';
 import { isDynamicSetting, majorFromIndexVersionCreated, normalizeSettingValue, settingInput, settingSuggestions, type SettingInput } from '../settingsCatalog';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 
 type Setting = { input: SettingInput; name: string; static: boolean };
@@ -41,7 +43,7 @@ export function IndexSettingsPage({
   async function load() {
     if (!index) return;
     try {
-      const result = await indexSettingsGet<true>({ body: { ...connection, index }, throwOnError: true });
+      const result = await indexSettingsGet<true>({ path: { ...clusterPath(connection), index }, throwOnError: true });
       const flat = flattenIndexSettings(result.data.data, index, majorVersion);
       setSettings(flat);
       setForm(flat);
@@ -63,7 +65,7 @@ export function IndexSettingsPage({
 
   async function save() {
     try {
-      await indexSettingsUpdate<true>({ body: { ...connection, index, settings: changes }, throwOnError: true });
+      await indexSettingsUpdate<true>({ body: changes, path: { ...clusterPath(connection), index }, throwOnError: true });
       notify('info', 'Settings successfully saved');
       await load();
     } catch (error) {
@@ -124,7 +126,7 @@ export function IndexSettingsPage({
           </div>
         </div>
       ))}
-      pendingFooter={<button className="btn btn-success" type="button" onClick={() => void save()}>save</button>}
+      pendingFooter={<Button icon="save" variant="success" onClick={() => void save()}>save</Button>}
       renderSetting={(setting) => (
         <div className="grid gap-2 px-3 py-2 lg:grid-cols-[minmax(260px,42%)_minmax(220px,1fr)] lg:items-center" key={setting.name}>
           <label className="mb-0 min-w-0 font-normal text-[#d0d0d0]">

@@ -8,11 +8,13 @@ import {
   dataExplorerSearch,
   type HostBodyWritable,
 } from '../api/client';
+import { SortIndicator } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { Loading } from '../components/LegacyUi';
 import { dataExplorerActions, dataExplorerStore } from '../stores/dataExplorerStore';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { errorMessage, formatJson, formatNumber, textValue } from '../utils/format';
 
 type DataRow = Record<string, unknown>;
@@ -81,8 +83,6 @@ export function DataExplorerPage({
     try {
       const result = await dataExplorerSearch<true>({
         body: {
-          ...connection,
-          index,
           page,
           query: executedQuery,
           query_mode: prefs.queryMode,
@@ -90,6 +90,7 @@ export function DataExplorerPage({
           sort_field: prefs.sortField,
           sort_order: prefs.sortOrder,
         },
+        path: { ...clusterPath(connection), index },
         throwOnError: true,
       });
       setColumns(result.data.columns ?? []);
@@ -108,8 +109,8 @@ export function DataExplorerPage({
   async function loadIndexMetadata() {
     try {
       const [mapping, settings] = await Promise.all([
-        commonsGetIndexMapping<true>({ body: { ...connection, index }, throwOnError: true }),
-        commonsGetIndexSettings<true>({ body: { ...connection, index }, throwOnError: true }),
+        commonsGetIndexMapping<true>({ path: { ...clusterPath(connection), index }, throwOnError: true }),
+        commonsGetIndexSettings<true>({ path: { ...clusterPath(connection), index }, throwOnError: true }),
       ]);
       setFields(extractMappingFields(mapping.data.data, index));
       setReadOnly(indexSettingsReadOnly(settings.data.data, index));
@@ -171,11 +172,10 @@ export function DataExplorerPage({
     try {
       await dataExplorerSave<true>({
         body: {
-          ...connection,
           document: JSON.parse(editor.value) as unknown,
           id: editor.documentID,
-          index,
         },
+        path: { ...clusterPath(connection), index },
         throwOnError: true,
       });
       notify('success', editor.mode === 'insert' ? 'Document inserted' : 'Document saved');
@@ -337,8 +337,7 @@ export function DataExplorerPage({
                         key={column}
                         onClick={() => column !== '_id' && dataExplorerActions.setSort(column)}
                       >
-                        {column}
-                        {prefs.sortField === column ? <Icon name={prefs.sortOrder === 'asc' ? 'caret-down' : 'sort-alpha-desc'} /> : null}
+                        {column} <SortIndicator active={prefs.sortField === column} order={prefs.sortOrder} />
                       </th>
                     ))}
                   </tr>

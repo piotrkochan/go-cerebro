@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 
-import { connect, connectHosts, type HostBodyWritable } from '../api/client';
+import { connect, connectHosts, type HostRef } from '../api/client';
+import { Button } from '../components/Button';
 import { CerebroLogo } from '../components/CerebroLogo';
 import { Icon } from '../components/Icon';
-import { authFormDefaults, connectFormDefaults } from '../forms/connectForm';
-import type { ConnectionAuth } from '../types';
+import { connectFormDefaults } from '../forms/connectForm';
 import { cleanConnection } from '../utils/connection';
 import { errorMessage } from '../utils/format';
 import { APP_VERSION } from '../version';
@@ -15,22 +15,15 @@ export function ConnectPage({
   onConnected,
 }: {
   currentHost: string;
-  onConnected: (host: string, auth?: ConnectionAuth) => void;
+  onConnected: (host: string, hostName: string) => void;
 }) {
-  const [hosts, setHosts] = useState<string[]>([]);
+  const [hosts, setHosts] = useState<HostRef[]>([]);
   const [connecting, setConnecting] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [unauthorized, setUnauthorized] = useState(false);
   const connectForm = useForm({
     defaultValues: connectFormDefaults(currentHost),
     onSubmit: async ({ value }) => {
       await submit(value.host);
-    },
-  });
-  const authForm = useForm({
-    defaultValues: authFormDefaults,
-    onSubmit: async ({ value }) => {
-      await submit(connectForm.getFieldValue('host'), value);
     },
   });
 
@@ -54,16 +47,17 @@ export function ConnectPage({
     connectForm.setFieldValue('host', currentHost);
   }, [connectForm, currentHost]);
 
-  async function submit(nextHost = host, nextAuth: Pick<HostBodyWritable, 'username' | 'password'> = {}) {
+  async function submit(nextHost = host, nextSlug = nextHost, nextName = nextHost) {
     setConnecting(true);
     setFeedback('');
     try {
-      await connect<true>({ body: cleanConnection({ host: nextHost, ...nextAuth }), throwOnError: true });
-      onConnected(nextHost, nextAuth);
+      await connect<true>({ body: cleanConnection({ host: nextHost }), throwOnError: true });
+      onConnected(nextSlug, nextName);
     } catch (error) {
       const message = errorMessage(error);
-      setFeedback(message);
-      setUnauthorized(/401|unauthorized/i.test(message));
+      setFeedback(/401|unauthorized/i.test(message)
+        ? 'Elasticsearch requires authentication. Configure credentials for this host in the Cerebro backend config.'
+        : message);
     } finally {
       setConnecting(false);
     }
@@ -93,97 +87,53 @@ export function ConnectPage({
             {feedback ? <span className="text-danger">{feedback}</span> : null}
           </p>
         </div>
-        {!unauthorized ? (
-          <>
-            {hosts.length > 0 ? (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Known clusters</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...hosts].sort().map((knownHost) => (
-                    <tr key={knownHost}>
-                      <td className="normal-action" onClick={() => void submit(knownHost)}>
-                        <span>{knownHost}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : null}
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                void connectForm.handleSubmit();
-              }}
-            >
-              <div className="form-group">
-                <label htmlFor="host">Node address</label>
-                <connectForm.Field name="host">
-                  {(field) => (
-                    <input
-                      id="host"
-                      className="form-control form-control-sm"
-                      placeholder="e.g.: http://localhost:9200"
-                      type="text"
-                      value={field.state.value}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                    />
-                  )}
-                </connectForm.Field>
-              </div>
-              <connectForm.Subscribe selector={(state) => state.values.host}>
-                {(hostValue) => (
-                  <button className="btn btn-success pull-right" disabled={!hostValue} type="submit">
-                    Connect
-                  </button>
-                )}
-              </connectForm.Subscribe>
-            </form>
-          </>
-        ) : (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void authForm.handleSubmit();
-            }}
-          >
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
-              <authForm.Field name="username">
-                {(field) => (
-                  <input
-                    id="username"
-                    className="form-control form-control-sm"
-                    placeholder="admin"
-                    type="text"
-                    value={field.state.value}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                  />
-                )}
-              </authForm.Field>
-            </div>
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <authForm.Field name="password">
-                {(field) => (
-                  <input
-                    id="password"
-                    className="form-control form-control-sm"
-                    type="password"
-                    value={field.state.value}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                  />
-                )}
-              </authForm.Field>
-            </div>
-            <button className="btn btn-success pull-right" type="submit">
-              Authenticate
-            </button>
-          </form>
-        )}
+        {hosts.length > 0 ? (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Known clusters</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...hosts].sort((left, right) => left.name.localeCompare(right.name)).map((knownHost) => (
+                <tr key={knownHost.slug}>
+                  <td className="normal-action" onClick={() => void submit(knownHost.name, knownHost.slug, knownHost.name)}>
+                    <span>{knownHost.name}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void connectForm.handleSubmit();
+          }}
+        >
+          <div className="form-group">
+            <label htmlFor="host">Node address</label>
+            <connectForm.Field name="host">
+              {(field) => (
+                <input
+                  id="host"
+                  className="form-control form-control-sm"
+                  placeholder="e.g.: http://localhost:9200"
+                  type="text"
+                  value={field.state.value}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                />
+              )}
+            </connectForm.Field>
+          </div>
+          <connectForm.Subscribe selector={(state) => state.values.host}>
+            {(hostValue) => (
+              <Button className="pull-right" disabled={!hostValue} icon="plug" type="submit" variant="success">
+                Connect
+              </Button>
+            )}
+          </connectForm.Subscribe>
+        </form>
       </div>
     </>
   );

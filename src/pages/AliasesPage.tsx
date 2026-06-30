@@ -9,6 +9,7 @@ import { ConfirmModal } from '../components/Modal';
 import { SplitPane } from '../components/SplitPane';
 import { aliasFormDefaults, type AliasFormValues } from '../forms/aliasForm';
 import type { Notify } from '../types';
+import { clusterPath } from '../utils/connection';
 import { formatJson, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
 
@@ -39,8 +40,8 @@ export function AliasesPage({
   useEffect(() => {
     async function load() {
       const [aliasesResult, overviewResult] = await Promise.all([
-        aliasesGet<true>({ body: connection, throwOnError: true }),
-        overview<true>({ body: connection, throwOnError: true }),
+        aliasesGet<true>({ path: clusterPath(connection), throwOnError: true }),
+        overview<true>({ path: clusterPath(connection), throwOnError: true }),
       ]);
       setAliases(aliasesResult.data.items ?? []);
       setOverviewData(overviewResult.data);
@@ -148,7 +149,7 @@ export function AliasesPage({
   }
 
   async function saveChanges() {
-    await aliasesUpdate<true>({ body: { ...connection, changes }, throwOnError: true });
+    await aliasesUpdate<true>({ body: { changes }, path: clusterPath(connection), throwOnError: true });
     setChanges([]);
     resetAliasForm();
     notify('success', 'aliases updated');
@@ -276,7 +277,7 @@ export function AliasesPage({
               <DataTable columns={changeColumns} getRowKey={(_, index) => String(index)} rows={changes} showHeader={false} />
               <div className="text-right">
                 <button className="btn btn-default" type="button" onClick={() => setChanges([])}>
-                  discard all
+                  <Icon name="undo" /> discard all
                 </button>{' '}
                 <button className="btn btn-success" type="button" onClick={() => void saveChanges()}>
                   <Icon name="check" /> apply

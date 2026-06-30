@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { SplitPane } from '../components/SplitPane';
 import { restRequestFormDefaults, type RestRequestFormValues } from '../forms/restRequestForm';
+import { clusterPath } from '../utils/connection';
 import { curl, formatJson, parseJson, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
 
@@ -46,7 +47,8 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
     const startedAt = performance.now();
     try {
       const result = await restRequest<true>({
-        body: { ...connection, data: parseJson(values.body), method: values.method, path: values.path },
+        body: { data: parseJson(values.body), method: values.method, path: values.path },
+        path: clusterPath(connection),
         throwOnError: true,
       });
       setResponse({ body: result.data.data, durationMs: Math.round(performance.now() - startedAt), status: result.data.status });
@@ -60,7 +62,7 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
 
   async function loadHistory() {
     try {
-      const result = await restHistory<true>({ body: connection, throwOnError: true });
+      const result = await restHistory<true>({ path: clusterPath(connection), throwOnError: true });
       setHistory(Array.isArray(result.data.data) ? result.data.data : []);
     } catch {
       setHistory([]);
@@ -70,7 +72,7 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
   async function loadPathSuggestions() {
     const common = ['_cluster/health', '_cat/indices?format=json', '_nodes', '_nodes/stats', '_aliases', '_mapping'];
     try {
-      const result = await restIndex<true>({ body: connection, throwOnError: true });
+      const result = await restIndex<true>({ path: clusterPath(connection), throwOnError: true });
       const data = result.data.data as { indices?: unknown[] } | undefined;
       const indices = Array.isArray(data?.indices) ? data.indices.map(textValue).filter(Boolean) : [];
       setPathSuggestions([

@@ -14,19 +14,19 @@ import (
 )
 
 type NavbarIn struct {
-	Body HostBody
+	ClusterPath
 }
 
 func (d *Deps) RegisterNavbar(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "navbar",
-		Method:      http.MethodPost,
+		Method:      http.MethodGet,
 		Path:        "/navbar",
 		Summary:     "Get navbar data",
 		Description: "Returns the cluster health document (verbatim from _cluster/health), extended with navbar metadata.",
 		Tags:        []string{"navbar"},
 	}, func(ctx context.Context, in *NavbarIn) (*RawOutput, error) {
-		t, err := d.resolveTarget(httpRequest(ctx), in.Body)
+		t, err := clusterTarget(ctx)
 		if err != nil {
 			return failMsg[RawResponse](400, err.Error())
 		}
