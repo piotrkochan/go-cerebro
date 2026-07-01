@@ -65,7 +65,7 @@ jobs:
       - name: Build frontend
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          VITE_APP_VERSION="${VERSION}" npm run build
+          VITE_APP_VERSION="${VERSION}" npm run build:vite
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4

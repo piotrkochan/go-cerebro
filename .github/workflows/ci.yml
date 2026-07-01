@@ -65,7 +65,7 @@ jobs:
         run: go test -race -shuffle=on -coverprofile=coverage.out ./cmd/... ./internal/...
 
       - name: Build frontend
-        run: npm run build
+        run: npm run build:vite
 
       - name: Build Go binary
         run: go build -v ./cmd/cerebro
