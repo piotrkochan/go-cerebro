@@ -341,6 +341,7 @@ function ILMPolicyTable({
     {
       header: 'used by',
       key: 'used-by',
+      truncate: false,
       render: (policy) => <PolicyUsage policy={policy} />,
     },
     {

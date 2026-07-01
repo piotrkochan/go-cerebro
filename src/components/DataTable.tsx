@@ -8,6 +8,7 @@ export type DataTableColumn<T> = {
   header: ReactNode;
   headerClassName?: string;
   key: string;
+  truncate?: boolean;
   width?: string;
   render: (row: T, index: number) => ReactNode;
 };
@@ -85,7 +86,7 @@ export function DataTable<T>({
                 <tr className={trClassName} onClick={onRowClick ? () => onRowClick(row, index) : undefined}>
                   {columns.map((column) => (
                     <td className={[column.key === 'actions' ? 'whitespace-nowrap' : '', column.className].filter(Boolean).join(' ')} key={column.key}>
-                      <div className={column.key === 'actions' ? 'min-w-0 overflow-visible' : 'min-w-0 truncate'}>{column.render(row, index)}</div>
+                      <div className={column.key === 'actions' || column.truncate === false ? 'min-w-0 overflow-visible' : 'min-w-0 truncate'}>{column.render(row, index)}</div>
                     </td>
                   ))}
                 </tr>
