@@ -91,3 +91,6 @@ jobs:
 
       - name: Run Elasticsearch compatibility tests
         run: bash scripts/e2e-elasticsearch-compat.sh
+
+      - name: Run Floci OpenSearch compatibility tests
+        run: bash scripts/e2e-floci-opensearch-compat.sh

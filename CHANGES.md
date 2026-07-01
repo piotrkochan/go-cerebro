@@ -146,6 +146,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 ### CI and Release
 - Added GitHub Actions CI for Go tests, frontend typechecks, OpenAPI client generation checks and builds.
 - Added Docker-backed Elasticsearch compatibility e2e tests across Elasticsearch 5.x, 6.x, 7.x, 8.x and 9.x.
+- Added Floci-backed AWS OpenSearch compatibility e2e tests using the normal Cerebro `hosts` and `es.aws` config path.
 - Added tag-based release workflow.
 - Added release package build with version linker flag.
 - Added generated frontend build during release packaging.

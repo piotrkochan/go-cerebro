@@ -19,21 +19,14 @@ import (
 )
 
 func TestElasticsearchCompatibility(t *testing.T) {
-	esURL := strings.TrimSpace(os.Getenv("CEREBRO_E2E_ES_URL"))
-	if esURL == "" {
-		t.Skip("set CEREBRO_E2E_ES_URL to run Elasticsearch compatibility tests")
-	}
-
-	major := envInt(t, "CEREBRO_E2E_ES_MAJOR")
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	client, err := elastic.NewHTTPClientWithConfig(&http.Client{Timeout: 30 * time.Second}, config.ES{
-		MaxResponseBytes: config.DefaultMaxResponseBytes,
-	})
+	esConfig, target := e2eTarget(t)
+	major := envInt(t, "CEREBRO_E2E_ES_MAJOR")
+	client, err := elastic.NewHTTPClientWithConfig(&http.Client{Timeout: 30 * time.Second}, esConfig)
 	require.NoError(t, err)
 
-	target := elastic.Server{Host: config.Host{Name: "e2e", Host: esURL}}
 	index := fmt.Sprintf("cerebro-e2e-%d", time.Now().UnixNano())
 	alias := index + "-alias"
 	t.Cleanup(func() {
@@ -99,6 +92,38 @@ func TestElasticsearchCompatibility(t *testing.T) {
 	requireCall(t, "close index", func() (elastic.Response, error) { return client.CloseIndex(ctx, index, target) })
 	requireCall(t, "open index", func() (elastic.Response, error) { return client.OpenIndex(ctx, index, target) })
 	requireCall(t, "delete index", func() (elastic.Response, error) { return client.DeleteIndex(ctx, index, target) })
+}
+
+func e2eTarget(t *testing.T) (config.ES, elastic.Server) {
+	t.Helper()
+
+	configPath := strings.TrimSpace(os.Getenv("CEREBRO_E2E_CONFIG"))
+	if configPath == "" {
+		esURL := strings.TrimSpace(os.Getenv("CEREBRO_E2E_ES_URL"))
+		if esURL == "" {
+			t.Skip("set CEREBRO_E2E_ES_URL or CEREBRO_E2E_CONFIG to run Elasticsearch compatibility tests")
+		}
+		return config.ES{MaxResponseBytes: config.DefaultMaxResponseBytes}, elastic.Server{
+			Host: config.Host{Name: "e2e", Host: esURL},
+		}
+	}
+
+	cfg, err := config.Load(configPath)
+	require.NoError(t, err)
+	hostName := strings.TrimSpace(os.Getenv("CEREBRO_E2E_CONFIG_HOST"))
+	var host config.Host
+	var ok bool
+	if hostName != "" {
+		host, ok = cfg.HostByName(hostName)
+		if !ok {
+			host, ok = cfg.HostBySlug(hostName)
+		}
+		require.True(t, ok, "host %q not found in %s", hostName, configPath)
+	} else {
+		require.NotEmpty(t, cfg.Hosts, "config %s must define at least one host", configPath)
+		host = cfg.Hosts[0]
+	}
+	return cfg.ES, elastic.Server{Host: host}
 }
 
 func requireCall(t *testing.T, operation string, call func() (elastic.Response, error)) elastic.Response {

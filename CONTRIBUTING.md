@@ -82,6 +82,12 @@ To run only selected versions:
 CEREBRO_E2E_ES_VERSIONS="8:8.15.0 9:9.3.6" npm run test:e2e:elasticsearch
 ```
 
+AWS OpenSearch compatibility is covered separately through Floci. The test creates a normal Cerebro YAML config with `hosts` and `es.aws`, then runs the same e2e suite through that config:
+
+```sh
+npm run test:e2e:floci-opensearch
+```
+
 For security-sensitive changes, also run:
 
 ```sh
