@@ -9,6 +9,9 @@ type AlertsState = {
 export const alertsStore = createStore<AlertsState>({ alerts: [] });
 
 export const alertsActions = {
+  clear() {
+    alertsStore.setState(() => ({ alerts: [] }));
+  },
   dismiss(id: number) {
     alertsStore.setState((state) => ({ alerts: state.alerts.filter((alert) => alert.id !== id) }));
   },

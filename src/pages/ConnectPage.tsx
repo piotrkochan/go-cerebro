@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 
 import { connect, connectHosts, type HostRef } from '../api/client';
+import { loadAuthStatus } from '../api/security';
 import { Button } from '../components/Button';
 import { CerebroLogo } from '../components/CerebroLogo';
 import { Icon } from '../components/Icon';
@@ -10,6 +11,12 @@ import { cleanConnection } from '../utils/connection';
 import { errorMessage } from '../utils/format';
 import { APP_VERSION } from '../version';
 
+type AuthStatus = {
+  authenticated: boolean;
+  enabled: boolean;
+  user: string;
+};
+
 export function ConnectPage({
   currentHost,
   onConnected,
@@ -17,6 +24,7 @@ export function ConnectPage({
   currentHost: string;
   onConnected: (host: string, hostName: string) => void;
 }) {
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
   const [hosts, setHosts] = useState<HostRef[]>([]);
   const [connecting, setConnecting] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -29,6 +37,16 @@ export function ConnectPage({
 
   useEffect(() => {
     let ignore = false;
+    async function syncAuthStatus() {
+      const data = await loadAuthStatus();
+      if (!ignore && data) {
+        setAuthStatus({
+          authenticated: data.authenticated === true,
+          enabled: data.enabled === true,
+          user: typeof data.user === 'string' ? data.user : '',
+        });
+      }
+    }
     async function load() {
       try {
         const result = await connectHosts<true>({ throwOnError: true });
@@ -37,6 +55,7 @@ export function ConnectPage({
         if (!ignore) setHosts([]);
       }
     }
+    void syncAuthStatus();
     void load();
     return () => {
       ignore = true;
@@ -76,6 +95,16 @@ export function ConnectPage({
         </div>
       </div>
       <div style={{ maxWidth: 400, marginLeft: 'auto', marginRight: 'auto' }}>
+        {authStatus?.enabled && authStatus.authenticated ? (
+          <div className="mb-3 flex items-center justify-end gap-3 text-muted">
+            {authStatus.user ? <span>{authStatus.user}</span> : null}
+            <form action="/auth/logout" method="POST">
+              <Button icon="log-out" size="xs" type="submit">
+                Logout
+              </Button>
+            </form>
+          </div>
+        ) : null}
         <div className="text-center">
           <p>
             {connecting ? (

@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +17,7 @@ import (
 const (
 	SessionName    = "cerebro"
 	SessionUserKey = "username"
+	SessionCSRFKey = "csrf"
 	RedirectURL    = "redirect"
 )
 
@@ -108,8 +112,48 @@ func (m *Module) SessionUser(r *http.Request) (string, bool) {
 func (m *Module) SetSessionUser(w http.ResponseWriter, r *http.Request, username string) error {
 	sess, _ := m.store.Get(r, SessionName)
 	sess.Values[SessionUserKey] = username
+	token, err := newCSRFToken()
+	if err != nil {
+		return err
+	}
+	sess.Values[SessionCSRFKey] = token
 	delete(sess.Values, RedirectURL)
 	return sess.Save(r, w)
+}
+
+func (m *Module) CSRFToken(r *http.Request) (string, bool) {
+	sess, err := m.store.Get(r, SessionName)
+	if err != nil {
+		return "", false
+	}
+	v, ok := sess.Values[SessionCSRFKey]
+	if !ok {
+		return "", false
+	}
+	s, ok := v.(string)
+	return s, ok && s != ""
+}
+
+func (m *Module) EnsureCSRFToken(w http.ResponseWriter, r *http.Request) (string, error) {
+	if token, ok := m.CSRFToken(r); ok {
+		return token, nil
+	}
+	token, err := newCSRFToken()
+	if err != nil {
+		return "", err
+	}
+	sess, _ := m.store.Get(r, SessionName)
+	sess.Values[SessionCSRFKey] = token
+	return token, sess.Save(r, w)
+}
+
+func (m *Module) ValidCSRF(r *http.Request) bool {
+	expected, ok := m.CSRFToken(r)
+	if !ok {
+		return false
+	}
+	got := r.Header.Get("X-Cerebro-CSRF")
+	return got != "" && subtleConstantTimeEqual(got, expected)
 }
 
 func (m *Module) ClearSession(w http.ResponseWriter, r *http.Request) error {
@@ -167,8 +211,7 @@ func safeRedirect(u string) string {
 }
 
 // Middleware enforces authentication for API endpoints. When auth is disabled it's a no-op.
-// When auth is enabled and there is no session, it returns 303 for API endpoints so
-// the UI can route the user to the login page without using a response envelope.
+// When auth is enabled and there is no session, it returns 401.
 func (m *Module) APIMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !m.enabled {
@@ -177,9 +220,24 @@ func (m *Module) APIMiddleware(next http.Handler) http.Handler {
 		}
 		user, ok := m.SessionUser(r)
 		if !ok {
-			w.WriteHeader(http.StatusSeeOther)
+			http.Error(w, "authentication required", http.StatusUnauthorized)
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(WithUser(r.Context(), user)))
 	})
+}
+
+func newCSRFToken() (string, error) {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(raw), nil
+}
+
+func subtleConstantTimeEqual(a, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }

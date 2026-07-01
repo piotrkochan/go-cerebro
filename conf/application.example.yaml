@@ -46,6 +46,8 @@ server:
   secret: "${APPLICATION_SECRET}"
   # Keep true when served through HTTPS. Set false only for local HTTP dev.
   cookie_secure: true
+  # Require a session-bound CSRF token for Cerebro API requests.
+  csrf_enabled: true
   max_request_bytes: 5242880
   # Optional HTTPS listener. When both files are configured, Cerebro serves HTTPS.
   # tls_cert_file: "/etc/cerebro/tls/tls.crt"

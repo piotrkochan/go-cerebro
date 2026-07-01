@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
 
@@ -8,22 +9,27 @@ import (
 )
 
 type BasicService struct {
-	username []byte
-	password []byte
+	usernameHash [sha256.Size]byte
+	passwordHash [sha256.Size]byte
 }
 
 func NewBasicService(s config.AuthSettings) (*BasicService, error) {
 	if s.Username == "" || s.Password == "" {
 		return nil, errors.New("basic auth requires username and password settings")
 	}
-	return &BasicService{username: []byte(s.Username), password: []byte(s.Password)}, nil
+	return &BasicService{
+		usernameHash: sha256.Sum256([]byte(s.Username)),
+		passwordHash: sha256.Sum256([]byte(s.Password)),
+	}, nil
 }
 
-// Authenticate compares both fields with constant-time comparison to avoid leaking the
-// expected username/password through response timing.
+// Authenticate hashes both fields before constant-time comparison so input length does not
+// affect comparison timing.
 func (b *BasicService) Authenticate(username, password string) (string, error) {
-	uOK := subtle.ConstantTimeCompare([]byte(username), b.username) == 1
-	pOK := subtle.ConstantTimeCompare([]byte(password), b.password) == 1
+	usernameHash := sha256.Sum256([]byte(username))
+	passwordHash := sha256.Sum256([]byte(password))
+	uOK := subtle.ConstantTimeCompare(usernameHash[:], b.usernameHash[:]) == 1
+	pOK := subtle.ConstantTimeCompare(passwordHash[:], b.passwordHash[:]) == 1
 	if uOK && pOK {
 		return username, nil
 	}

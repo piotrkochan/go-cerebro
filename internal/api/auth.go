@@ -16,8 +16,33 @@ func (d *Deps) RegisterAuth(api huma.API, mux interface {
 }) {
 	// We register login/logout directly on chi (mux) instead of via Huma — they need flexible
 	// content-type handling (form vs JSON) and cookie writing on the http.ResponseWriter.
+	mux.HandleFunc("GET /auth/status", d.handleAuthStatus)
 	mux.HandleFunc("POST /auth/login", d.handleLogin)
 	mux.HandleFunc("POST /auth/logout", d.handleLogout)
+}
+
+func (d *Deps) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
+	user, authenticated := d.Auth.SessionUser(r)
+	csrfToken := ""
+	if d.Cfg.Server.CSRFEnabled {
+		var err error
+		csrfToken, err = d.Auth.EnsureCSRFToken(w, r)
+		if err != nil {
+			http.Error(w, "csrf token error", http.StatusInternalServerError)
+			return
+		}
+	}
+	if !d.Auth.Enabled() {
+		authenticated = false
+		user = ""
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"authenticated": authenticated,
+		"csrf_token":    csrfToken,
+		"enabled":       d.Auth.Enabled(),
+		"user":          user,
+	})
 }
 
 func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +74,7 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	username, err := d.Auth.Authenticate(user, password)
 	if err != nil {
-		http.Redirect(w, r, basePathFor(d, "/login"), http.StatusSeeOther)
+		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
 		return
 	}
 	if err := d.Auth.SetSessionUser(w, r, username); err != nil {
@@ -65,7 +90,7 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 func (d *Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
 	_ = d.Auth.ClearSession(w, r)
-	http.Redirect(w, r, basePathFor(d, "/login"), http.StatusSeeOther)
+	http.Redirect(w, r, basePathFor(d, "/#/login"), http.StatusSeeOther)
 }
 
 func basePathFor(d *Deps, suffix string) string {

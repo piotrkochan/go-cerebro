@@ -6,6 +6,39 @@ import packageJson from './package.json';
 
 const apiTarget = process.env.VITE_API_TARGET ?? 'http://localhost:9000';
 const appVersion = process.env.VITE_APP_VERSION ?? packageJson.version;
+const apiProxy = {
+  changeOrigin: true,
+  target: apiTarget,
+  xfwd: true,
+};
+const apiProxyPaths = [
+  '/clusters',
+  '/aliases',
+  '/analysis',
+  '/auth',
+  '/cat',
+  '/cluster_changes',
+  '/cluster_settings',
+  '/commons',
+  '/connect',
+  '/create_index',
+  '/data_explorer',
+  '/data_streams',
+  '/docs',
+  '/ilm',
+  '/index_settings',
+  '/navbar',
+  '/login',
+  '/nodes',
+  '/openapi.json',
+  '/openapi.yaml',
+  '/overview',
+  '/repositories',
+  '/rest',
+  '/schemas',
+  '/snapshots',
+  '/templates',
+];
 
 export default defineConfig({
   build: {
@@ -25,32 +58,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   publicDir: false,
   server: {
-    proxy: {
-      '/clusters': apiTarget,
-      '/aliases': apiTarget,
-      '/analysis': apiTarget,
-      '/auth': apiTarget,
-      '/cat': apiTarget,
-      '/cluster_changes': apiTarget,
-      '/cluster_settings': apiTarget,
-      '/commons': apiTarget,
-      '/connect': apiTarget,
-      '/create_index': apiTarget,
-      '/data_explorer': apiTarget,
-      '/data_streams': apiTarget,
-      '/docs': apiTarget,
-      '/ilm': apiTarget,
-      '/index_settings': apiTarget,
-      '/navbar': apiTarget,
-      '/nodes': apiTarget,
-      '/openapi.json': apiTarget,
-      '/openapi.yaml': apiTarget,
-      '/overview': apiTarget,
-      '/repositories': apiTarget,
-      '/rest': apiTarget,
-      '/schemas': apiTarget,
-      '/snapshots': apiTarget,
-      '/templates': apiTarget,
-    },
+    proxy: Object.fromEntries(apiProxyPaths.map((path) => [path, apiProxy])),
   },
 });

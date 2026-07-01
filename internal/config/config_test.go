@@ -37,9 +37,24 @@ server:
 	assert.Equal(t, "admin", cfg.Auth.Settings.Username)
 	assert.Equal(t, "s3cret", cfg.Auth.Settings.Password)
 	assert.Equal(t, "from-env", cfg.Server.Secret)
+	assert.True(t, cfg.Server.CSRFEnabled)
 	assert.Equal(t, 9100, cfg.Server.Port)
 	assert.Len(t, cfg.Hosts, 1)
 	assert.Equal(t, "Local", cfg.Hosts[0].Name)
+}
+
+func TestLoad_AllowsDisablingCSRF(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+server:
+  csrf_enabled: false
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.False(t, cfg.Server.CSRFEnabled)
 }
 
 func TestLoad_HostByName(t *testing.T) {

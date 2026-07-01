@@ -23,6 +23,7 @@ import {
   Info,
   LoaderCircle,
   Lock,
+  LogOut,
   Maximize2,
   Minimize2,
   Move,
@@ -79,6 +80,7 @@ export type IconName =
   | 'info'
   | 'list'
   | 'lock'
+  | 'log-out'
   | 'magic'
   | 'pencil'
   | 'plug'
@@ -131,6 +133,7 @@ const icons: Record<IconName, LucideIcon> = {
   info: Info,
   list: AlignLeft,
   lock: Lock,
+  'log-out': LogOut,
   magic: WandSparkles,
   pencil: Pencil,
   plug: Plug,

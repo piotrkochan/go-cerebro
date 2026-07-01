@@ -64,6 +64,7 @@ type Server struct {
 	BasePath              string `yaml:"base_path"`
 	Secret                string `yaml:"secret"`
 	CookieSecure          bool   `yaml:"cookie_secure"`
+	CSRFEnabled           bool   `yaml:"csrf_enabled"`
 	MaxRequestBytes       int64  `yaml:"max_request_bytes"`
 	TLSCertFile           string `yaml:"tls_cert_file"`
 	TLSKeyFile            string `yaml:"tls_key_file"`
@@ -140,6 +141,7 @@ func defaults() *Config {
 			BasePath:              "/",
 			Secret:                "change-me",
 			CookieSecure:          true,
+			CSRFEnabled:           true,
 			MaxRequestBytes:       DefaultMaxRequestBytes,
 			HSTSEnabled:           true,
 			HSTSMaxAgeSeconds:     31536000,

@@ -12,6 +12,7 @@ import { DataExplorerPage } from '../pages/DataExplorerPage';
 import { DataStreamsPage } from '../pages/DataStreamsPage';
 import { ILMPoliciesPage } from '../pages/ILMPoliciesPage';
 import { IndexSettingsPage } from '../pages/IndexSettingsPage';
+import { LoginPage } from '../pages/LoginPage';
 import { NodesPage } from '../pages/NodesPage';
 import { OverviewPage } from '../pages/OverviewPage';
 import { RepositoriesPage } from '../pages/RepositoriesPage';
@@ -30,11 +31,16 @@ function usePageContext() {
     () => getConnection(session),
     [session.host],
   );
+  const notify = useCallback((kind: Parameters<typeof alertsActions.notify>[0], text: string) => {
+    const current = sessionStore.state;
+    if (!current.connected || current.host !== connection.host) return;
+    alertsActions.notify(kind, text);
+  }, [connection.host]);
 
   return {
     connection,
     majorVersion: parseMajorVersion(session.version),
-    notify: alertsActions.notify,
+    notify,
     refreshTick,
     setStatus: sessionActions.setStatus,
   };
@@ -54,6 +60,10 @@ export function ConnectRoute() {
       }}
     />
   );
+}
+
+export function LoginRoute() {
+  return <LoginPage />;
 }
 
 export function OverviewRoute() {

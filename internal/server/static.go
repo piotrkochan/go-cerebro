@@ -1,61 +1,41 @@
 package server
 
 import (
+	"bytes"
 	"embed"
-	"html/template"
 	"io/fs"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/lmenezes/cerebro/internal/auth"
-	"github.com/lmenezes/cerebro/internal/version"
 )
-
-//go:embed templates/login.html
-var templatesFS embed.FS
 
 //go:embed all:static
 var staticFS embed.FS
 
 var embeddedStatic = mustSub(staticFS, "static")
 
-var loginTmpl = template.Must(template.ParseFS(templatesFS, "templates/login.html"))
-
-// indexHandler enforces auth (when enabled, redirects to /login) and serves the React shell.
+// indexHandler serves the React shell. The React app asks /auth/status and routes
+// unauthenticated users to its login page.
 func indexHandler(authMod *auth.Module) http.HandlerFunc {
-	assets := publicAssets()
 	return func(w http.ResponseWriter, r *http.Request) {
-		if authMod.Enabled() {
-			if _, ok := authMod.SessionUser(r); !ok {
-				_ = authMod.SetRedirectIfSafe(w, r, r.URL.RequestURI())
-				http.Redirect(w, r, "login", http.StatusSeeOther)
-				return
-			}
-		}
-		request := r.Clone(r.Context())
-		request.URL.Path = "/index.html"
-		assets.ServeHTTP(w, request)
+		serveIndex(w, r)
 	}
 }
 
-// loginHandler renders the login form.
+// loginHandler sends legacy /login URLs to the React login route.
 func loginHandler(authMod *auth.Module) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !authMod.Enabled() {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
-		// If already logged in, follow stored redirect or go to /.
 		if _, ok := authMod.SessionUser(r); ok {
-			redirect := authMod.ConsumeRedirect(w, r)
-			if redirect == "" {
-				redirect = "/"
-			}
-			http.Redirect(w, r, redirect, http.StatusSeeOther) // #nosec G710 -- redirect comes from auth.ConsumeRedirect, which accepts only same-origin absolute paths.
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_ = loginTmpl.Execute(w, map[string]string{"Version": version.Version, "Message": ""})
+		http.Redirect(w, r, "/#/login", http.StatusSeeOther)
 	}
 }
 
@@ -71,6 +51,16 @@ func publicAssets() http.Handler {
 		}
 		root.ServeHTTP(w, r)
 	})
+}
+
+func serveIndex(w http.ResponseWriter, r *http.Request) {
+	content, err := fs.ReadFile(embeddedStatic, "index.html")
+	if err != nil {
+		http.Error(w, "frontend index not found", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(content))
 }
 
 func mustSub(root fs.FS, dir string) fs.FS {

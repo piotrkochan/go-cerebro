@@ -11,7 +11,7 @@ server:
   base_path: "/"
   secret: "${APPLICATION_SECRET}"
   cookie_secure: false
+  csrf_enabled: true
 
 es:
   allow_ad_hoc_hosts: false
-

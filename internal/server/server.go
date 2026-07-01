@@ -44,7 +44,7 @@ func New(opts Options) *Server {
 	r.Use(middleware.Compress(5))
 	r.Use(injectHTTPRequest)
 	// Auth gate for API endpoints: requires a session cookie when auth is enabled.
-	r.Use(apiAuthGate(opts.Auth))
+	r.Use(apiAuthGate(opts.Auth, opts.Cfg.Server))
 
 	cfg := huma.DefaultConfig("Cerebro", "0.0.0")
 	cfg.OpenAPI.Info.Description = "Cerebro — Elasticsearch cluster management UI."
@@ -205,23 +205,76 @@ func maxRequestBody(maxBytes int64) func(http.Handler) http.Handler {
 // (/connect/hosts). All other GETs (HTML partials served from public/, /openapi.json, /, /login,
 // static assets) pass through. /auth/login and /auth/logout are explicitly excluded so users can
 // authenticate.
-func apiAuthGate(authMod *auth.Module) func(http.Handler) http.Handler {
-	wrapped := authMod.APIMiddleware
+func apiAuthGate(authMod *auth.Module, serverCfg config.Server) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		gated := wrapped(next)
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !shouldGate(r) {
 				next.ServeHTTP(w, r)
 				return
 			}
-			gated.ServeHTTP(w, r)
+			if authMod.Enabled() {
+				user, ok := authMod.SessionUser(r)
+				if !ok {
+					http.Error(w, "authentication required", http.StatusUnauthorized)
+					return
+				}
+				r = r.WithContext(auth.WithUser(r.Context(), user))
+			}
+			if serverCfg.CSRFEnabled {
+				if !validRequestOrigin(r) {
+					http.Error(w, "invalid request origin", http.StatusForbidden)
+					return
+				}
+				if !authMod.ValidCSRF(r) {
+					http.Error(w, "invalid csrf token", http.StatusForbidden)
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func validRequestOrigin(r *http.Request) bool {
+	switch strings.ToLower(strings.TrimSpace(r.Header.Get("Sec-Fetch-Site"))) {
+	case "", "same-origin", "same-site", "none":
+	default:
+		return false
+	}
+	origin := r.Header.Get("Origin")
+	if origin != "" && !sameOriginValue(origin, r) {
+		return false
+	}
+	referer := r.Header.Get("Referer")
+	if referer != "" && !sameOriginValue(referer, r) {
+		return false
+	}
+	return true
+}
+
+func sameOriginValue(value string, r *http.Request) bool {
+	expected := requestOrigin(r)
+	return value == expected || strings.HasPrefix(value, expected+"/")
+}
+
+func requestOrigin(r *http.Request) string {
+	scheme := "http"
+	if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
+		scheme = "https"
+	}
+	host := r.Host
+	if forwardedHost := strings.TrimSpace(r.Header.Get("X-Forwarded-Host")); forwardedHost != "" {
+		host = forwardedHost
+	}
+	return scheme + "://" + host
 }
 
 func shouldGate(r *http.Request) bool {
 	if r.URL.Path == "/auth/login" || r.URL.Path == "/auth/logout" {
 		return false
+	}
+	if strings.HasPrefix(r.URL.Path, "/clusters/") {
+		return true
 	}
 	switch r.Method {
 	case http.MethodGet:

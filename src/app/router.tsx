@@ -20,6 +20,7 @@ import {
   DataStreamsRoute,
   ILMPoliciesRoute,
   IndexSettingsRoute,
+  LoginRoute,
   NodesRoute,
   OverviewRoute,
   RepositoriesRoute,
@@ -30,6 +31,7 @@ import {
 import { sessionActions, sessionStore } from '../stores/sessionStore';
 
 type AppSearch = {
+  error?: 'invalid';
   host?: string;
   index?: string;
   kind?: 'index' | 'component' | 'legacy';
@@ -39,6 +41,7 @@ type AppSearch = {
 };
 
 const validateSearch = (search: Record<string, unknown>): AppSearch => ({
+  error: search.error === 'invalid' ? search.error : undefined,
   host: typeof search.host === 'string' ? search.host : undefined,
   index: typeof search.index === 'string' ? search.index : undefined,
   kind: search.kind === 'index' || search.kind === 'component' || search.kind === 'legacy' ? search.kind : undefined,
@@ -55,6 +58,13 @@ const connectRoute = createRoute({
   component: ConnectRoute,
   getParentRoute: () => rootRoute,
   path: '/connect',
+  validateSearch,
+});
+
+const loginRoute = createRoute({
+  component: LoginRoute,
+  getParentRoute: () => rootRoute,
+  path: '/login',
   validateSearch,
 });
 
@@ -104,6 +114,7 @@ const dataExplorerRoute = appRoute('/data_explorer', DataExplorerRoute);
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  loginRoute,
   connectRoute,
   overviewRoute,
   nodesRoute,

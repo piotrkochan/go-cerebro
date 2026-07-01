@@ -1,11 +1,12 @@
-import { Outlet, useNavigate } from '@tanstack/react-router';
+import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { useStore } from '@tanstack/react-store';
 
 import { Alerts } from '../components/Alerts';
 import { Navbar } from '../components/Navbar';
 import { connectHosts, navbar } from '../api/client';
-import { alertsStore } from '../stores/alertsStore';
+import { loadAuthStatus } from '../api/security';
+import { alertsActions, alertsStore } from '../stores/alertsStore';
 import { refreshActions, refreshStore } from '../stores/refreshStore';
 import { getConnection, sessionActions, sessionStore, type ClusterHealthIssue } from '../stores/sessionStore';
 import { clusterPath } from '../utils/connection';
@@ -21,10 +22,30 @@ export function AppShell() {
   const refreshInterval = useStore(refreshStore, (state) => state.interval);
   const refreshTick = useStore(refreshStore, (state) => state.tick);
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   useEffect(() => {
-    if (!connected) void navigate({ to: '/connect' });
-  }, [connected, navigate]);
+    if (!connected && pathname !== '/login') void navigate({ to: '/connect' });
+  }, [connected, navigate, pathname]);
+
+  useEffect(() => {
+    let ignore = false;
+    async function syncAuthStatus() {
+      const status = await loadAuthStatus();
+      if (ignore || !status) return;
+      if (status.enabled === true && status.authenticated !== true && pathname !== '/login') {
+        void navigate({ to: '/login' });
+        return;
+      }
+      if ((status.enabled !== true || status.authenticated === true) && pathname === '/login') {
+        void navigate({ to: sessionStore.state.connected ? '/overview' : '/connect' });
+      }
+    }
+    void syncAuthStatus();
+    return () => {
+      ignore = true;
+    };
+  }, [navigate, pathname]);
 
   useEffect(() => {
     if (!connected) return;
@@ -81,6 +102,7 @@ export function AppShell() {
   }, [connected, host, refreshTick]);
 
   function disconnect() {
+    alertsActions.clear();
     sessionActions.disconnect();
     void navigate({ to: '/connect' });
   }

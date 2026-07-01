@@ -16,6 +16,7 @@ server:
   base_path: "/"
   secret: "${APPLICATION_SECRET}"
   cookie_secure: true
+  csrf_enabled: true
   hsts_enabled: true
   hsts_max_age_seconds: 31536000
   hsts_include_subdomains: true
