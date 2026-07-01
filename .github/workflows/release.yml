@@ -98,6 +98,8 @@ jobs:
           push: true
           tags: ${{ steps.docker-meta.outputs.tags }}
           labels: ${{ steps.docker-meta.outputs.labels }}
+          cache-from: type=gha,scope=cerebro-docker
+          cache-to: type=gha,mode=max,scope=cerebro-docker
 
       - name: Build release binaries
         run: |
