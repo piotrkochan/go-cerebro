@@ -38,6 +38,8 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Moved Elasticsearch-operating API routes under a global `/clusters/{cluster}` Huma route group.
 - Added backend-generated cluster slugs for configured Elasticsearch hosts, including stable duplicate suffixes.
 - Resolved Elasticsearch cluster targets once per request through group middleware instead of passing host data through endpoint bodies.
+- Added REST-style detail endpoints for templates so list pages can load lightweight summaries first and fetch full definitions only when editing.
+- Added `/auth/status` for frontend auth/session state without exposing Elasticsearch credentials.
 
 ### Frontend
 - Added Vite development setup with live reload on port `5173`.
@@ -69,6 +71,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Added template type persistence in the URL and changed component-template composition to an explicit add/remove list.
 - Added edited template persistence in the URL and native edit links for templates and ILM policies.
 - Split component templates into user and managed tables, and removed the unused pattern column from reusable component templates.
+- Split index templates into user and managed tables and added a data-stream indicator for index templates.
 - Replaced text sort markers with shared up/down arrow icons across sortable tables.
 - Split template loading into a lightweight list response and a separate detail request when editing one template.
 - Replaced template action endpoints with REST-style `GET`, `PUT` and `DELETE /templates/{kind}/{name}` routes.
@@ -120,6 +123,12 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Added explicit `insecure_ldap` development escape hatch.
 - Added first-class HTTPS listener support with `server.tls_cert_file` and `server.tls_key_file`.
 - Added configurable HSTS when served through HTTPS.
+- Added configurable `server.csrf_enabled` with session-bound CSRF tokens for protected API requests.
+- Added frontend API interceptor support for `X-Cerebro-CSRF`.
+- Protected `/clusters/{cluster}` API routes with the auth/CSRF gate.
+- Changed unauthenticated API access from redirects to `401 Unauthorized`.
+- Added Fetch Metadata plus same-origin `Origin`/`Referer` checks for protected API requests.
+- Hardened basic-auth credential comparison with hashed constant-time comparison.
 - Added `Permissions-Policy`.
 - Kept CSP, referrer policy, frame and content-type protection headers.
 - Added REST history body redaction for sensitive keys.
