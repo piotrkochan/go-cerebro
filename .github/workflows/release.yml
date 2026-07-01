@@ -103,6 +103,7 @@ jobs:
 
       - name: Build release binaries
         run: |
+          set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p dist
           build() {
@@ -118,16 +119,40 @@ jobs:
               arm_suffix="v${goarm}"
             fi
             local out="dist/cerebro-${GITHUB_REF_NAME}-${goos}-${goarch}${arm_suffix}${ext}"
+            local started
+            started="$(date +%s)"
+            echo "building ${goos}/${goarch}${arm_suffix} -> ${out}"
             GOOS="${goos}" GOARCH="${goarch}" GOARM="${goarm}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/lmenezes/cerebro/internal/version.Version=${VERSION}" -o "${out}" ./cmd/cerebro
+            echo "built ${goos}/${goarch}${arm_suffix} in $(($(date +%s) - started))s"
           }
-          build linux amd64
-          build linux arm64
-          build linux arm 7
-          build darwin amd64
-          build darwin arm64
-          build windows amd64
-          build windows arm64
-          sha256sum dist/cerebro-* > dist/checksums.txt
+          targets=(
+            "linux amd64"
+            "linux arm64"
+            "linux arm 7"
+            "darwin amd64"
+            "darwin arm64"
+            "windows amd64"
+            "windows arm64"
+          )
+          pids=()
+          labels=()
+          for target in "${targets[@]}"; do
+            read -r goos goarch goarm <<< "${target}"
+            build "${goos}" "${goarch}" "${goarm:-}" &
+            pids+=("$!")
+            labels+=("${target}")
+          done
+          failed=0
+          for i in "${!pids[@]}"; do
+            if ! wait "${pids[$i]}"; then
+              echo "::error::failed to build ${labels[$i]}"
+              failed=1
+            fi
+          done
+          if [ "${failed}" -ne 0 ]; then
+            exit "${failed}"
+          fi
+          sha256sum dist/cerebro-* | sort -k2 > dist/checksums.txt
 
       - name: Publish GitHub release
         env:
