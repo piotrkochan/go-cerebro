@@ -1,6 +1,12 @@
 # Go Cerebro
 
 [![CI](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml)
+[![Release](https://github.com/piotrkochan/go-cerebro/actions/workflows/release.yml/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/release.yml)
+[![CodeQL](https://github.com/piotrkochan/go-cerebro/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/github-code-scanning/codeql)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/piotrkochan/go-cerebro/badge)](https://scorecard.dev/viewer/?uri=github.com/piotrkochan/go-cerebro)
+[![Go Report Card](https://goreportcard.com/badge/github.com/piotrkochan/go-cerebro)](https://goreportcard.com/report/github.com/piotrkochan/go-cerebro)
+[![Latest Release](https://img.shields.io/github/v/release/piotrkochan/go-cerebro?logo=github)](https://github.com/piotrkochan/go-cerebro/releases/latest)
+[![Docker Image](https://img.shields.io/badge/ghcr.io-go--cerebro-blue?logo=docker)](https://github.com/piotrkochan/go-cerebro/pkgs/container/go-cerebro)
 [![License](https://img.shields.io/github/license/piotrkochan/go-cerebro)](./LICENSE)
 
 Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmenezes/cerebro) Elasticsearch web admin tool. The original application was Java + Angular; this fork is rewritten to Go, Huma, React and TypeScript while keeping the style, workflow and core functionality of the original Cerebro. It also adds new functionality that fits the same admin-console use case, including:
