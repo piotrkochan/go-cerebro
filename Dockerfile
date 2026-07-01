@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build
 RUN CGO_ENABLED=0 go build -trimpath -o /out/cerebro ./cmd/cerebro
 
-FROM alpine:3.20
+FROM alpine:3.24
 RUN apk add --no-cache ca-certificates
 WORKDIR /opt/cerebro
 COPY --from=build /out/cerebro /usr/local/bin/cerebro
