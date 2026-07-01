@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-floci_image="${CEREBRO_E2E_FLOCI_IMAGE:-floci/floci:latest}"
+floci_image="${CEREBRO_E2E_FLOCI_IMAGE:-floci/floci:1.5.29}"
 domain="${CEREBRO_E2E_FLOCI_DOMAIN:-cerebro-e2e-${RANDOM}}"
 engine_version="${CEREBRO_E2E_FLOCI_ENGINE_VERSION:-OpenSearch_2.11}"
 floci_container="${CEREBRO_E2E_FLOCI_CONTAINER:-go-cerebro-e2e-floci-${RANDOM}}"

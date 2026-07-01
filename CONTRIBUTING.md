@@ -88,6 +88,8 @@ AWS OpenSearch compatibility is covered separately through Floci. The test creat
 npm run test:e2e:floci-opensearch
 ```
 
+The Floci image is pinned in the script. Override it with `CEREBRO_E2E_FLOCI_IMAGE` only when deliberately testing a Floci upgrade.
+
 For security-sensitive changes, also run:
 
 ```sh
