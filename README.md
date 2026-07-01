@@ -99,13 +99,21 @@ Copy [conf/application.example.yaml](./conf/application.example.yaml) to `conf/a
 Important sections:
 
 - `hosts`: known Elasticsearch clusters. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
+- `hosts[].headers_whitelist`: request headers that Cerebro may forward to Elasticsearch, useful behind an authenticating proxy.
 - `auth`: `disabled`, `basic` or `ldap`. Do not expose an instance with `auth.type: disabled`.
+- `server.base_path`: URL path prefix when Cerebro is mounted below `/`.
 - `server.secret`: required for authenticated deployments. Set it to a strong random value.
 - `server.cookie_secure`: keep `true` behind HTTPS.
+- `server.csrf_enabled`: session-bound CSRF protection for Cerebro API requests. Keep enabled for browser-facing deployments.
+- `server.max_request_bytes`: maximum accepted Cerebro API request body size.
 - `server.tls_cert_file`, `server.tls_key_file`: optional HTTPS listener certificate and private key.
 - `server.hsts_enabled`, `server.hsts_max_age_seconds`, `server.hsts_include_subdomains`: HTTPS Strict Transport Security settings. Enable only for domains that should always use HTTPS.
+- `es.gzip`: enable gzip for Elasticsearch responses.
+- `es.max_response_bytes`: maximum Elasticsearch response body size Cerebro will read.
+- `es.aws`: AWS SigV4 signing for Amazon OpenSearch Service and OpenSearch Serverless.
 - `es.ca_cert_file`, `es.client_cert_file`, `es.client_key_file`: TLS trust and mutual TLS for Elasticsearch.
 - `auth.settings.ca_cert_file`: custom LDAP CA trust.
+- `rest.history_size`: number of REST console requests kept in local history.
 - `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
 - `data.path`: SQLite file used for REST request history.
 
@@ -127,8 +135,11 @@ auth:
 
 server:
   port: 9000
+  base_path: "/"
   secret: "${APPLICATION_SECRET}"
   cookie_secure: true
+  csrf_enabled: true
+  max_request_bytes: 5242880
   tls_cert_file: "/etc/cerebro/tls/tls.crt"
   tls_key_file: "/etc/cerebro/tls/tls.key"
   hsts_enabled: true
@@ -136,7 +147,9 @@ server:
   hsts_include_subdomains: true
 
 es:
+  gzip: true
   allow_ad_hoc_hosts: false
+  max_response_bytes: 26214400
 ```
 
 Elasticsearch HTTPS with a custom CA and client certificate:
@@ -170,6 +183,10 @@ es:
     enabled: true
     region: "eu-central-1"
     service: "es"
+    # profile: "default"
+    # access_key_id: "${AWS_ACCESS_KEY_ID}"
+    # secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+    # session_token: "${AWS_SESSION_TOKEN}"
 ```
 
 If `access_key_id` and `secret_access_key` are omitted, Cerebro uses the default AWS credential chain. Use `service: "aoss"` for OpenSearch Serverless.
