@@ -145,8 +145,8 @@ export function ClusterSettingsRoute() {
 }
 
 export function CreateIndexRoute() {
-  const { connection, notify, refreshTick } = usePageContext();
-  return <CreateIndexPage connection={connection} notify={notify} refreshTick={refreshTick} />;
+  const { connection, majorVersion, notify, refreshTick } = usePageContext();
+  return <CreateIndexPage connection={connection} majorVersion={majorVersion} notify={notify} refreshTick={refreshTick} />;
 }
 
 export function IndexSettingsRoute() {

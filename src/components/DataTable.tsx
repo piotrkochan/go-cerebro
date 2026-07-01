@@ -8,6 +8,7 @@ export type DataTableColumn<T> = {
   header: ReactNode;
   headerClassName?: string;
   key: string;
+  width?: string;
   render: (row: T, index: number) => ReactNode;
 };
 
@@ -56,13 +57,18 @@ export function DataTable<T>({
   showHeader?: boolean;
 }) {
   return (
-    <table className={`table table-condensed ${className}`.trim()}>
+    <table className={`table table-condensed table-fixed ${className}`.trim()}>
+      <colgroup>
+        {columns.map((column) => (
+          <col key={column.key} style={column.width ? { width: column.width } : column.key === 'actions' ? { width: '116px' } : undefined} />
+        ))}
+      </colgroup>
       {showHeader ? (
         <thead className="bg-[#343739]">
           <tr>
             {columns.map((column) => (
-              <th className={['border-b border-[#55595c]', column.headerClassName].filter(Boolean).join(' ')} key={column.key}>
-                {column.header}
+              <th className={['border-b border-[#55595c]', column.key === 'actions' ? 'w-[116px]' : '', column.headerClassName].filter(Boolean).join(' ')} key={column.key} title={typeof column.header === 'string' ? column.header : undefined}>
+                <div className="min-w-0 truncate">{column.header}</div>
               </th>
             ))}
           </tr>
@@ -78,8 +84,8 @@ export function DataTable<T>({
               <Fragment key={key}>
                 <tr className={trClassName} onClick={onRowClick ? () => onRowClick(row, index) : undefined}>
                   {columns.map((column) => (
-                    <td className={column.className} key={column.key}>
-                      {column.render(row, index)}
+                    <td className={[column.key === 'actions' ? 'whitespace-nowrap' : '', column.className].filter(Boolean).join(' ')} key={column.key}>
+                      <div className={column.key === 'actions' ? 'min-w-0 overflow-visible' : 'min-w-0 truncate'}>{column.render(row, index)}</div>
                     </td>
                   ))}
                 </tr>

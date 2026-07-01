@@ -845,6 +845,10 @@ export type Template = {
 
 export type TemplateSummary = {
     /**
+     * Whether the template creates data streams instead of regular indices.
+     */
+    data_stream?: boolean;
+    /**
      * Template kind: index, component, or legacy.
      */
     kind: string;

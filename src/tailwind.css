@@ -236,6 +236,14 @@
     @apply bg-[#1ac98e];
   }
 
+  .label-warning {
+    @apply bg-[#f0ad4e];
+  }
+
+  .label-danger {
+    @apply bg-[#d9534f] text-[#eceeef];
+  }
+
   .progress {
     @apply mb-[19px] h-5 overflow-hidden bg-[#434749];
   }

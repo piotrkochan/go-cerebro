@@ -16,7 +16,7 @@ import { clusterPath } from '../utils/connection';
 import { errorMessage, formatJson, parseJson, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
 
-type TemplateSortKey = 'name' | 'pattern';
+type TemplateSortKey = 'data_stream' | 'name' | 'pattern';
 type TemplateEditorMode = 'wizard' | 'json';
 type TemplateWithKind = Template & { kind?: TemplateKind };
 type TemplateListItem = TemplateSummary & { kind?: TemplateKind };
@@ -317,6 +317,11 @@ export function TemplatesPage({
       key: 'pattern',
       render: (template: TemplateListItem) => templatePattern(template),
     }]),
+    ...(activeKind === 'index' ? [{
+      header: <SortHeader name="data_stream" sort={sort} onSort={(name) => setSort((value) => nextSort(value, name))}>data stream</SortHeader>,
+      key: 'data_stream',
+      render: (template: TemplateListItem) => template.data_stream ? <span className="label bg-[#4b5f6b] text-[#eceeef]">yes</span> : <span className="info-text">-</span>,
+    }] : []),
     {
       className: 'text-right',
       header: 'actions',
@@ -1318,5 +1323,7 @@ function templatePatternList(pattern: string) {
 }
 
 function templateSortValue(template: TemplateListItem, key: TemplateSortKey) {
-  return key === 'name' ? template.name : templatePattern(template);
+  if (key === 'name') return template.name;
+  if (key === 'data_stream') return template.data_stream ? '1' : '0';
+  return templatePattern(template);
 }

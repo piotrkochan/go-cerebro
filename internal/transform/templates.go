@@ -4,10 +4,11 @@ import "encoding/json"
 
 // TemplateSummary is a lightweight template row for list pages.
 type TemplateSummary struct {
-	Kind    string `json:"kind" doc:"Template kind: index, component, or legacy."`
-	Managed bool   `json:"managed" doc:"Whether the template appears to be managed by Elasticsearch or an integration."`
-	Name    string `json:"name" doc:"Template name."`
-	Pattern string `json:"pattern,omitempty" doc:"Template index pattern, when applicable."`
+	DataStream bool   `json:"data_stream,omitempty" doc:"Whether the template creates data streams instead of regular indices."`
+	Kind       string `json:"kind" doc:"Template kind: index, component, or legacy."`
+	Managed    bool   `json:"managed" doc:"Whether the template appears to be managed by Elasticsearch or an integration."`
+	Name       string `json:"name" doc:"Template name."`
+	Pattern    string `json:"pattern,omitempty" doc:"Template index pattern, when applicable."`
 }
 
 // Template is one index template entry.
@@ -73,10 +74,11 @@ func ComposableIndexTemplateSummaries(raw json.RawMessage) []TemplateSummary {
 	out := make([]TemplateSummary, 0, len(root.IndexTemplates))
 	for _, item := range root.IndexTemplates {
 		out = append(out, TemplateSummary{
-			Kind:    "index",
-			Managed: managedTemplate(item.IndexTemplate, item.Name),
-			Name:    item.Name,
-			Pattern: composableTemplatePattern(item.IndexTemplate),
+			DataStream: composableTemplateCreatesDataStream(item.IndexTemplate),
+			Kind:       "index",
+			Managed:    managedTemplate(item.IndexTemplate, item.Name),
+			Name:       item.Name,
+			Pattern:    composableTemplatePattern(item.IndexTemplate),
 		})
 	}
 	return out
@@ -187,6 +189,16 @@ func composableTemplatePattern(raw json.RawMessage) string {
 		out += ", " + pattern
 	}
 	return out
+}
+
+func composableTemplateCreatesDataStream(raw json.RawMessage) bool {
+	var body struct {
+		DataStream json.RawMessage `json:"data_stream"`
+	}
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return false
+	}
+	return len(body.DataStream) > 0 && string(body.DataStream) != "null"
 }
 
 func managedTemplate(raw json.RawMessage, name string) bool {

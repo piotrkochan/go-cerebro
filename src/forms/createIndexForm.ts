@@ -9,7 +9,16 @@ export type CreateIndexFormValues = {
 export const createIndexFormDefaults: CreateIndexFormValues = {
   name: '',
   replicas: '',
-  settings: '',
+  settings: `{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    }
+  },
+  "mappings": {},
+  "aliases": {}
+}`,
   shards: '',
   sourceIndex: '',
 };
