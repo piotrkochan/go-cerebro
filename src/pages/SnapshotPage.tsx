@@ -9,6 +9,7 @@ import {
   snapshotsRestore,
   type HostBodyWritable,
 } from '../api/client';
+import { Checkbox as StyledCheckbox } from '../components/Checkbox';
 import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { ConfirmModal } from '../components/Modal';
@@ -301,9 +302,7 @@ function FormGroup({ children, label }: { children: ReactNode; label: string }) 
 function Checkbox({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
   return (
     <div className="form-group">
-      <label>
-        <input checked={checked} type="checkbox" onChange={(event) => onChange(event.target.checked)} /> {label}
-      </label>
+      <StyledCheckbox checked={checked} label={label} onChange={onChange} />
     </div>
   );
 }

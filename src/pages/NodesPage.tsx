@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
 import { nodes, type HostBodyWritable, type Node } from '../api/client';
-import { NodeCell, SortLink, compareNodes, roleIcon } from '../components/LegacyUi';
+import { Checkbox } from '../components/Checkbox';
 import { Icon } from '../components/Icon';
+import { NodeCell, SortLink, compareNodes, roleIcon } from '../components/LegacyUi';
 import { clusterPath } from '../utils/connection';
 import { formatBytes, formatFixed, formatNumber, textValue, timeInterval } from '../utils/format';
 
@@ -65,15 +66,12 @@ export function NodesPage({ connection, refreshTick }: { connection: HostBodyWri
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 select-none">
           {(['master', 'data', 'ingest', 'coordinating'] as const).map((role) => (
-            <label className="inline-flex cursor-pointer items-center gap-1.5 font-normal" key={role}>
-              <input
-                checked={filter[role]}
-                className="m-0"
-                type="checkbox"
-                onChange={(event) => setFilter((value) => ({ ...value, [role]: event.target.checked }))}
-              />
-              <Icon name={roleIcon(role)} /> {role}
-            </label>
+            <Checkbox
+              checked={filter[role]}
+              key={role}
+              label={<><Icon name={roleIcon(role)} /> {role}</>}
+              onChange={(checked) => setFilter((value) => ({ ...value, [role]: checked }))}
+            />
           ))}
         </div>
       </div>

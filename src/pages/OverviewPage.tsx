@@ -22,6 +22,7 @@ import {
   type OverviewIndex,
   type OverviewNode,
 } from '../api/client';
+import { Checkbox } from '../components/Checkbox';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import {
@@ -292,16 +293,10 @@ export function OverviewPage({
           />
         </div>
         <div className="form-group m-0 pt-[7px]">
-          <label className="m-0 inline-flex items-center gap-[6px] whitespace-nowrap font-normal">
-            <input checked={showClosed} type="checkbox" onChange={(event) => setShowClosed(event.target.checked)} />
-            <span>closed ({data.closed_indices})</span>
-          </label>
+          <Checkbox checked={showClosed} className="whitespace-nowrap" label={`closed (${data.closed_indices})`} onChange={setShowClosed} />
         </div>
         <div className="form-group m-0 pt-[7px]">
-          <label className="m-0 inline-flex items-center gap-[6px] whitespace-nowrap font-normal">
-            <input checked={showSpecial} type="checkbox" onChange={(event) => setShowSpecial(event.target.checked)} />
-            <span>.special ({data.special_indices})</span>
-          </label>
+          <Checkbox checked={showSpecial} className="whitespace-nowrap" label={`.special (${data.special_indices})`} onChange={setShowSpecial} />
         </div>
         <div className="form-group m-0 w-[190px] max-w-full">
           <input

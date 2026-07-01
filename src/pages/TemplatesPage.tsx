@@ -4,6 +4,7 @@ import { useForm } from '@tanstack/react-form';
 
 import { templatesCreate, templatesDelete, templatesGet, templatesList, type HostBodyWritable, type Template, type TemplateSummary } from '../api/client';
 import { Button } from '../components/Button';
+import { Checkbox } from '../components/Checkbox';
 import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { Loading } from '../components/LegacyUi';
@@ -609,10 +610,7 @@ function TemplateWizard({
             <WizardInput label="version" placeholder="1" value={value.version} onChange={(version) => onChange({ version })} />
             {kind === 'index' ? (
               <div className="col-sm-6 form-group">
-                <label className="m-0 flex items-center gap-[8px] font-normal">
-                  <input checked={value.dataStream} type="checkbox" onChange={(event) => onChange({ dataStream: event.target.checked })} />
-                  data stream template
-                </label>
+                <Checkbox checked={value.dataStream} label="data stream template" onChange={(dataStream) => onChange({ dataStream })} />
               </div>
             ) : null}
           </div>

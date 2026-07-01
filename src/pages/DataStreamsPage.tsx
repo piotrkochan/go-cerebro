@@ -13,6 +13,7 @@ import {
 } from '../api/dataStreamsClient';
 import { ilmPoliciesList } from '../api/ilmClient';
 import type { DataStream, DataStreamBackingIndex, HostBodyWritable, IlmPolicy } from '../api/client/types.gen';
+import { Checkbox } from '../components/Checkbox';
 import { DataTable, SortIndicator, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { ConfirmModal, ModalFrame, useEscape } from '../components/Modal';
@@ -622,14 +623,10 @@ function AttachILMModal({
           </select>
         </div>
         <div className="checkbox">
-          <label>
-            <input checked={updateBackingIndices} type="checkbox" onChange={(event) => setUpdateBackingIndices(event.target.checked)} /> update existing backing indices
-          </label>
+          <Checkbox checked={updateBackingIndices} label="update existing backing indices" onChange={setUpdateBackingIndices} />
         </div>
         <div className="checkbox">
-          <label>
-            <input checked={rolloverAfterAttach} type="checkbox" onChange={(event) => setRolloverAfterAttach(event.target.checked)} /> rollover after attach
-          </label>
+          <Checkbox checked={rolloverAfterAttach} label="rollover after attach" onChange={setRolloverAfterAttach} />
         </div>
         <div className="subtitle">
           template: <span className="text-[#eceeef]">{stream.template || 'none'}</span>
@@ -668,9 +665,7 @@ function DetachILMModal({
     <ModalFrame dialogClassName="" onClose={onClose} title={`detach ilm: ${stream.name}`}>
       <div className="modal-body">
         <div className="checkbox">
-          <label>
-            <input checked={updateBackingIndices} type="checkbox" onChange={(event) => setUpdateBackingIndices(event.target.checked)} /> update existing backing indices
-          </label>
+          <Checkbox checked={updateBackingIndices} label="update existing backing indices" onChange={setUpdateBackingIndices} />
         </div>
         <div className="subtitle">
           template: <span className="text-[#eceeef]">{stream.template || 'none'}</span>

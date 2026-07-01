@@ -5,6 +5,7 @@ import { useForm } from '@tanstack/react-form';
 import { ilmPoliciesDelete, ilmPoliciesList, ilmPoliciesSave } from '../api/ilmClient';
 import type { HostBodyWritable, IlmPolicy } from '../api/client/types.gen';
 import { Button } from '../components/Button';
+import { Checkbox } from '../components/Checkbox';
 import { DataTable, SortIndicator, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
@@ -456,9 +457,7 @@ function WizardPhase({
         {locked ? (
           <span className="label label-success">enabled</span>
         ) : (
-          <label className="m-0 inline-flex cursor-pointer items-center gap-[8px] font-normal">
-            <input checked={enabled} type="checkbox" onChange={(event) => onToggle?.(event.target.checked)} /> enabled
-          </label>
+          <Checkbox checked={enabled} label="enabled" onChange={(checked) => onToggle?.(checked)} />
         )}
       </div>
       {enabled ? children : <div className="info-text">disabled</div>}
@@ -496,9 +495,7 @@ function WizardCheckbox({
 }) {
   return (
     <div className="checkbox">
-      <label>
-        <input checked={checked} type="checkbox" onChange={(event) => onChange(event.target.checked)} /> {label}
-      </label>
+      <Checkbox checked={checked} label={label} onChange={onChange} />
     </div>
   );
 }

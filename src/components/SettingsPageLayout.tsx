@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { Checkbox } from './Checkbox';
 import { Icon } from './Icon';
 
 export type SettingsPageGroup<TSetting> = {
@@ -80,10 +81,12 @@ export function SettingsPageLayout<TSetting>({
                 <div className="min-w-0 flex-1">
                   <input className="form-control" placeholder="filter settings by name" value={filterName} onChange={(event) => onFilterNameChange(event.target.value)} />
                 </div>
-                <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-[#d0d0d0]">
-                  <input checked={showStatic} type="checkbox" onChange={(event) => onShowStaticChange(event.target.checked)} />
-                  show static settings <Icon className="alert-warning" name="lock" />
-                </label>
+                <Checkbox
+                  checked={showStatic}
+                  className="whitespace-nowrap text-[#d0d0d0]"
+                  label={<>show static settings <Icon className="alert-warning" name="lock" /></>}
+                  onChange={onShowStaticChange}
+                />
               </div>
             </div>
           </div>
