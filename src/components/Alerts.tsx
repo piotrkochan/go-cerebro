@@ -1,4 +1,4 @@
-import type { Alert } from '../types';
+import type { Alert } from '../stores/alertsStore';
 
 const containerClass = 'fixed right-[20px] top-[62px] z-[2000] w-[min(420px,calc(100vw-40px))]';
 const baseAlertClass = 'mb-[10px] border px-[12px] py-[10px] opacity-95 shadow-[0_5px_15px_rgba(0,0,0,0.35)]';

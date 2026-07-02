@@ -1,6 +1,12 @@
 import { createStore } from '@tanstack/react-store';
 
-import type { Alert } from '../types';
+export type Alert = {
+  id: number;
+  kind: 'success' | 'danger' | 'info';
+  text: string;
+};
+
+export type Notify = (kind: Alert['kind'], text: string) => void;
 
 type AlertsState = {
   alerts: Alert[];

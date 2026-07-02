@@ -9,7 +9,7 @@ import { SettingsPageLayout } from '../components/SettingsPageLayout';
 import { SettingValueInput } from '../components/SettingValueInput';
 import { isDynamicSetting, normalizeSettingValue, settingInput, settingSuggestions, type SettingInput } from '../settingsCatalog';
 import { clusterSettingsActions, clusterSettingsStore } from '../stores/clusterSettingsStore';
-import type { Notify } from '../types';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 

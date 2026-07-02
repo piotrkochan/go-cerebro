@@ -14,7 +14,7 @@ import { DataTable, SortHeader, type DataTableColumn } from '../components/DataT
 import { Icon } from '../components/Icon';
 import { ConfirmModal } from '../components/Modal';
 import { SplitPane } from '../components/SplitPane';
-import type { Notify } from '../types';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';

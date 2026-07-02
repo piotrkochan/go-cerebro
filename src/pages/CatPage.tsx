@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { cat, type HostBodyWritable } from '../api/client';
 import { Button } from '../components/Button';
 import { DataTable, SortIndicator, type DataTableColumn } from '../components/DataTable';
-import type { Notify } from '../types';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 

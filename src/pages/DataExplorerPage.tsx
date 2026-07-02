@@ -13,7 +13,7 @@ import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { Loading } from '../components/LegacyUi';
 import { dataExplorerActions, dataExplorerStore } from '../stores/dataExplorerStore';
-import type { Notify } from '../types';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, formatJson, formatNumber, textValue } from '../utils/format';
 

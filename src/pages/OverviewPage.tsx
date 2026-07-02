@@ -37,7 +37,7 @@ import {
 } from '../components/LegacyUi';
 import { ConfirmModal, ModalFrame, useEscape } from '../components/Modal';
 import { sessionStore } from '../stores/sessionStore';
-import type { Notify } from '../types';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, formatJson, formatNumber, numberValue, textValue } from '../utils/format';
 

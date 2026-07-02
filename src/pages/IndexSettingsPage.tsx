@@ -7,7 +7,7 @@ import { Icon } from '../components/Icon';
 import { SettingsPageLayout } from '../components/SettingsPageLayout';
 import { SettingValueInput } from '../components/SettingValueInput';
 import { isDynamicSetting, majorFromIndexVersionCreated, normalizeSettingValue, settingInput, settingSuggestions, type SettingInput } from '../settingsCatalog';
-import type { Notify } from '../types';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 

@@ -14,7 +14,7 @@ import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { ConfirmModal } from '../components/Modal';
 import { SplitPane } from '../components/SplitPane';
 import { repositoryFormDefaults, type RepositoryFormValues } from '../forms/repositoryForm';
-import type { Notify } from '../types';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, formatJson, parseJson, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';

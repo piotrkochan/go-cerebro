@@ -10,7 +10,7 @@ import {
 } from '../api/client';
 import { DataTable, SortHeader, type DataTableColumn } from '../components/DataTable';
 import { Icon } from '../components/Icon';
-import type { Notify } from '../types';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';

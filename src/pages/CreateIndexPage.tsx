@@ -14,7 +14,7 @@ import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { SplitPane } from '../components/SplitPane';
 import { createIndexFormDefaults, type CreateIndexFormValues } from '../forms/createIndexForm';
-import type { Notify } from '../types';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, formatJson } from '../utils/format';
 
