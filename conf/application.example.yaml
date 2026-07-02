@@ -87,3 +87,11 @@ features:
 
 data:
   path: "./cerebro.db"
+
+logging:
+  # debug | info | warn | error
+  level: "info"
+  # text | json. Applies to application logs and request logs.
+  format: "text"
+  # Controls per-request HTTP access logs. Request logs are emitted at info level.
+  request_log_enabled: true

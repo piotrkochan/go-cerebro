@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -37,7 +38,9 @@ func New(opts Options) *Server {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	if opts.Cfg.Logging.RequestLogEnabled {
+		r.Use(requestLogger)
+	}
 	r.Use(middleware.Recoverer)
 	r.Use(securityHeaders(opts.Cfg.Server))
 	r.Use(maxRequestBody(opts.Cfg.Server.MaxRequestBytes))
@@ -162,6 +165,28 @@ func (m *chiMux) HandleFunc(pattern string, handler func(http.ResponseWriter, *h
 func injectHTTPRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r.WithContext(api.WithHTTPRequest(r.Context(), r)))
+	})
+}
+
+func requestLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+		next.ServeHTTP(ww, r)
+		status := ww.Status()
+		if status == 0 {
+			status = http.StatusOK
+		}
+		slog.InfoContext(r.Context(), "http request",
+			"request_id", middleware.GetReqID(r.Context()),
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", status,
+			"bytes", ww.BytesWritten(),
+			"duration", time.Since(start).String(),
+			"remote_addr", r.RemoteAddr,
+			"user_agent", r.UserAgent(),
+		)
 	})
 }
 

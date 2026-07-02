@@ -1,9 +1,12 @@
 package server
 
 import (
+	"bytes"
 	"crypto/tls"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/lmenezes/cerebro/internal/auth"
@@ -71,6 +74,33 @@ func TestServer_SchemeReflectsTLSConfig(t *testing.T) {
 
 func TestServerTLSConfig_RequiresTLS12OrNewer(t *testing.T) {
 	assert.Equal(t, uint16(tls.VersionTLS12), serverTLSConfig().MinVersion)
+}
+
+func TestRequestLoggerUsesSlog(t *testing.T) {
+	var buf bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+
+	handler := requestLogger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	req := httptest.NewRequest(http.MethodPost, "http://example.test/clusters/local/rest/history", nil)
+	req.RemoteAddr = "127.0.0.1:12345"
+	req.Header.Set("User-Agent", "test-agent")
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	logLine := buf.String()
+	assert.Contains(t, logLine, `msg="http request"`)
+	assert.Contains(t, logLine, "method=POST")
+	assert.Contains(t, logLine, "path=/clusters/local/rest/history")
+	assert.Contains(t, logLine, "status=201")
+	assert.Contains(t, logLine, "bytes=2")
+	assert.Contains(t, logLine, "remote_addr=127.0.0.1:12345")
+	assert.True(t, strings.Contains(logLine, "duration="))
 }
 
 func TestShouldGate_ProtectsClusterAPI(t *testing.T) {

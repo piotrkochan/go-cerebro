@@ -39,6 +39,9 @@ server:
 	assert.Equal(t, "from-env", cfg.Server.Secret)
 	assert.True(t, cfg.Server.CSRFEnabled)
 	assert.Equal(t, 9100, cfg.Server.Port)
+	assert.Equal(t, "info", cfg.Logging.Level)
+	assert.Equal(t, "text", cfg.Logging.Format)
+	assert.True(t, cfg.Logging.RequestLogEnabled)
 	assert.Len(t, cfg.Hosts, 1)
 	assert.Equal(t, "Local", cfg.Hosts[0].Name)
 }
@@ -55,6 +58,50 @@ server:
 	require.NoError(t, err)
 
 	assert.False(t, cfg.Server.CSRFEnabled)
+}
+
+func TestLoad_LoggingConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+logging:
+  level: "WARN"
+  format: "json"
+  request_log_enabled: false
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.Equal(t, "warn", cfg.Logging.Level)
+	assert.Equal(t, "json", cfg.Logging.Format)
+	assert.False(t, cfg.Logging.RequestLogEnabled)
+}
+
+func TestLoad_RejectsInvalidLoggingLevel(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+logging:
+  level: "trace"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "logging.level")
+}
+
+func TestLoad_RejectsInvalidLoggingFormat(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+logging:
+  format: "pretty"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "logging.format")
 }
 
 func TestLoad_HostByName(t *testing.T) {

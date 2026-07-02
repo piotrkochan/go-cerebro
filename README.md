@@ -122,6 +122,7 @@ Important sections:
 - `rest.history_size`: number of REST console requests kept in local history.
 - `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
 - `data.path`: SQLite file used for REST request history.
+- `logging.level`, `logging.format`, `logging.request_log_enabled`: application log level/format and per-request HTTP access logs. Request logs are emitted at `info`, so `logging.level: warn` also suppresses normal access logs.
 
 Production baseline:
 

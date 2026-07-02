@@ -72,6 +72,7 @@ func runServe(args []string) {
 		slog.Error("load config", "err", err)
 		os.Exit(1)
 	}
+	configureLogging(cfg.Logging)
 	authMod, err := auth.NewModule(cfg)
 	if err != nil {
 		slog.Error("init auth", "err", err)
@@ -112,6 +113,26 @@ func runServe(args []string) {
 		slog.Error("server stopped", "err", err)
 		os.Exit(1)
 	}
+}
+
+func configureLogging(cfg config.Logging) {
+	level := new(slog.LevelVar)
+	switch cfg.Level {
+	case "debug":
+		level.Set(slog.LevelDebug)
+	case "warn":
+		level.Set(slog.LevelWarn)
+	case "error":
+		level.Set(slog.LevelError)
+	default:
+		level.Set(slog.LevelInfo)
+	}
+	opts := &slog.HandlerOptions{Level: level}
+	if cfg.Format == "json" {
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, opts)))
+		return
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, opts)))
 }
 
 func runOpenAPI(args []string) {

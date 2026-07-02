@@ -37,3 +37,8 @@ features:
 
 data:
   path: "/workspace/cerebro/cerebro.db"
+
+logging:
+  level: "info"
+  format: "text"
+  request_log_enabled: false

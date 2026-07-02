@@ -105,6 +105,12 @@ type Data struct {
 	Path string `yaml:"path"`
 }
 
+type Logging struct {
+	Level             string `yaml:"level"`
+	Format            string `yaml:"format"`
+	RequestLogEnabled bool   `yaml:"request_log_enabled"`
+}
+
 type Config struct {
 	Hosts    []Host   `yaml:"hosts"`
 	Auth     Auth     `yaml:"auth"`
@@ -113,6 +119,7 @@ type Config struct {
 	Rest     Rest     `yaml:"rest"`
 	Features Features `yaml:"features"`
 	Data     Data     `yaml:"data"`
+	Logging  Logging  `yaml:"logging"`
 }
 
 func Load(path string) (*Config, error) {
@@ -150,6 +157,11 @@ func defaults() *Config {
 		ES:   ES{Gzip: true, MaxResponseBytes: DefaultMaxResponseBytes},
 		Rest: Rest{HistorySize: 50},
 		Data: Data{Path: "./cerebro.db"},
+		Logging: Logging{
+			Level:             "info",
+			Format:            "text",
+			RequestLogEnabled: true,
+		},
 		Auth: Auth{Type: "disabled"},
 	}
 }
@@ -196,6 +208,14 @@ func (c *Config) normalize() {
 	if c.Data.Path == "" {
 		c.Data.Path = "./cerebro.db"
 	}
+	c.Logging.Level = strings.ToLower(strings.TrimSpace(c.Logging.Level))
+	if c.Logging.Level == "" {
+		c.Logging.Level = "info"
+	}
+	c.Logging.Format = strings.ToLower(strings.TrimSpace(c.Logging.Format))
+	if c.Logging.Format == "" {
+		c.Logging.Format = "text"
+	}
 	for i := range c.Hosts {
 		if c.Hosts[i].Name == "" {
 			c.Hosts[i].Name = c.Hosts[i].Host
@@ -206,6 +226,16 @@ func (c *Config) normalize() {
 func (c *Config) validate() error {
 	if (c.Server.TLSCertFile == "") != (c.Server.TLSKeyFile == "") {
 		return fmt.Errorf("server.tls_cert_file and server.tls_key_file must be configured together")
+	}
+	switch c.Logging.Level {
+	case "debug", "info", "warn", "error":
+	default:
+		return fmt.Errorf("logging.level must be one of debug, info, warn or error")
+	}
+	switch c.Logging.Format {
+	case "text", "json":
+	default:
+		return fmt.Errorf("logging.format must be text or json")
 	}
 	if (c.ES.ClientCertFile == "") != (c.ES.ClientKeyFile == "") {
 		return fmt.Errorf("es.client_cert_file and es.client_key_file must be configured together")
