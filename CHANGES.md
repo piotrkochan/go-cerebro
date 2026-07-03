@@ -158,6 +158,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Replaced release archives with standalone binaries for Linux, macOS and Windows on common architectures.
 - Added multi-architecture Docker image publishing.
 - Optimized release Docker builds so frontend assets are built once on the runner architecture and reused for multi-architecture images with GitHub Actions BuildKit cache.
+- Fixed Docker image entrypoint so `docker run ... ghcr.io/piotrkochan/go-cerebro serve -config ...` passes CLI arguments correctly.
 
 ## v0.9.4 - April 10th, 2021
 
