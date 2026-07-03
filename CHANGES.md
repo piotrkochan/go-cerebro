@@ -1,5 +1,10 @@
 # Cerebro Releases
 
+## v0.10.1 - July 4th, 2026
+
+### Fixes
+- Fixed ad hoc Elasticsearch URLs so `/clusters/{cluster}` API routes work after connecting with a manually entered node address.
+
 ## v0.10.0 - June 24th, 2026
 
 This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https://github.com/lmenezes/cerebro), rewritten from the original Java + Angular application to Go + Huma + React + TypeScript.

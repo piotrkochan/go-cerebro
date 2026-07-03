@@ -26,3 +26,29 @@ func TestResolveClusterTargetRequiresSlug(t *testing.T) {
 	_, err = deps.resolveClusterTarget(nil, "Local cluster")
 	assert.EqualError(t, err, "unknown elasticsearch cluster slug")
 }
+
+func TestResolveClusterTargetAllowsAdHocURLWhenEnabled(t *testing.T) {
+	deps := &Deps{Cfg: &config.Config{ES: config.ES{AllowAdHocHosts: true}}}
+
+	target, err := deps.resolveClusterTarget(nil, "http://10.0.2.4:9200")
+
+	require.NoError(t, err)
+	assert.Equal(t, "http://10.0.2.4:9200", target.Host.Name)
+	assert.Equal(t, "http://10.0.2.4:9200", target.Host.Host)
+}
+
+func TestResolveClusterTargetRejectsAdHocURLWhenDisabled(t *testing.T) {
+	deps := &Deps{Cfg: &config.Config{}}
+
+	_, err := deps.resolveClusterTarget(nil, "http://10.0.2.4:9200")
+
+	assert.EqualError(t, err, "unknown elasticsearch cluster slug")
+}
+
+func TestResolveClusterTargetRejectsInvalidAdHocURLAsUnknownSlug(t *testing.T) {
+	deps := &Deps{Cfg: &config.Config{ES: config.ES{AllowAdHocHosts: true}}}
+
+	_, err := deps.resolveClusterTarget(nil, "local-cluster")
+
+	assert.EqualError(t, err, "unknown elasticsearch cluster slug")
+}

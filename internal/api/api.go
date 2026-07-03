@@ -120,7 +120,13 @@ func (d *Deps) resolveClusterTarget(r *http.Request, slug string) (elastic.Serve
 	}
 	host, ok := d.Cfg.HostBySlug(slug)
 	if !ok {
-		return elastic.Server{}, errors.New("unknown elasticsearch cluster slug")
+		if !d.Cfg.ES.AllowAdHocHosts {
+			return elastic.Server{}, errors.New("unknown elasticsearch cluster slug")
+		}
+		if err := validateAdHocHost(slug); err != nil {
+			return elastic.Server{}, errors.New("unknown elasticsearch cluster slug")
+		}
+		host = config.Host{Name: slug, Host: slug}
 	}
 	return elasticServer(r, host), nil
 }
