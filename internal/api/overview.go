@@ -64,6 +64,7 @@ func (d *Deps) RegisterOverview(api huma.API) {
 			"_aliases",
 			"_cluster/health",
 			"_nodes/_all/os,jvm?human=true",
+			"_all/_settings/index.lifecycle.indexing_complete?ignore_unavailable=true",
 		}
 		responses := make([]elastic.Response, len(paths))
 		g, gctx := errgroup.WithContext(ctx)
@@ -82,7 +83,7 @@ func (d *Deps) RegisterOverview(api huma.API) {
 		}
 		body, err := transform.ClusterOverview(
 			responses[0].Body, responses[1].Body, responses[2].Body, responses[3].Body,
-			responses[4].Body, responses[5].Body, responses[6].Body,
+			responses[4].Body, responses[5].Body, responses[6].Body, responses[7].Body,
 		)
 		if err != nil {
 			return failMsg[transform.Overview](500, err.Error())

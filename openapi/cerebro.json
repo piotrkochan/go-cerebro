@@ -1159,6 +1159,11 @@
           "docs_count": {
             "description": "Total primary docs count."
           },
+          "indexing_complete_indices": {
+            "description": "Number of indices marked as ILM indexing complete.",
+            "format": "int64",
+            "type": "integer"
+          },
           "indices": {
             "items": {
               "$ref": "#/components/schemas/OverviewIndex"
@@ -1217,6 +1222,7 @@
           "total_indices",
           "closed_indices",
           "special_indices",
+          "indexing_complete_indices",
           "indices",
           "nodes",
           "shard_allocation"
@@ -1291,6 +1297,10 @@
           },
           "deleted_docs": {},
           "doc_count": {},
+          "indexing_complete": {
+            "description": "Whether ILM marked this index as indexing complete.",
+            "type": "boolean"
+          },
           "name": {
             "description": "Index name.",
             "type": "string"
@@ -1334,6 +1344,7 @@
           "name",
           "closed",
           "special",
+          "indexing_complete",
           "unhealthy",
           "doc_count",
           "deleted_docs",

@@ -563,6 +563,10 @@ export type Overview = {
      * Total primary docs count.
      */
     docs_count: unknown;
+    /**
+     * Number of indices marked as ILM indexing complete.
+     */
+    indexing_complete_indices: number;
     indices: Array<OverviewIndex> | null;
     initializing_shards: unknown;
     nodes: Array<OverviewNode> | null;
@@ -628,6 +632,10 @@ export type OverviewIndex = {
     data_stream?: string;
     deleted_docs: unknown;
     doc_count: unknown;
+    /**
+     * Whether ILM marked this index as indexing complete.
+     */
+    indexing_complete: boolean;
     /**
      * Index name.
      */
@@ -1146,6 +1154,10 @@ export type OverviewWritable = {
      * Total primary docs count.
      */
     docs_count: unknown;
+    /**
+     * Number of indices marked as ILM indexing complete.
+     */
+    indexing_complete_indices: number;
     indices: Array<OverviewIndex> | null;
     initializing_shards: unknown;
     nodes: Array<OverviewNode> | null;

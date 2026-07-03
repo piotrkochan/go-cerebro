@@ -49,3 +49,50 @@ func TestDataStreamBackingIndicesSupportsClusterStateShapes(t *testing.T) {
 	}
 }
 
+func TestIndexingCompleteIndicesSupportsSettingsShapes(t *testing.T) {
+	settings := map[string]any{
+		"logs-000001": map[string]any{
+			"settings": map[string]any{
+				"index": map[string]any{
+					"lifecycle": map[string]any{
+						"indexing_complete": "true",
+					},
+				},
+			},
+		},
+		"logs-000002": map[string]any{
+			"settings.index.lifecycle.indexing_complete": true,
+		},
+		"logs-000003": map[string]any{
+			"index.lifecycle.indexing_complete": "false",
+		},
+	}
+
+	got := indexingCompleteIndices(settings)
+	if !got["logs-000001"] || !got["logs-000002"] {
+		t.Fatalf("expected completed indices to be detected, got %#v", got)
+	}
+	if got["logs-000003"] {
+		t.Fatalf("expected false setting to stay incomplete, got %#v", got)
+	}
+}
+
+func TestBuildIndicesMarksIndexingComplete(t *testing.T) {
+	state := map[string]any{
+		"routing_table": map[string]any{
+			"indices": map[string]any{
+				"logs-000001": map[string]any{
+					"shards": map[string]any{},
+				},
+			},
+		},
+	}
+
+	got := buildIndices(state, map[string]any{}, map[string]any{}, map[string]bool{"logs-000001": true})
+	if len(got) != 1 {
+		t.Fatalf("expected one index, got %#v", got)
+	}
+	if !got[0].IndexingComplete {
+		t.Fatalf("expected index to be marked indexing complete, got %#v", got[0])
+	}
+}

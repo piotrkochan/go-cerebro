@@ -1,5 +1,10 @@
 # Cerebro Releases
 
+## Unreleased
+
+### Frontend
+- Added an overview filter for hiding ILM rolled-over indices marked with `index.lifecycle.indexing_complete`.
+
 ## v0.10.1 - July 4th, 2026
 
 ### Fixes
