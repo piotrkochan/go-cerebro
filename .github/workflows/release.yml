@@ -7,16 +7,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build and publish release
+  validate:
+    name: Validate release
     runs-on: ubuntu-latest
 
     steps:
@@ -67,39 +66,37 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           VITE_APP_VERSION="${VERSION}" npm run build:vite
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
+      - name: Upload frontend assets
+        uses: actions/upload-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          name: frontend-assets
+          path: internal/server/static
+          if-no-files-found: error
 
-      - name: Extract Docker metadata
-        id: docker-meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
-            type=raw,value=prerelease,enable=${{ contains(github.ref_name, '-') }}
-            type=sha,format=short
+  build-binaries:
+    name: Build release binaries
+    runs-on: ubuntu-latest
+    needs: validate
 
-      - name: Build and publish Docker image
-        uses: docker/build-push-action@v7
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
         with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.docker-meta.outputs.tags }}
-          labels: ${{ steps.docker-meta.outputs.labels }}
-          cache-from: type=gha,scope=cerebro-docker
-          cache-to: type=gha,mode=max,scope=cerebro-docker
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.4"
+
+      - name: Download Go dependencies
+        run: go mod download
+
+      - name: Download frontend assets
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-assets
+          path: internal/server/static
 
       - name: Build release binaries
         run: |
@@ -134,25 +131,87 @@ jobs:
             "windows amd64"
             "windows arm64"
           )
-          pids=()
-          labels=()
           for target in "${targets[@]}"; do
             read -r goos goarch goarm <<< "${target}"
-            build "${goos}" "${goarch}" "${goarm:-}" &
-            pids+=("$!")
-            labels+=("${target}")
+            build "${goos}" "${goarch}" "${goarm:-}"
           done
-          failed=0
-          for i in "${!pids[@]}"; do
-            if ! wait "${pids[$i]}"; then
-              echo "::error::failed to build ${labels[$i]}"
-              failed=1
-            fi
-          done
-          if [ "${failed}" -ne 0 ]; then
-            exit "${failed}"
-          fi
           sha256sum dist/cerebro-* | sort -k2 > dist/checksums.txt
+
+      - name: Upload release binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-binaries
+          path: dist
+          if-no-files-found: error
+
+  publish-docker:
+    name: Publish Docker image
+    runs-on: ubuntu-latest
+    needs: build-binaries
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: docker-meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+            type=raw,value=prerelease,enable=${{ contains(github.ref_name, '-') }}
+            type=sha,format=short
+
+      - name: Build and publish Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          cache-from: type=gha,scope=cerebro-docker
+          cache-to: type=gha,mode=max,scope=cerebro-docker
+
+  publish-release:
+    name: Publish GitHub release
+    runs-on: ubuntu-latest
+    needs:
+      - build-binaries
+      - publish-docker
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download release binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: release-binaries
+          path: dist
 
       - name: Publish GitHub release
         env:
