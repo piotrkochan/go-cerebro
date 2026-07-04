@@ -22,6 +22,7 @@ type ESAuth struct {
 }
 
 type Host struct {
+	ID               string   `yaml:"id,omitempty"`
 	Name             string   `yaml:"name"`
 	Host             string   `yaml:"host"`
 	Auth             *ESAuth  `yaml:"auth,omitempty"`
@@ -38,11 +39,18 @@ type GroupSearch struct {
 	UserAttr         string `yaml:"user_attr"`
 	UserAttrTemplate string `yaml:"user_attr_template"`
 	Group            string `yaml:"group"`
+	NameAttr         string `yaml:"name_attr"`
 }
 
-type AuthSettings struct {
-	Username     string       `yaml:"username"`
-	Password     string       `yaml:"password"`
+type BasicAuth struct {
+	Enabled  bool     `yaml:"enabled"`
+	Username string   `yaml:"username"`
+	Password string   `yaml:"password"`
+	Groups   []string `yaml:"groups,omitempty"`
+}
+
+type LDAPAuth struct {
+	Enabled      bool         `yaml:"enabled"`
 	URL          string       `yaml:"url"`
 	CACertFile   string       `yaml:"ca_cert_file"`
 	BaseDN       string       `yaml:"base_dn"`
@@ -54,9 +62,18 @@ type AuthSettings struct {
 	GroupSearch  *GroupSearch `yaml:"group_search,omitempty"`
 }
 
+type ProxyAuth struct {
+	Enabled        bool     `yaml:"enabled"`
+	UserHeader     string   `yaml:"user_header"`
+	GroupsHeader   string   `yaml:"groups_header"`
+	GroupSeparator string   `yaml:"group_separator"`
+	TrustedProxies []string `yaml:"trusted_proxies"`
+}
+
 type Auth struct {
-	Type     string       `yaml:"type"`
-	Settings AuthSettings `yaml:"settings"`
+	Basic BasicAuth `yaml:"basic,omitempty"`
+	LDAP  LDAPAuth  `yaml:"ldap,omitempty"`
+	Proxy ProxyAuth `yaml:"proxy,omitempty"`
 }
 
 type Server struct {
@@ -101,6 +118,26 @@ type Features struct {
 	DataExplorer bool `yaml:"data_explorer"`
 }
 
+type RBACPolicy struct {
+	Subject  string `yaml:"subject"`
+	Resource string `yaml:"resource"`
+	Action   string `yaml:"action"`
+	Object   string `yaml:"object"`
+	Effect   string `yaml:"effect"`
+}
+
+type RBACBinding struct {
+	Subject string `yaml:"subject"`
+	Role    string `yaml:"role"`
+}
+
+type RBAC struct {
+	Enabled     bool          `yaml:"enabled"`
+	DefaultRole string        `yaml:"default_role"`
+	Policies    []RBACPolicy  `yaml:"policies"`
+	Bindings    []RBACBinding `yaml:"bindings"`
+}
+
 type Data struct {
 	Path string `yaml:"path"`
 }
@@ -118,6 +155,7 @@ type Config struct {
 	ES       ES       `yaml:"es"`
 	Rest     Rest     `yaml:"rest"`
 	Features Features `yaml:"features"`
+	RBAC     RBAC     `yaml:"rbac"`
 	Data     Data     `yaml:"data"`
 	Logging  Logging  `yaml:"logging"`
 }
@@ -162,7 +200,6 @@ func defaults() *Config {
 			Format:            "text",
 			RequestLogEnabled: true,
 		},
-		Auth: Auth{Type: "disabled"},
 	}
 }
 
@@ -175,15 +212,9 @@ func (c *Config) applyEnvOverrides() {
 	if v := os.Getenv("APPLICATION_SECRET"); v != "" {
 		c.Server.Secret = v
 	}
-	if v := os.Getenv("AUTH_TYPE"); v != "" {
-		c.Auth.Type = v
-	}
 }
 
 func (c *Config) normalize() {
-	if c.Auth.Type == "" {
-		c.Auth.Type = "disabled"
-	}
 	if c.Server.BasePath == "" {
 		c.Server.BasePath = "/"
 	}
@@ -204,6 +235,18 @@ func (c *Config) normalize() {
 	}
 	if c.Rest.HistorySize == 0 {
 		c.Rest.HistorySize = 50
+	}
+	c.RBAC.DefaultRole = strings.TrimSpace(c.RBAC.DefaultRole)
+	for i := range c.RBAC.Policies {
+		c.RBAC.Policies[i].Subject = strings.TrimSpace(c.RBAC.Policies[i].Subject)
+		c.RBAC.Policies[i].Resource = strings.TrimSpace(c.RBAC.Policies[i].Resource)
+		c.RBAC.Policies[i].Action = strings.TrimSpace(c.RBAC.Policies[i].Action)
+		c.RBAC.Policies[i].Object = strings.TrimSpace(c.RBAC.Policies[i].Object)
+		c.RBAC.Policies[i].Effect = strings.ToLower(strings.TrimSpace(c.RBAC.Policies[i].Effect))
+	}
+	for i := range c.RBAC.Bindings {
+		c.RBAC.Bindings[i].Subject = strings.TrimSpace(c.RBAC.Bindings[i].Subject)
+		c.RBAC.Bindings[i].Role = strings.TrimSpace(c.RBAC.Bindings[i].Role)
 	}
 	if c.Data.Path == "" {
 		c.Data.Path = "./cerebro.db"
@@ -240,6 +283,24 @@ func (c *Config) validate() error {
 	if (c.ES.ClientCertFile == "") != (c.ES.ClientKeyFile == "") {
 		return fmt.Errorf("es.client_cert_file and es.client_key_file must be configured together")
 	}
+	if c.RBAC.Enabled {
+		if len(c.RBAC.Policies) == 0 {
+			return fmt.Errorf("rbac.policies must not be empty when rbac.enabled is true")
+		}
+		for i, p := range c.RBAC.Policies {
+			if p.Subject == "" || p.Resource == "" || p.Action == "" || p.Object == "" {
+				return fmt.Errorf("rbac.policies[%d] requires subject, resource, action and object", i)
+			}
+			if p.Effect != "allow" && p.Effect != "deny" {
+				return fmt.Errorf("rbac.policies[%d].effect must be allow or deny", i)
+			}
+		}
+		for i, b := range c.RBAC.Bindings {
+			if b.Subject == "" || b.Role == "" {
+				return fmt.Errorf("rbac.bindings[%d] requires subject and role", i)
+			}
+		}
+	}
 	if c.ES.AWS.Enabled {
 		if strings.TrimSpace(c.ES.AWS.Region) == "" {
 			return fmt.Errorf("es.aws.region is required when es.aws.enabled is true")
@@ -249,21 +310,46 @@ func (c *Config) validate() error {
 		}
 	}
 	for _, h := range c.Hosts {
+		if h.ID != "" && !validHostID(h.ID) {
+			return fmt.Errorf("invalid host %q id %q: use lowercase letters, digits and single hyphens", h.Name, h.ID)
+		}
 		if err := validateHostURL(h.Host); err != nil {
 			return fmt.Errorf("invalid host %q: %w", h.Name, err)
 		}
 	}
-	switch c.Auth.Type {
-	case "disabled", "none":
-		return nil
-	case "basic", "ldap":
-		if isDefaultSecret(c.Server.Secret) {
-			return fmt.Errorf("server.secret must be set to a strong non-default value when auth.type is %q", c.Auth.Type)
-		}
-		return nil
-	default:
-		return fmt.Errorf("unknown auth type: %s", c.Auth.Type)
+	if err := c.validateHostIDs(); err != nil {
+		return err
 	}
+	if c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled {
+		if isDefaultSecret(c.Server.Secret) {
+			return fmt.Errorf("server.secret must be set to a strong non-default value when authentication is enabled")
+		}
+	}
+	if c.Auth.Basic.Enabled {
+		if strings.TrimSpace(c.Auth.Basic.Username) == "" || c.Auth.Basic.Password == "" {
+			return fmt.Errorf("auth.basic.username and auth.basic.password are required when auth.basic.enabled is true")
+		}
+	}
+	if c.Auth.LDAP.Enabled {
+		if strings.TrimSpace(c.Auth.LDAP.URL) == "" {
+			return fmt.Errorf("auth.ldap.url is required when auth.ldap.enabled is true")
+		}
+		if strings.TrimSpace(c.Auth.LDAP.BaseDN) == "" {
+			return fmt.Errorf("auth.ldap.base_dn is required when auth.ldap.enabled is true")
+		}
+		if strings.TrimSpace(c.Auth.LDAP.UserTemplate) == "" {
+			return fmt.Errorf("auth.ldap.user_template is required when auth.ldap.enabled is true")
+		}
+	}
+	if c.Auth.Proxy.Enabled {
+		if strings.TrimSpace(c.Auth.Proxy.UserHeader) == "" {
+			return fmt.Errorf("auth.proxy.user_header is required when auth.proxy.enabled is true")
+		}
+		if len(c.Auth.Proxy.TrustedProxies) == 0 {
+			return fmt.Errorf("auth.proxy.trusted_proxies is required when auth.proxy.enabled is true")
+		}
+	}
+	return nil
 }
 
 func validateHostURL(raw string) error {
@@ -322,7 +408,10 @@ func (c *Config) HostRefs() []HostRef {
 	refs := make([]HostRef, 0, len(c.Hosts))
 	seen := map[string]int{}
 	for _, h := range c.Hosts {
-		base := HostSlug(h.Name)
+		base := h.ID
+		if base == "" {
+			base = HostSlug(h.Name)
+		}
 		seen[base]++
 		slug := base
 		if seen[base] > 1 {
@@ -331,6 +420,42 @@ func (c *Config) HostRefs() []HostRef {
 		refs = append(refs, HostRef{Name: h.Name, Slug: slug})
 	}
 	return refs
+}
+
+func (c *Config) validateHostIDs() error {
+	seen := map[string]string{}
+	for _, h := range c.Hosts {
+		if h.ID == "" {
+			continue
+		}
+		if prev, ok := seen[h.ID]; ok {
+			return fmt.Errorf("duplicate host id %q for hosts %q and %q", h.ID, prev, h.Name)
+		}
+		seen[h.ID] = h.Name
+	}
+	return nil
+}
+
+func validHostID(id string) bool {
+	if id == "" || id[0] == '-' || id[len(id)-1] == '-' {
+		return false
+	}
+	lastHyphen := false
+	for _, r := range id {
+		if r == '-' {
+			if lastHyphen {
+				return false
+			}
+			lastHyphen = true
+			continue
+		}
+		lastHyphen = false
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func HostSlug(name string) string {

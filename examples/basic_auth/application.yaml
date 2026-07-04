@@ -1,8 +1,8 @@
 hosts: []
 
 auth:
-  type: "basic"
-  settings:
+  basic:
+    enabled: true
     username: "${BASIC_AUTH_USER}"
     password: "${BASIC_AUTH_PWD}"
 

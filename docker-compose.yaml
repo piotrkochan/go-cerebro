@@ -44,7 +44,7 @@ services:
     environment:
       CEREBRO_PORT: "9000"
       APPLICATION_SECRET: "docker-compose-dev-auth-secret-change-me"
-      AUTH_TYPE: "basic"
+      BASIC_AUTH_ENABLED: "true"
       BASIC_AUTH_USER: "admin"
       BASIC_AUTH_PWD: "admin123"
     volumes:

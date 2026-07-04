@@ -11,7 +11,6 @@ import (
 
 func TestLoad_DefaultsAndEnvExpand(t *testing.T) {
 	t.Setenv("APPLICATION_SECRET", "from-env")
-	t.Setenv("AUTH_TYPE", "basic")
 	t.Setenv("BASIC_AUTH_USER", "admin")
 	t.Setenv("BASIC_AUTH_PWD", "s3cret")
 
@@ -20,10 +19,11 @@ func TestLoad_DefaultsAndEnvExpand(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, []byte(`
 hosts:
   - name: "Local"
+    id: "local"
     host: "http://localhost:9200"
 auth:
-  type: "${AUTH_TYPE}"
-  settings:
+  basic:
+    enabled: true
     username: "${BASIC_AUTH_USER}"
     password: "${BASIC_AUTH_PWD}"
 server:
@@ -33,9 +33,9 @@ server:
 
 	cfg, err := Load(path)
 	require.NoError(t, err)
-	assert.Equal(t, "basic", cfg.Auth.Type)
-	assert.Equal(t, "admin", cfg.Auth.Settings.Username)
-	assert.Equal(t, "s3cret", cfg.Auth.Settings.Password)
+	assert.True(t, cfg.Auth.Basic.Enabled)
+	assert.Equal(t, "admin", cfg.Auth.Basic.Username)
+	assert.Equal(t, "s3cret", cfg.Auth.Basic.Password)
 	assert.Equal(t, "from-env", cfg.Server.Secret)
 	assert.True(t, cfg.Server.CSRFEnabled)
 	assert.Equal(t, 9100, cfg.Server.Port)
@@ -44,6 +44,7 @@ server:
 	assert.True(t, cfg.Logging.RequestLogEnabled)
 	assert.Len(t, cfg.Hosts, 1)
 	assert.Equal(t, "Local", cfg.Hosts[0].Name)
+	assert.Equal(t, "local", cfg.Hosts[0].ID)
 }
 
 func TestLoad_AllowsDisablingCSRF(t *testing.T) {
@@ -76,6 +77,97 @@ logging:
 	assert.Equal(t, "warn", cfg.Logging.Level)
 	assert.Equal(t, "json", cfg.Logging.Format)
 	assert.False(t, cfg.Logging.RequestLogEnabled)
+}
+
+func TestLoad_RBACConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+rbac:
+  enabled: true
+  default_role: "role:viewer"
+  bindings:
+    - subject: "alice"
+      role: "role:admin"
+  policies:
+    - subject: "role:admin"
+      resource: "*"
+      action: "*"
+      object: "*"
+      effect: "allow"
+    - subject: "role:viewer"
+      resource: "*"
+      action: "read"
+      object: "*"
+      effect: "allow"
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.True(t, cfg.RBAC.Enabled)
+	assert.Equal(t, "role:viewer", cfg.RBAC.DefaultRole)
+	assert.Equal(t, []RBACBinding{{Subject: "alice", Role: "role:admin"}}, cfg.RBAC.Bindings)
+	require.Len(t, cfg.RBAC.Policies, 2)
+	assert.Equal(t, "allow", cfg.RBAC.Policies[0].Effect)
+}
+
+func TestLoad_ProxyAuthConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  proxy:
+    enabled: true
+    user_header: "X-Forwarded-User"
+    groups_header: "X-Forwarded-Groups"
+    trusted_proxies: ["127.0.0.1/32"]
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.True(t, cfg.Auth.Proxy.Enabled)
+	assert.Equal(t, "X-Forwarded-User", cfg.Auth.Proxy.UserHeader)
+	assert.Equal(t, []string{"127.0.0.1/32"}, cfg.Auth.Proxy.TrustedProxies)
+}
+
+func TestLoad_RejectsProxyAuthWithoutTrustedProxies(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  proxy:
+    enabled: true
+    user_header: "X-Forwarded-User"
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "trusted_proxies")
+}
+
+func TestLoad_RejectsInvalidRBACPolicy(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+rbac:
+  enabled: true
+  policies:
+    - subject: "role:admin"
+      resource: "*"
+      action: "*"
+      object: "*"
+      effect: "maybe"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "effect")
 }
 
 func TestLoad_RejectsInvalidLoggingLevel(t *testing.T) {
@@ -132,18 +224,55 @@ func TestHostRefs_UsesStableUniqueSlugs(t *testing.T) {
 	cfg := &Config{Hosts: []Host{
 		{Name: "Moj klaster 01", Host: "http://one:9200"},
 		{Name: "Moj-klaster 01", Host: "http://two:9200"},
-		{Name: "Prod", Host: "http://prod:9200"},
+		{ID: "prod-main", Name: "Prod", Host: "http://prod:9200"},
 	}}
 
 	assert.Equal(t, []HostRef{
 		{Name: "Moj klaster 01", Slug: "moj-klaster-01"},
 		{Name: "Moj-klaster 01", Slug: "moj-klaster-01-2"},
-		{Name: "Prod", Slug: "prod"},
+		{Name: "Prod", Slug: "prod-main"},
 	}, cfg.HostRefs())
 
 	host, ok := cfg.HostBySlug("moj-klaster-01-2")
 	require.True(t, ok)
 	assert.Equal(t, "http://two:9200", host.Host)
+	host, ok = cfg.HostBySlug("prod-main")
+	require.True(t, ok)
+	assert.Equal(t, "http://prod:9200", host.Host)
+}
+
+func TestLoad_RejectsInvalidHostID(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+hosts:
+  - name: "Prod"
+    id: "Prod_01"
+    host: "https://prod:9200"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid host")
+	assert.Contains(t, err.Error(), "id")
+}
+
+func TestLoad_RejectsDuplicateHostID(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+hosts:
+  - name: "Prod one"
+    id: "prod"
+    host: "https://prod-one:9200"
+  - name: "Prod two"
+    id: "prod"
+    host: "https://prod-two:9200"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duplicate host id")
 }
 
 func TestLoad_RequiresESClientCertAndKeyTogether(t *testing.T) {

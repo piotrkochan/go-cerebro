@@ -1,8 +1,8 @@
 hosts: []
 
 auth:
-  type: "ldap"
-  settings:
+  ldap:
+    enabled: true
     url: "ldap://ldap:389"
     base_dn: "DC=example,DC=org"
     method: "simple"

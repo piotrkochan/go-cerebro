@@ -18,6 +18,7 @@ import (
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/lmenezes/cerebro/internal/elastic"
 	"github.com/lmenezes/cerebro/internal/history"
+	"github.com/lmenezes/cerebro/internal/rbac"
 )
 
 type Server struct {
@@ -47,7 +48,7 @@ func New(opts Options) *Server {
 	r.Use(middleware.Compress(5))
 	r.Use(injectHTTPRequest)
 	// Auth gate for API endpoints: requires a session cookie when auth is enabled.
-	r.Use(apiAuthGate(opts.Auth, opts.Cfg.Server))
+	r.Use(apiAuthGate(opts.Auth, opts.Cfg.Server, rbac.New(opts.Cfg.RBAC)))
 
 	cfg := huma.DefaultConfig("Cerebro", "0.0.0")
 	cfg.OpenAPI.Info.Description = "Cerebro — Elasticsearch cluster management UI."
@@ -230,7 +231,7 @@ func maxRequestBody(maxBytes int64) func(http.Handler) http.Handler {
 // (/connect/hosts). All other GETs (HTML partials served from public/, /openapi.json, /, /login,
 // static assets) pass through. /auth/login and /auth/logout are explicitly excluded so users can
 // authenticate.
-func apiAuthGate(authMod *auth.Module, serverCfg config.Server) func(http.Handler) http.Handler {
+func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac.Authorizer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !shouldGate(r) {
@@ -238,12 +239,12 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server) func(http.Handle
 				return
 			}
 			if authMod.Enabled() {
-				user, ok := authMod.SessionUser(r)
+				identity, ok := authMod.SessionIdentity(r)
 				if !ok {
 					http.Error(w, "authentication required", http.StatusUnauthorized)
 					return
 				}
-				r = r.WithContext(auth.WithUser(r.Context(), user))
+				r = r.WithContext(auth.WithIdentity(r.Context(), identity))
 			}
 			if serverCfg.CSRFEnabled {
 				if !validRequestOrigin(r) {
@@ -252,6 +253,13 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server) func(http.Handle
 				}
 				if !authMod.ValidCSRF(r) {
 					http.Error(w, "invalid csrf token", http.StatusForbidden)
+					return
+				}
+			}
+			if authorizer.Enabled() {
+				subject := auth.UserFrom(r.Context())
+				if !authorizer.Allow(subject, auth.GroupsFrom(r.Context()), rbac.Classify(r.Method, r.URL.Path)) {
+					http.Error(w, "authorization denied", http.StatusForbidden)
 					return
 				}
 			}

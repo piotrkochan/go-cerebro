@@ -6,7 +6,6 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,37 +14,56 @@ import (
 )
 
 const (
-	SessionName    = "cerebro"
-	SessionUserKey = "username"
-	SessionCSRFKey = "csrf"
-	RedirectURL    = "redirect"
+	SessionName      = "cerebro"
+	SessionUserKey   = "username"
+	SessionGroupsKey = "groups"
+	SessionCSRFKey   = "csrf"
+	RedirectURL      = "redirect"
 )
 
 type Service interface {
-	Authenticate(username, password string) (string, error)
+	Authenticate(username, password string) (Identity, error)
+}
+
+type Identity struct {
+	Username string
+	Groups   []string
 }
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
-type ctxUserKey struct{}
+type ctxIdentityKey struct{}
 
 func WithUser(ctx context.Context, user string) context.Context {
-	return context.WithValue(ctx, ctxUserKey{}, user)
+	return WithIdentity(ctx, Identity{Username: user})
+}
+
+func WithIdentity(ctx context.Context, identity Identity) context.Context {
+	return context.WithValue(ctx, ctxIdentityKey{}, identity)
 }
 
 func UserFrom(ctx context.Context) string {
-	if v := ctx.Value(ctxUserKey{}); v != nil {
-		if s, ok := v.(string); ok {
-			return s
+	return IdentityFrom(ctx).Username
+}
+
+func GroupsFrom(ctx context.Context) []string {
+	return IdentityFrom(ctx).Groups
+}
+
+func IdentityFrom(ctx context.Context) Identity {
+	if v := ctx.Value(ctxIdentityKey{}); v != nil {
+		if identity, ok := v.(Identity); ok {
+			return identity
 		}
 	}
-	return ""
+	return Identity{}
 }
 
 type Module struct {
-	enabled bool
-	service Service
-	store   *sessions.CookieStore
+	enabled  bool
+	proxies  []*ProxyAuthenticator
+	services []Service
+	store    *sessions.CookieStore
 }
 
 func NewModule(cfg *config.Config) (*Module, error) {
@@ -62,26 +80,28 @@ func NewModule(cfg *config.Config) (*Module, error) {
 	}
 
 	m := &Module{store: store}
-	switch cfg.Auth.Type {
-	case "", "disabled", "none":
-		m.enabled = false
-	case "basic":
-		svc, err := NewBasicService(cfg.Auth.Settings)
+	if cfg.Auth.Basic.Enabled {
+		svc, err := NewBasicService(cfg.Auth.Basic)
 		if err != nil {
 			return nil, err
 		}
-		m.enabled = true
-		m.service = svc
-	case "ldap":
-		svc, err := NewLDAPService(cfg.Auth.Settings)
-		if err != nil {
-			return nil, err
-		}
-		m.enabled = true
-		m.service = svc
-	default:
-		return nil, fmt.Errorf("unknown auth type: %s", cfg.Auth.Type)
+		m.services = append(m.services, svc)
 	}
+	if cfg.Auth.LDAP.Enabled {
+		svc, err := NewLDAPService(cfg.Auth.LDAP)
+		if err != nil {
+			return nil, err
+		}
+		m.services = append(m.services, svc)
+	}
+	if cfg.Auth.Proxy.Enabled {
+		proxy, err := NewProxyAuthenticator(cfg.Auth.Proxy)
+		if err != nil {
+			return nil, err
+		}
+		m.proxies = append(m.proxies, proxy)
+	}
+	m.enabled = len(m.services) > 0 || len(m.proxies) > 0
 	return m, nil
 }
 
@@ -89,29 +109,56 @@ func (m *Module) Enabled() bool { return m.enabled }
 
 func (m *Module) Store() *sessions.CookieStore { return m.store }
 
-func (m *Module) Authenticate(username, password string) (string, error) {
-	if m.service == nil {
-		return "", errors.New("authentication not enabled")
+func (m *Module) Authenticate(username, password string) (Identity, error) {
+	if len(m.services) == 0 {
+		return Identity{}, errors.New("authentication not enabled")
 	}
-	return m.service.Authenticate(username, password)
+	for _, service := range m.services {
+		identity, err := service.Authenticate(username, password)
+		if err == nil {
+			return identity, nil
+		}
+		if !errors.Is(err, ErrInvalidCredentials) {
+			return Identity{}, err
+		}
+	}
+	return Identity{}, ErrInvalidCredentials
 }
 
 func (m *Module) SessionUser(r *http.Request) (string, bool) {
+	identity, ok := m.SessionIdentity(r)
+	return identity.Username, ok
+}
+
+func (m *Module) SessionIdentity(r *http.Request) (Identity, bool) {
+	for _, proxy := range m.proxies {
+		if identity, ok := proxy.Identity(r); ok {
+			return identity, true
+		}
+	}
 	sess, err := m.store.Get(r, SessionName)
 	if err != nil {
-		return "", false
+		return Identity{}, false
 	}
 	v, ok := sess.Values[SessionUserKey]
 	if !ok {
-		return "", false
+		return Identity{}, false
 	}
 	s, ok := v.(string)
-	return s, ok
+	if !ok || s == "" {
+		return Identity{}, false
+	}
+	return Identity{Username: s, Groups: sessionGroups(sess.Values[SessionGroupsKey])}, true
 }
 
 func (m *Module) SetSessionUser(w http.ResponseWriter, r *http.Request, username string) error {
+	return m.SetSessionIdentity(w, r, Identity{Username: username})
+}
+
+func (m *Module) SetSessionIdentity(w http.ResponseWriter, r *http.Request, identity Identity) error {
 	sess, _ := m.store.Get(r, SessionName)
-	sess.Values[SessionUserKey] = username
+	sess.Values[SessionUserKey] = identity.Username
+	sess.Values[SessionGroupsKey] = identity.Groups
 	token, err := newCSRFToken()
 	if err != nil {
 		return err
@@ -218,13 +265,30 @@ func (m *Module) APIMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		user, ok := m.SessionUser(r)
+		identity, ok := m.SessionIdentity(r)
 		if !ok {
 			http.Error(w, "authentication required", http.StatusUnauthorized)
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(WithUser(r.Context(), user)))
+		next.ServeHTTP(w, r.WithContext(WithIdentity(r.Context(), identity)))
 	})
+}
+
+func sessionGroups(value any) []string {
+	switch groups := value.(type) {
+	case []string:
+		return groups
+	case []any:
+		out := make([]string, 0, len(groups))
+		for _, group := range groups {
+			if s, ok := group.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
 }
 
 func newCSRFToken() (string, error) {

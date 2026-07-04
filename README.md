@@ -48,11 +48,9 @@ Create a minimal `conf/application.yaml`:
 
 ```yaml
 hosts:
-  - name: "Local cluster"
+  - id: "local-cluster"
+    name: "Local cluster"
     host: "http://localhost:9200"
-
-auth:
-  type: "disabled"
 
 server:
   port: 9000
@@ -104,9 +102,10 @@ Copy [conf/application.example.yaml](./conf/application.example.yaml) to `conf/a
 
 Important sections:
 
-- `hosts`: known Elasticsearch clusters. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
+- `hosts`: known Elasticsearch clusters. Optional `hosts[].id` becomes the stable cluster slug used in URLs and RBAC; use lowercase letters, digits and hyphens. If omitted, the slug is generated from `hosts[].name`. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
 - `hosts[].headers_whitelist`: request headers that Cerebro may forward to Elasticsearch, useful behind an authenticating proxy.
-- `auth`: `disabled`, `basic` or `ldap`. Do not expose an instance with `auth.type: disabled`.
+- `auth.basic`, `auth.ldap`, `auth.proxy`: optional authentication providers. Enable at least one outside local development.
+- `rbac`: optional YAML authorization policies for users and groups.
 - `server.base_path`: URL path prefix when Cerebro is mounted below `/`.
 - `server.secret`: required for authenticated deployments. Set it to a strong random value.
 - `server.cookie_secure`: keep `true` behind HTTPS.
@@ -118,7 +117,7 @@ Important sections:
 - `es.max_response_bytes`: maximum Elasticsearch response body size Cerebro will read.
 - `es.aws`: AWS SigV4 signing for Amazon OpenSearch Service and OpenSearch Serverless.
 - `es.ca_cert_file`, `es.client_cert_file`, `es.client_key_file`: TLS trust and mutual TLS for Elasticsearch.
-- `auth.settings.ca_cert_file`: custom LDAP CA trust.
+- `auth.ldap.ca_cert_file`: custom LDAP CA trust.
 - `rest.history_size`: number of REST console requests kept in local history.
 - `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
 - `data.path`: SQLite file used for REST request history.
@@ -128,17 +127,19 @@ Production baseline:
 
 ```yaml
 hosts:
-  - name: "Production"
+  - id: "prod"
+    name: "Production"
     host: "https://elasticsearch.example.org:9200"
     auth:
       username: "${ES_USERNAME}"
       password: "${ES_PASSWORD}"
 
 auth:
-  type: "basic"
-  settings:
+  basic:
+    enabled: true
     username: "${CEREBRO_USER}"
     password: "${CEREBRO_PASSWORD}"
+    groups: ["cerebro-admins"]
 
 server:
   port: 9000
@@ -163,7 +164,8 @@ Elasticsearch HTTPS with a custom CA and client certificate:
 
 ```yaml
 hosts:
-  - name: "Secure cluster"
+  - id: "secure-cluster"
+    name: "Secure cluster"
     host: "https://elasticsearch.example.org:9200"
     auth:
       username: "${ES_USERNAME}"
@@ -182,7 +184,8 @@ Amazon OpenSearch Service with AWS SigV4 signing:
 
 ```yaml
 hosts:
-  - name: "AWS OpenSearch"
+  - id: "aws-opensearch"
+    name: "AWS OpenSearch"
     host: "https://search-domain.eu-central-1.es.amazonaws.com"
 
 es:
@@ -202,7 +205,6 @@ Environment variables are expanded inside YAML values. These direct overrides ar
 
 - `CEREBRO_PORT`
 - `APPLICATION_SECRET`
-- `AUTH_TYPE`
 
 ## Feature Flags
 
@@ -220,10 +222,11 @@ Basic auth example:
 
 ```yaml
 auth:
-  type: "basic"
-  settings:
+  basic:
+    enabled: true
     username: "${BASIC_AUTH_USER}"
     password: "${BASIC_AUTH_PWD}"
+    groups: ["cerebro-admins"]
 server:
   secret: "${APPLICATION_SECRET}"
 ```
@@ -232,8 +235,8 @@ LDAP uses `ldaps://` by default. For a private test-only LDAP server you can set
 
 ```yaml
 auth:
-  type: "ldap"
-  settings:
+  ldap:
+    enabled: true
     url: "ldaps://ldap.example.org:636"
     ca_cert_file: "/etc/cerebro/ldap-ca.pem"
     base_dn: "ou=people,dc=example,dc=org"
@@ -241,7 +244,29 @@ auth:
     user_template: "uid=%s,%s"
     bind_dn: "cn=readonly,dc=example,dc=org"
     bind_pw: "${LDAP_BIND_PWD}"
+    group_search:
+      base_dn: "ou=groups,dc=example,dc=org"
+      user_attr: "member"
+      user_attr_template: "uid=%s,ou=people,dc=example,dc=org"
+      group: "(objectClass=groupOfNames)"
+      name_attr: "cn"
 ```
+
+Trusted proxy auth example for oauth2-proxy, Azure Entra ID through oauth2-proxy, Authelia, Traefik ForwardAuth or nginx `auth_request`:
+
+```yaml
+auth:
+  proxy:
+    enabled: true
+    user_header: "X-Forwarded-User"
+    groups_header: "X-Forwarded-Groups"
+    group_separator: ","
+    trusted_proxies: ["10.0.0.10/32"]
+server:
+  secret: "${APPLICATION_SECRET}"
+```
+
+RBAC is documented separately in [docs/RBAC.md](./docs/RBAC.md).
 
 ## Docker
 
@@ -281,11 +306,12 @@ More configuration examples are in [examples](./examples), including basic auth,
 Cerebro can manage Elasticsearch clusters. Treat access to this UI as administrative access.
 
 - Serve Cerebro over HTTPS, either with `server.tls_cert_file`/`server.tls_key_file` or through a reverse proxy.
-- Keep `auth.type` enabled outside local development.
+- Enable at least one auth provider outside local development.
 - Set `server.secret`.
 - Keep `es.allow_ad_hoc_hosts: false` unless you explicitly need user-supplied ES targets.
 - Use dedicated Elasticsearch users with the minimum required privileges.
-- Use `ldaps://` or `auth.settings.ca_cert_file` for LDAP trust.
+- Use `ldaps://` or `auth.ldap.ca_cert_file` for LDAP trust.
+- Use `auth.proxy` only when Cerebro is reachable exclusively through the configured trusted proxies.
 - Do not put Elasticsearch credentials into host URLs; use the `auth` block per host.
 
 ## Contributing

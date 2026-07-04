@@ -1,8 +1,8 @@
 hosts: []
 
 auth:
-  type: "ldap"
-  settings:
+  ldap:
+    enabled: true
     url: "ldap://ldap:389"
     base_dn: "ou=people,dc=example,dc=org"
     method: "simple"
@@ -11,9 +11,11 @@ auth:
     bind_pw: "admin"
     insecure_ldap: true
     group_search:
-      user_attr: "uid"
-      user_attr_template: "%s"
-      group: "memberof=cn=cerebro,ou=groups,dc=example,dc=org"
+      base_dn: "ou=groups,dc=example,dc=org"
+      user_attr: "member"
+      user_attr_template: "uid=%s,ou=people,dc=example,dc=org"
+      group: "(objectClass=groupOfNames)"
+      name_attr: "cn"
 
 server:
   port: 9000

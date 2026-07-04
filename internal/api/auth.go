@@ -72,12 +72,12 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid login form data", http.StatusBadRequest)
 		return
 	}
-	username, err := d.Auth.Authenticate(user, password)
+	identity, err := d.Auth.Authenticate(user, password)
 	if err != nil {
 		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
 		return
 	}
-	if err := d.Auth.SetSessionUser(w, r, username); err != nil {
+	if err := d.Auth.SetSessionIdentity(w, r, identity); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

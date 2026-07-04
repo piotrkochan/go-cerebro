@@ -4,14 +4,20 @@
 # HTTP and the data explorer is enabled.
 
 hosts:
-  - name: "Local cluster"
+  - id: "local-cluster"
+    name: "Local cluster"
     host: "http://elasticsearch:9200"
 
 auth:
-  type: "${AUTH_TYPE}"
-  settings:
+  basic:
+    enabled: ${BASIC_AUTH_ENABLED}
     username: "${BASIC_AUTH_USER}"
     password: "${BASIC_AUTH_PWD}"
+    groups: ["cerebro-admins"]
+  ldap:
+    enabled: false
+  proxy:
+    enabled: false
 
 server:
   port: 9000

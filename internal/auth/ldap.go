@@ -25,7 +25,7 @@ type LDAPService struct {
 	tlsConfig    *tls.Config
 }
 
-func NewLDAPService(s config.AuthSettings) (*LDAPService, error) {
+func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
 	if s.URL == "" || s.UserTemplate == "" || s.BaseDN == "" {
 		return nil, errors.New("ldap auth requires url, user_template and base_dn")
 	}
@@ -49,7 +49,7 @@ func NewLDAPService(s config.AuthSettings) (*LDAPService, error) {
 		bindPW:       s.BindPW,
 		tlsConfig:    tlsConfig,
 	}
-	if s.GroupSearch != nil && s.GroupSearch.Group != "" {
+	if s.GroupSearch != nil && s.GroupSearch.UserAttr != "" {
 		gs := *s.GroupSearch
 		if gs.BaseDN == "" {
 			gs.BaseDN = s.BaseDN
@@ -57,24 +57,33 @@ func NewLDAPService(s config.AuthSettings) (*LDAPService, error) {
 		if gs.UserAttrTemplate == "" {
 			gs.UserAttrTemplate = s.UserTemplate
 		}
+		if gs.NameAttr == "" {
+			gs.NameAttr = "cn"
+		}
 		svc.groupSearch = &gs
 	}
 	return svc, nil
 }
 
-func (l *LDAPService) Authenticate(username, password string) (string, error) {
+func (l *LDAPService) Authenticate(username, password string) (Identity, error) {
 	if !l.checkUserAuth(username, password) {
-		return "", ErrInvalidCredentials
+		return Identity{}, ErrInvalidCredentials
 	}
+	groups := []string{}
 	if l.groupSearch != nil {
 		if l.bindDN == "" || l.bindPW == "" {
-			return "", errors.New("ldap group_search requires bind_dn and bind_pw")
+			return Identity{}, errors.New("ldap group_search requires bind_dn and bind_pw")
 		}
-		if !l.checkGroupMembership(username) {
-			return "", ErrInvalidCredentials
+		var err error
+		groups, err = l.discoverGroups(username)
+		if err != nil {
+			return Identity{}, err
+		}
+		if len(groups) == 0 {
+			return Identity{}, ErrInvalidCredentials
 		}
 	}
-	return username, nil
+	return Identity{Username: username, Groups: groups}, nil
 }
 
 func (l *LDAPService) dial() (*ldap.Conn, error) {
@@ -121,40 +130,55 @@ func (l *LDAPService) checkUserAuth(username, password string) bool {
 	return true
 }
 
-func (l *LDAPService) checkGroupMembership(username string) bool {
+func (l *LDAPService) discoverGroups(username string) ([]string, error) {
 	if !safeLDAPTemplateValue(username) {
 		slog.Info("ldap rejected unsafe username")
-		return false
+		return nil, ErrInvalidCredentials
 	}
 	conn, err := l.dial()
 	if err != nil {
 		slog.Error("ldap dial failed", "err", err)
-		return false
+		return nil, ErrInvalidCredentials
 	}
 	defer conn.Close()
 	if err := conn.Bind(l.bindDN, l.bindPW); err != nil {
 		slog.Error("ldap group bind failed", "err", err)
-		return false
+		return nil, ErrInvalidCredentials
 	}
 	user := fmt.Sprintf(l.groupSearch.UserAttrTemplate, username, l.baseDN)
-	filter := fmt.Sprintf("(& (%s=%s)(%s))", l.groupSearch.UserAttr, ldap.EscapeFilter(user), l.groupSearch.Group)
+	groupFilter := l.groupSearch.Group
+	if groupFilter == "" {
+		groupFilter = "(objectClass=*)"
+	}
+	filter := fmt.Sprintf("(&(%s=%s)%s)", l.groupSearch.UserAttr, ldap.EscapeFilter(user), groupFilter)
 	req := ldap.NewSearchRequest(
 		l.groupSearch.BaseDN,
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
-		1,
+		0,
 		0,
 		false,
 		filter,
-		[]string{"dn"},
+		[]string{l.groupSearch.NameAttr},
 		nil,
 	)
 	res, err := conn.Search(req)
 	if err != nil {
 		slog.Info("ldap group membership check failed", "user", username, "err", err)
-		return false
+		return nil, ErrInvalidCredentials
 	}
-	return len(res.Entries) > 0
+	groups := make([]string, 0, len(res.Entries)*2)
+	for _, entry := range res.Entries {
+		if entry.DN != "" {
+			groups = append(groups, entry.DN)
+		}
+		for _, value := range entry.GetAttributeValues(l.groupSearch.NameAttr) {
+			if value != "" {
+				groups = append(groups, value)
+			}
+		}
+	}
+	return groups, nil
 }
 
 func safeLDAPTemplateValue(value string) bool {

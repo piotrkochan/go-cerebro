@@ -13,8 +13,7 @@ import (
 func TestAPIMiddleware_ReturnsUnauthorizedWithoutSession(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			Type:     "basic",
-			Settings: config.AuthSettings{Username: "admin", Password: "admin123"},
+			Basic: config.BasicAuth{Enabled: true, Username: "admin", Password: "admin123"},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
 	})
@@ -32,19 +31,29 @@ func TestAPIMiddleware_ReturnsUnauthorizedWithoutSession(t *testing.T) {
 }
 
 func TestBasicServiceAuthenticate(t *testing.T) {
-	service, err := NewBasicService(config.AuthSettings{Username: "admin", Password: "admin123"})
+	service, err := NewBasicService(config.BasicAuth{Username: "admin", Password: "admin123"})
 	require.NoError(t, err)
 
-	user, err := service.Authenticate("admin", "admin123")
+	identity, err := service.Authenticate("admin", "admin123")
 	require.NoError(t, err)
-	assert.Equal(t, "admin", user)
+	assert.Equal(t, "admin", identity.Username)
 
 	_, err = service.Authenticate("admin", "wrong")
 	assert.ErrorIs(t, err, ErrInvalidCredentials)
 }
 
+func TestBasicServiceAuthenticateReturnsConfiguredGroups(t *testing.T) {
+	service, err := NewBasicService(config.BasicAuth{Username: "admin", Password: "admin123", Groups: []string{"cerebro-admins"}})
+	require.NoError(t, err)
+
+	identity, err := service.Authenticate("admin", "admin123")
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"cerebro-admins"}, identity.Groups)
+}
+
 func TestNewBasicServiceRequiresCredentials(t *testing.T) {
-	_, err := NewBasicService(config.AuthSettings{Username: "admin"})
+	_, err := NewBasicService(config.BasicAuth{Username: "admin"})
 	assert.EqualError(t, err, "basic auth requires username and password settings")
 }
 
@@ -59,6 +68,9 @@ func TestSessionUserCSRFAndClearSession(t *testing.T) {
 	user, ok := mod.SessionUser(req)
 	require.True(t, ok)
 	assert.Equal(t, "admin", user)
+	identity, ok := mod.SessionIdentity(req)
+	require.True(t, ok)
+	assert.Equal(t, "admin", identity.Username)
 
 	token, ok := mod.CSRFToken(req)
 	require.True(t, ok)
@@ -119,10 +131,11 @@ func TestAPIMiddlewareAddsUserToContext(t *testing.T) {
 	mod := testModule(t)
 	sessionReq := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
 	sessionRR := httptest.NewRecorder()
-	require.NoError(t, mod.SetSessionUser(sessionRR, sessionReq, "admin"))
+	require.NoError(t, mod.SetSessionIdentity(sessionRR, sessionReq, Identity{Username: "admin", Groups: []string{"cerebro-admins"}}))
 
 	handler := mod.APIMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "admin", UserFrom(r.Context()))
+		assert.Equal(t, []string{"cerebro-admins"}, GroupsFrom(r.Context()))
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	req := requestWithCookies(sessionRR, http.MethodGet, "http://example.test/api")
@@ -137,8 +150,7 @@ func testModule(t *testing.T) *Module {
 	t.Helper()
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			Type:     "basic",
-			Settings: config.AuthSettings{Username: "admin", Password: "admin123"},
+			Basic: config.BasicAuth{Enabled: true, Username: "admin", Password: "admin123"},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
 	})

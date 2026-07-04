@@ -1,5 +1,15 @@
 # Cerebro Releases
 
+## Unreleased
+
+### Security
+- Added configurable YAML RBAC policies for backend API authorization.
+- Added LDAP group discovery for RBAC bindings and LDAPS e2e coverage.
+- Reworked authentication config into independent `auth.basic`, `auth.ldap` and trusted `auth.proxy` providers.
+
+### Documentation
+- Added dedicated RBAC documentation and updated authentication examples to the provider-based config format.
+
 ## v0.10.1 - July 4th, 2026
 
 ### Fixes

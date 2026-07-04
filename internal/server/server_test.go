@@ -11,6 +11,7 @@ import (
 
 	"github.com/lmenezes/cerebro/internal/auth"
 	"github.com/lmenezes/cerebro/internal/config"
+	"github.com/lmenezes/cerebro/internal/rbac"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -123,11 +124,10 @@ func TestShouldGate_LeavesAuthStatusPublic(t *testing.T) {
 
 func TestAPIAuthGate_RequiresCSRFWhenAuthDisabled(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
-		Auth:   config.Auth{Type: "disabled"},
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
 	})
 	require.NoError(t, err)
-	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -141,7 +141,6 @@ func TestAPIAuthGate_RequiresCSRFWhenAuthDisabled(t *testing.T) {
 
 func TestAPIAuthGate_AllowsValidCSRFWhenAuthDisabled(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
-		Auth:   config.Auth{Type: "disabled"},
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
 	})
 	require.NoError(t, err)
@@ -150,7 +149,7 @@ func TestAPIAuthGate_AllowsValidCSRFWhenAuthDisabled(t *testing.T) {
 	token, err := authMod.EnsureCSRFToken(tokenRR, tokenReq)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
-	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -168,7 +167,6 @@ func TestAPIAuthGate_AllowsValidCSRFWhenAuthDisabled(t *testing.T) {
 
 func TestAPIAuthGate_RejectsCrossSiteFetchMetadata(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
-		Auth:   config.Auth{Type: "disabled"},
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
 	})
 	require.NoError(t, err)
@@ -176,7 +174,7 @@ func TestAPIAuthGate_RejectsCrossSiteFetchMetadata(t *testing.T) {
 	tokenRR := httptest.NewRecorder()
 	token, err := authMod.EnsureCSRFToken(tokenRR, tokenReq)
 	require.NoError(t, err)
-	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -196,13 +194,12 @@ func TestAPIAuthGate_RejectsCrossSiteFetchMetadata(t *testing.T) {
 func TestAPIAuthGate_AuthenticatesBeforeCSRF(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Auth: config.Auth{
-			Type:     "basic",
-			Settings: config.AuthSettings{Username: "admin", Password: "admin123"},
+			Basic: config.BasicAuth{Enabled: true, Username: "admin", Password: "admin123"},
 		},
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
 	})
 	require.NoError(t, err)
-	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -212,4 +209,45 @@ func TestAPIAuthGate_AuthenticatesBeforeCSRF(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
+func TestAPIAuthGate_EnforcesRBAC(t *testing.T) {
+	authMod, err := auth.NewModule(&config.Config{
+		Auth: config.Auth{
+			Basic: config.BasicAuth{Enabled: true, Username: "alice", Password: "secret"},
+		},
+		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+	})
+	require.NoError(t, err)
+	authorizer := rbac.New(config.RBAC{
+		Enabled: true,
+		Bindings: []config.RBACBinding{
+			{Subject: "alice", Role: "role:viewer"},
+		},
+		Policies: []config.RBACPolicy{
+			{Subject: "role:viewer", Resource: "*", Action: "read", Object: "*", Effect: "allow"},
+		},
+	})
+	handler := apiAuthGate(authMod, config.Server{}, authorizer)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	loginReq := httptest.NewRequest(http.MethodPost, "http://example.test/auth/login", nil)
+	loginRR := httptest.NewRecorder()
+	require.NoError(t, authMod.SetSessionUser(loginRR, loginReq, "alice"))
+
+	readReq := httptest.NewRequest(http.MethodGet, "http://example.test/clusters/local-cluster/overview", nil)
+	for _, cookie := range loginRR.Result().Cookies() {
+		readReq.AddCookie(cookie)
+	}
+	readRR := httptest.NewRecorder()
+	handler.ServeHTTP(readRR, readReq)
+	assert.Equal(t, http.StatusNoContent, readRR.Code)
+
+	deleteReq := httptest.NewRequest(http.MethodDelete, "http://example.test/clusters/local-cluster/overview/indices/logs-000001", nil)
+	for _, cookie := range loginRR.Result().Cookies() {
+		deleteReq.AddCookie(cookie)
+	}
+	deleteRR := httptest.NewRecorder()
+	handler.ServeHTTP(deleteRR, deleteReq)
+	assert.Equal(t, http.StatusForbidden, deleteRR.Code)
 }
