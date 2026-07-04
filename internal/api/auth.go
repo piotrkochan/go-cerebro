@@ -54,10 +54,11 @@ func (d *Deps) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
 			"entraid":  d.Auth.EntraIDEnabled(),
 			"password": d.Auth.PasswordLoginEnabled(),
 		},
-		"groups":   identity.Groups,
-		"provider": identity.Provider,
-		"roles":    authRoles(d.Cfg.RBAC, identity),
-		"user":     identity.Username,
+		"groups":      identity.Groups,
+		"permissions": authPermissions(d.Cfg.RBAC, identity),
+		"provider":    identity.Provider,
+		"roles":       authRoles(d.Cfg.RBAC, identity),
+		"user":        identity.Username,
 	})
 }
 
@@ -76,6 +77,7 @@ func (d *Deps) handleAuthMe(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"authenticated": true,
 		"groups":        identity.Groups,
+		"permissions":   authPermissions(d.Cfg.RBAC, identity),
 		"provider":      identity.Provider,
 		"roles":         authRoles(d.Cfg.RBAC, identity),
 		"user":          identity.Username,
@@ -205,6 +207,48 @@ func authRoles(rbac config.RBAC, identity auth.Identity) []string {
 	for _, binding := range rbac.Bindings {
 		if binding.Subject == identity.Username || groupSubjects[binding.Subject] {
 			add(binding.Role)
+		}
+	}
+	return out
+}
+
+type authPermission struct {
+	Action   string `json:"action"`
+	Effect   string `json:"effect"`
+	Object   string `json:"object"`
+	Resource string `json:"resource"`
+}
+
+func authPermissions(rbac config.RBAC, identity auth.Identity) []authPermission {
+	if !rbac.Enabled || identity.Username == "" {
+		return nil
+	}
+	subjects := map[string]bool{identity.Username: true}
+	for _, group := range identity.Groups {
+		if group != "" {
+			subjects["group:"+group] = true
+		}
+	}
+	for _, role := range authRoles(rbac, identity) {
+		if role != "" {
+			subjects[role] = true
+		}
+	}
+	out := make([]authPermission, 0, len(rbac.Policies))
+	seen := map[authPermission]bool{}
+	for _, policy := range rbac.Policies {
+		if !subjects[policy.Subject] {
+			continue
+		}
+		permission := authPermission{
+			Action:   policy.Action,
+			Effect:   policy.Effect,
+			Object:   policy.Object,
+			Resource: policy.Resource,
+		}
+		if !seen[permission] {
+			seen[permission] = true
+			out = append(out, permission)
 		}
 	}
 	return out

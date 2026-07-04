@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { loadAuthStatus, type AuthStatus } from '../api/security';
 import { CerebroLogo } from '../components/CerebroLogo';
 import { Icon } from '../components/Icon';
+import { authActions } from '../stores/authStore';
+import { sessionActions } from '../stores/sessionStore';
 import { APP_VERSION } from '../version';
 
 export function LoginPage() {
@@ -16,6 +18,8 @@ export function LoginPage() {
 
   useEffect(() => {
     let cancelled = false;
+    authActions.clear();
+    sessionActions.disconnect();
     loadAuthStatus().then((status) => {
       if (!cancelled) setAuthStatus(status);
     });

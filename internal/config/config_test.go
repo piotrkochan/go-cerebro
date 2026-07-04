@@ -47,6 +47,21 @@ server:
 	assert.Equal(t, "local", cfg.Hosts[0].ID)
 }
 
+func TestLoad_DevConfigUsesDockerComposeAuthEnv(t *testing.T) {
+	t.Setenv("APPLICATION_SECRET", "docker-compose-dev-auth-secret-change-me")
+	t.Setenv("BASIC_AUTH_ENABLED", "true")
+	t.Setenv("BASIC_AUTH_USER", "admin")
+	t.Setenv("BASIC_AUTH_PWD", "admin123")
+
+	cfg, err := Load("../../conf/application.dev.yaml")
+	require.NoError(t, err)
+
+	assert.True(t, cfg.Auth.Basic.Enabled)
+	assert.Equal(t, "admin", cfg.Auth.Basic.Username)
+	assert.Equal(t, "admin123", cfg.Auth.Basic.Password)
+	assert.Equal(t, "docker-compose-dev-auth-secret-change-me", cfg.Server.Secret)
+}
+
 func TestLoad_AllowsDisablingCSRF(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")

@@ -22,7 +22,7 @@ auth:
 server:
   port: 9000
   base_path: "/"
-  secret: "dev-secret-change-me"
+  secret: "${APPLICATION_SECRET}"
   cookie_secure: false
   csrf_enabled: false
   max_request_bytes: 5242880

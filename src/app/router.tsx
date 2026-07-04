@@ -23,6 +23,7 @@ import {
   LoginRoute,
   NodesRoute,
   OverviewRoute,
+  ProfileRoute,
   RepositoriesRoute,
   RestRoute,
   SnapshotRoute,
@@ -98,6 +99,7 @@ const indexRoute = createRoute({
 const overviewRoute = appRoute('/overview', OverviewRoute);
 const nodesRoute = appRoute('/nodes', NodesRoute);
 const restRoute = appRoute('/rest', RestRoute);
+const profileRoute = appRoute('/profile', ProfileRoute);
 const aliasesRoute = appRoute('/aliases', AliasesRoute);
 const repositoriesRoute = appRoute('/repositories', RepositoriesRoute);
 const repositoryRoute = appRoute('/repository', RepositoriesRoute);
@@ -119,6 +121,7 @@ const routeTree = rootRoute.addChildren([
   overviewRoute,
   nodesRoute,
   restRoute,
+  profileRoute,
   aliasesRoute,
   repositoriesRoute,
   repositoryRoute,

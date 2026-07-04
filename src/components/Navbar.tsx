@@ -1,13 +1,16 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { useStore } from '@tanstack/react-store';
 
 import { indexSettingsUpdate, type HostBodyWritable } from '../api/client';
+import { logout } from '../api/security';
 import { alertsActions } from '../stores/alertsStore';
+import { authStore } from '../stores/authStore';
 import { CerebroLogo } from './CerebroLogo';
 import { DataTable, type DataTableColumn } from './DataTable';
 import { Icon } from './Icon';
 import { ConfirmModal, ModalFrame } from './Modal';
-import type { ClusterHealthFix, ClusterHealthIssue } from '../stores/sessionStore';
+import { sessionActions, type ClusterHealthFix, type ClusterHealthIssue } from '../stores/sessionStore';
 import { clusterPath } from '../utils/connection';
 import { errorMessage, timeInterval } from '../utils/format';
 
@@ -34,6 +37,8 @@ export function Navbar({
   setRefreshInterval: (value: number) => void;
   status: string;
 }) {
+  const auth = useStore(authStore);
+  const navigate = useNavigate();
   const [healthOpen, setHealthOpen] = useState(false);
   const [fixConfirm, setFixConfirm] = useState<ClusterHealthFix | null>(null);
   useEffect(() => {
@@ -56,6 +61,13 @@ export function Navbar({
     }
   }
 
+  async function submitLogout() {
+    alertsActions.clear();
+    await logout();
+    sessionActions.disconnect();
+    void navigate({ to: '/login' });
+  }
+
   if (!connected) return null;
   const search = { host: connection.host };
   const statusValue = status.toLowerCase();
@@ -71,8 +83,11 @@ export function Navbar({
   const navLink = 'flex h-[50px] items-center gap-1.5 px-[15px] text-[#eceeef] hover:bg-[#434749] hover:text-white';
   const menu =
     'absolute top-full left-0 z-[1000] hidden min-w-[160px] list-none border border-[#55595c] bg-[#373a3c] py-[5px] text-left shadow-lg group-hover:block group-focus-within:block [&>li>a]:flex [&>li>a]:items-center [&>li>a]:gap-1.5 [&>li>a]:whitespace-nowrap [&>li>a]:px-5 [&>li>a]:py-[3px] [&>li>a:hover]:bg-[#434749] [&>li>a:hover]:text-white';
+  const menuButton =
+    'flex w-full cursor-pointer items-center gap-1.5 whitespace-nowrap border-0 bg-transparent px-5 py-[3px] text-left text-[#eceeef] hover:bg-[#434749] hover:text-white';
   const healthColor = statusValue === 'red' ? 'text-[#E64759]' : 'text-[#E4D836]';
   const healthFill = statusValue === 'red' ? 'fill-[#E64759]' : 'fill-[#E4D836]';
+  const userLabel = auth.user || 'profile';
 
   return (
     <nav className={`fixed top-0 right-0 left-0 z-[1030] min-h-[50px] border-b-[5px] bg-[#373a3c] ${statusBorder}`}>
@@ -184,6 +199,11 @@ export function Navbar({
                     <Icon name="list" /> cat apis
                   </Link>
                 </li>
+                <li>
+                  <Link search={search} to="/profile">
+                    <Icon name="user" /> profile
+                  </Link>
+                </li>
               </ul>
             </li>
           </ul>
@@ -213,9 +233,28 @@ export function Navbar({
             <li className="hidden sm:block">
               <a className={navLink}>{host}</a>
             </li>
+            {auth.enabled ? (
+              <li className="group relative">
+                <button className={`${navLink} cursor-pointer border-0 bg-transparent`} type="button">
+                  <Icon name="user" /> {userLabel} <Icon name="caret-down" />
+                </button>
+                <ul className={`${menu} right-0 left-auto`}>
+                  <li>
+                    <Link search={search} to="/profile">
+                      <Icon name="user" /> profile
+                    </Link>
+                  </li>
+                  <li>
+                    <button className={menuButton} type="button" onClick={() => void submitLogout()}>
+                      <Icon name="log-out" /> logout
+                    </button>
+                  </li>
+                </ul>
+              </li>
+            ) : null}
             <li>
-              <a className={`${navLink} hidden cursor-pointer sm:flex`} onClick={disconnect}>
-                <Icon name="plug" />
+              <a className={`${navLink} hidden cursor-pointer sm:flex`} title="disconnect" onClick={disconnect}>
+                <Icon name="plug" title="disconnect" />
               </a>
             </li>
           </ul>

@@ -4,7 +4,7 @@ import { useStore } from '@tanstack/react-store';
 
 import { Alerts } from '../components/Alerts';
 import { Navbar } from '../components/Navbar';
-import { connectHosts, navbar } from '../api/client';
+import { navbar } from '../api/client';
 import { loadAuthStatus } from '../api/security';
 import { alertsActions, alertsStore } from '../stores/alertsStore';
 import { refreshActions, refreshStore } from '../stores/refreshStore';
@@ -23,9 +23,10 @@ export function AppShell() {
   const refreshTick = useStore(refreshStore, (state) => state.tick);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const showAppChrome = pathname !== '/connect' && pathname !== '/login';
 
   useEffect(() => {
-    if (!connected && pathname !== '/login') void navigate({ to: '/connect' });
+    if (!connected && pathname !== '/connect' && pathname !== '/login') void navigate({ to: '/connect' });
   }, [connected, navigate, pathname]);
 
   useEffect(() => {
@@ -48,32 +49,13 @@ export function AppShell() {
   }, [navigate, pathname]);
 
   useEffect(() => {
-    if (!connected) return;
+    if (!showAppChrome || !connected) return;
     const timer = window.setInterval(() => refreshActions.tick(), refreshInterval);
     return () => window.clearInterval(timer);
-  }, [connected, refreshInterval]);
+  }, [connected, refreshInterval, showAppChrome]);
 
   useEffect(() => {
-    if (!connected || !host) return;
-    if (hostName && hostName !== host) return;
-    let ignore = false;
-    async function loadHostName() {
-      try {
-        const result = await connectHosts<true>({ throwOnError: true });
-        const match = result.data.items?.find((item) => item.slug === host);
-        if (!ignore && match) sessionActions.setHostName(match.name);
-      } catch {
-        // Keep the slug as a fallback display value.
-      }
-    }
-    void loadHostName();
-    return () => {
-      ignore = true;
-    };
-  }, [connected, host, hostName]);
-
-  useEffect(() => {
-    if (!connected || !host) return;
+    if (!showAppChrome || !connected || !host) return;
     let ignore = false;
     async function loadStatus() {
       try {
@@ -99,7 +81,7 @@ export function AppShell() {
     return () => {
       ignore = true;
     };
-  }, [connected, host, refreshTick]);
+  }, [connected, host, refreshTick, showAppChrome]);
 
   function disconnect() {
     alertsActions.clear();
@@ -110,17 +92,19 @@ export function AppShell() {
   return (
     <>
       <Alerts alerts={alerts} />
-      <Navbar
-        connected={connected}
-        connection={getConnection()}
-        disconnect={disconnect}
-        healthIssue={healthIssue}
-        host={hostName || host}
-        onHealthFixed={refreshActions.tick}
-        refreshInterval={refreshInterval}
-        setRefreshInterval={refreshActions.setInterval}
-        status={status}
-      />
+      {showAppChrome ? (
+        <Navbar
+          connected={connected}
+          connection={getConnection()}
+          disconnect={disconnect}
+          healthIssue={healthIssue}
+          host={hostName || host}
+          onHealthFixed={refreshActions.tick}
+          refreshInterval={refreshInterval}
+          setRefreshInterval={refreshActions.setInterval}
+          status={status}
+        />
+      ) : null}
       <div className="container-fluid main">
         <div className="row">
           <div className="col-sm-12">

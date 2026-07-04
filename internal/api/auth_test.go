@@ -28,6 +28,10 @@ func TestHandleAuthMeReturnsIdentity(t *testing.T) {
 			Bindings: []config.RBACBinding{
 				{Subject: "group:cerebro-admins", Role: "role:admin"},
 			},
+			Policies: []config.RBACPolicy{
+				{Subject: "role:viewer", Resource: "overview", Action: "read", Object: "*", Effect: "allow"},
+				{Subject: "role:admin", Resource: "*", Action: "*", Object: "*", Effect: "allow"},
+			},
 		}},
 	}
 	sessionReq := httptest.NewRequest(http.MethodGet, "http://example.test/auth/me", nil)
@@ -53,6 +57,10 @@ func TestHandleAuthMeReturnsIdentity(t *testing.T) {
 	assert.Equal(t, "basic", got["provider"])
 	assert.Equal(t, []any{"cerebro-admins"}, got["groups"])
 	assert.Equal(t, []any{"role:viewer", "role:admin"}, got["roles"])
+	assert.Equal(t, []any{
+		map[string]any{"action": "read", "effect": "allow", "object": "*", "resource": "overview"},
+		map[string]any{"action": "*", "effect": "allow", "object": "*", "resource": "*"},
+	}, got["permissions"])
 }
 
 func TestHandleAuthMeRequiresSession(t *testing.T) {
