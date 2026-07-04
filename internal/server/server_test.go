@@ -122,6 +122,24 @@ func TestShouldGate_LeavesAuthStatusPublic(t *testing.T) {
 	assert.False(t, shouldGate(req))
 }
 
+func TestShouldGate_LeavesEntraIDRedirectFlowPublic(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "login", path: "/auth/entraid/login"},
+		{name: "callback", path: "/auth/entraid/callback?code=test-code&state=test-state"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "http://example.test"+tt.path, nil)
+
+			assert.False(t, shouldGate(req))
+		})
+	}
+}
+
 func TestAPIAuthGate_RequiresCSRFWhenAuthDisabled(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
