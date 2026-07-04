@@ -18,7 +18,7 @@ hosts:
 # Application authentication. Enable one or more providers.
 auth:
   session:
-    # 0 disables a limit. Set these for browser-facing deployments.
+    # 0 disables a limit.
     cookie_max_age_seconds: 28800
     max_lifetime_seconds: 28800
     idle_timeout_seconds: 1800
