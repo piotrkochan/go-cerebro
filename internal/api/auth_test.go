@@ -15,7 +15,7 @@ import (
 func TestHandleAuthMeReturnsIdentity(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Auth: config.Auth{
-			Basic: config.BasicAuth{Enabled: true, Username: "admin", Password: "admin123"},
+			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
 	})
@@ -66,7 +66,7 @@ func TestHandleAuthMeReturnsIdentity(t *testing.T) {
 func TestHandleAuthMeRequiresSession(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Auth: config.Auth{
-			Basic: config.BasicAuth{Enabled: true, Username: "admin", Password: "admin123"},
+			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
 	})

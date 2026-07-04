@@ -14,7 +14,7 @@ import (
 func TestAPIMiddleware_ReturnsUnauthorizedWithoutSession(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			Basic: config.BasicAuth{Enabled: true, Username: "admin", Password: "admin123"},
+			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
 	})
@@ -225,7 +225,7 @@ func testModule(t *testing.T) *Module {
 	t.Helper()
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			Basic: config.BasicAuth{Enabled: true, Username: "admin", Password: "admin123"},
+			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
 	})

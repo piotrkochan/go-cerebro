@@ -145,7 +145,7 @@ func TestAPIAuthGate_RequiresCSRFWhenAuthDisabled(t *testing.T) {
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
 	})
 	require.NoError(t, err)
-	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -167,7 +167,7 @@ func TestAPIAuthGate_AllowsValidCSRFWhenAuthDisabled(t *testing.T) {
 	token, err := authMod.EnsureCSRFToken(tokenRR, tokenReq)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
-	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -192,7 +192,7 @@ func TestAPIAuthGate_RejectsCrossSiteFetchMetadata(t *testing.T) {
 	tokenRR := httptest.NewRecorder()
 	token, err := authMod.EnsureCSRFToken(tokenRR, tokenReq)
 	require.NoError(t, err)
-	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -212,12 +212,12 @@ func TestAPIAuthGate_RejectsCrossSiteFetchMetadata(t *testing.T) {
 func TestAPIAuthGate_AuthenticatesBeforeCSRF(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Auth: config.Auth{
-			Basic: config.BasicAuth{Enabled: true, Username: "admin", Password: "admin123"},
+			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 		},
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
 	})
 	require.NoError(t, err)
-	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
@@ -232,7 +232,7 @@ func TestAPIAuthGate_AuthenticatesBeforeCSRF(t *testing.T) {
 func TestAPIAuthGate_EnforcesRBAC(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Auth: config.Auth{
-			Basic: config.BasicAuth{Enabled: true, Username: "alice", Password: "secret"},
+			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "alice", Password: "secret"}}},
 		},
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
 	})
@@ -246,7 +246,7 @@ func TestAPIAuthGate_EnforcesRBAC(t *testing.T) {
 			{Subject: "role:viewer", Resource: "*", Action: "read", Object: "*", Effect: "allow"},
 		},
 	})
-	handler := apiAuthGate(authMod, config.Server{}, authorizer)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{}, authorizer, true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	loginReq := httptest.NewRequest(http.MethodPost, "http://example.test/auth/login", nil)
@@ -273,7 +273,7 @@ func TestAPIAuthGate_EnforcesRBAC(t *testing.T) {
 func TestAPIAuthGate_EnforcesRBACIndexObjectsAndActions(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Auth: config.Auth{
-			Basic: config.BasicAuth{Enabled: true, Username: "alice", Password: "secret"},
+			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "alice", Password: "secret"}}},
 		},
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
 	})
@@ -291,7 +291,7 @@ func TestAPIAuthGate_EnforcesRBACIndexObjectsAndActions(t *testing.T) {
 			{Subject: "role:index-maintainer", Resource: "snapshots", Action: "read", Object: "prod/*/*", Effect: "allow"},
 		},
 	})
-	handler := apiAuthGate(authMod, config.Server{}, authorizer)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := apiAuthGate(authMod, config.Server{}, authorizer, true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 

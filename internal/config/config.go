@@ -43,11 +43,15 @@ type GroupSearch struct {
 	NameAttr         string `yaml:"name_attr"`
 }
 
-type BasicAuth struct {
-	Enabled  bool     `yaml:"enabled"`
+type BasicAuthUser struct {
 	Username string   `yaml:"username"`
 	Password string   `yaml:"password"`
 	Groups   []string `yaml:"groups,omitempty"`
+}
+
+type BasicAuth struct {
+	Enabled bool            `yaml:"enabled"`
+	Users   []BasicAuthUser `yaml:"users,omitempty"`
 }
 
 type LDAPAuth struct {
@@ -197,6 +201,7 @@ type Logging struct {
 	Level             string `yaml:"level"`
 	Format            string `yaml:"format"`
 	RequestLogEnabled bool   `yaml:"request_log_enabled"`
+	AuthLogEnabled    bool   `yaml:"auth_log_enabled"`
 }
 
 type Config struct {
@@ -250,6 +255,7 @@ func defaults() *Config {
 			Level:             "info",
 			Format:            "text",
 			RequestLogEnabled: true,
+			AuthLogEnabled:    true,
 		},
 	}
 }
@@ -298,6 +304,9 @@ func (c *Config) normalize() {
 	for i := range c.RBAC.Bindings {
 		c.RBAC.Bindings[i].Subject = strings.TrimSpace(c.RBAC.Bindings[i].Subject)
 		c.RBAC.Bindings[i].Role = strings.TrimSpace(c.RBAC.Bindings[i].Role)
+	}
+	for i := range c.Auth.Basic.Users {
+		c.Auth.Basic.Users[i].Username = strings.TrimSpace(c.Auth.Basic.Users[i].Username)
 	}
 	if c.Data.Path == "" {
 		c.Data.Path = "./cerebro.db"
@@ -389,8 +398,22 @@ func (c *Config) validate() error {
 		return fmt.Errorf("auth.session.idle_timeout_seconds must be greater than or equal to zero")
 	}
 	if c.Auth.Basic.Enabled {
-		if strings.TrimSpace(c.Auth.Basic.Username) == "" || c.Auth.Basic.Password == "" {
-			return fmt.Errorf("auth.basic.username and auth.basic.password are required when auth.basic.enabled is true")
+		if len(c.Auth.Basic.Users) == 0 {
+			return fmt.Errorf("auth.basic.users must contain at least one user when auth.basic.enabled is true")
+		}
+		usernames := map[string]bool{}
+		for i, user := range c.Auth.Basic.Users {
+			username := strings.TrimSpace(user.Username)
+			if username == "" {
+				return fmt.Errorf("auth.basic.users[%d].username is required when auth.basic.enabled is true", i)
+			}
+			if user.Password == "" {
+				return fmt.Errorf("auth.basic.users[%d].password is required when auth.basic.enabled is true", i)
+			}
+			if usernames[username] {
+				return fmt.Errorf("auth.basic.users[%d].username %q is duplicated", i, username)
+			}
+			usernames[username] = true
 		}
 	}
 	if c.Auth.LDAP.Enabled {

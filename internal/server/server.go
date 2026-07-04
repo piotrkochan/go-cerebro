@@ -48,7 +48,7 @@ func New(opts Options) *Server {
 	r.Use(middleware.Compress(5))
 	r.Use(injectHTTPRequest)
 	// Auth gate for API endpoints: requires a session cookie when auth is enabled.
-	r.Use(apiAuthGate(opts.Auth, opts.Cfg.Server, rbac.New(opts.Cfg.RBAC)))
+	r.Use(apiAuthGate(opts.Auth, opts.Cfg.Server, rbac.New(opts.Cfg.RBAC), opts.Cfg.Logging.AuthLogEnabled))
 
 	cfg := huma.DefaultConfig("Cerebro", "0.0.0")
 	cfg.OpenAPI.Info.Description = "Cerebro — Elasticsearch cluster management UI."
@@ -231,7 +231,7 @@ func maxRequestBody(maxBytes int64) func(http.Handler) http.Handler {
 // (/connect/hosts). All other GETs (HTML partials served from public/, /openapi.json, /, /login,
 // static assets) pass through. /auth/login and /auth/logout are explicitly excluded so users can
 // authenticate.
-func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac.Authorizer) func(http.Handler) http.Handler {
+func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac.Authorizer, authLogEnabled bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !shouldGate(r) {
@@ -241,7 +241,7 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 			if authMod.Enabled() {
 				identity, ok := authMod.SessionIdentity(r)
 				if !ok {
-					auditAccess(r, "authentication_required", auth.Identity{}, "failure", "missing or expired session")
+					auditAccess(r, "authentication_required", auth.Identity{}, "failure", "missing or expired session", authLogEnabled)
 					http.Error(w, "authentication required", http.StatusUnauthorized)
 					return
 				}
@@ -249,12 +249,12 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 			}
 			if serverCfg.CSRFEnabled {
 				if !validRequestOrigin(r) {
-					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid request origin")
+					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid request origin", authLogEnabled)
 					http.Error(w, "invalid request origin", http.StatusForbidden)
 					return
 				}
 				if !authMod.ValidCSRF(r) {
-					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid csrf token")
+					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid csrf token", authLogEnabled)
 					http.Error(w, "invalid csrf token", http.StatusForbidden)
 					return
 				}
@@ -263,7 +263,7 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 				subject := auth.UserFrom(r.Context())
 				rbacRequest := rbac.Classify(r.Method, r.URL.Path)
 				if !authorizer.Allow(subject, auth.GroupsFrom(r.Context()), rbacRequest) {
-					auditAccess(r, "rbac_denied", auth.IdentityFrom(r.Context()), "failure", fmt.Sprintf("%s:%s:%s", rbacRequest.Resource, rbacRequest.Action, rbacRequest.Object))
+					auditAccess(r, "rbac_denied", auth.IdentityFrom(r.Context()), "failure", fmt.Sprintf("%s:%s:%s", rbacRequest.Resource, rbacRequest.Action, rbacRequest.Object), authLogEnabled)
 					http.Error(w, "authorization denied", http.StatusForbidden)
 					return
 				}
@@ -274,7 +274,10 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 	}
 }
 
-func auditAccess(r *http.Request, event string, identity auth.Identity, outcome, reason string) {
+func auditAccess(r *http.Request, event string, identity auth.Identity, outcome, reason string, enabled bool) {
+	if !enabled {
+		return
+	}
 	attrs := []any{
 		"event", event,
 		"outcome", outcome,

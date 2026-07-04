@@ -12,25 +12,32 @@ func TestNewBasicServiceRequiresCredentials(t *testing.T) {
 	tests := []struct {
 		name     string
 		settings config.BasicAuth
+		wantErr  string
 	}{
-		{name: "missing username", settings: config.BasicAuth{Password: "admin123"}},
-		{name: "missing password", settings: config.BasicAuth{Username: "admin"}},
+		{name: "missing users", settings: config.BasicAuth{}, wantErr: "basic auth requires at least one user"},
+		{name: "missing username", settings: config.BasicAuth{Users: []config.BasicAuthUser{{Password: "admin123"}}}, wantErr: "basic auth users require username and password settings"},
+		{name: "missing password", settings: config.BasicAuth{Users: []config.BasicAuthUser{{Username: "admin"}}}, wantErr: "basic auth users require username and password settings"},
+		{name: "duplicate username", settings: config.BasicAuth{Users: []config.BasicAuthUser{
+			{Username: "admin", Password: "admin123"},
+			{Username: "admin", Password: "other"},
+		}}, wantErr: "basic auth usernames must be unique"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewBasicService(tt.settings)
 
-			assert.EqualError(t, err, "basic auth requires username and password settings")
+			assert.EqualError(t, err, tt.wantErr)
 		})
 	}
 }
 
 func TestBasicServiceAuthenticate(t *testing.T) {
 	service, err := NewBasicService(config.BasicAuth{
-		Username: "admin",
-		Password: "admin123",
-		Groups:   []string{"cerebro-admins"},
+		Users: []config.BasicAuthUser{
+			{Username: "admin", Password: "admin123", Groups: []string{"cerebro-admins"}},
+			{Username: "viewer", Password: "viewer123", Groups: []string{"cerebro-viewers"}},
+		},
 	})
 	require.NoError(t, err)
 
@@ -38,10 +45,15 @@ func TestBasicServiceAuthenticate(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "admin", identity.Username)
 	assert.Equal(t, []string{"cerebro-admins"}, identity.Groups)
+
+	identity, err = service.Authenticate("viewer", "viewer123")
+	require.NoError(t, err)
+	assert.Equal(t, "viewer", identity.Username)
+	assert.Equal(t, []string{"cerebro-viewers"}, identity.Groups)
 }
 
 func TestBasicServiceAuthenticateRejectsInvalidCredentials(t *testing.T) {
-	service, err := NewBasicService(config.BasicAuth{Username: "admin", Password: "admin123"})
+	service, err := NewBasicService(config.BasicAuth{Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}})
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -67,9 +79,7 @@ func TestBasicServiceAuthenticateRejectsInvalidCredentials(t *testing.T) {
 
 func TestBasicServiceReturnsGroupCopy(t *testing.T) {
 	service, err := NewBasicService(config.BasicAuth{
-		Username: "admin",
-		Password: "admin123",
-		Groups:   []string{"cerebro-admins"},
+		Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123", Groups: []string{"cerebro-admins"}}},
 	})
 	require.NoError(t, err)
 

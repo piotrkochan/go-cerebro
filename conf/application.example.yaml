@@ -25,10 +25,11 @@ auth:
 
   basic:
     enabled: false
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
-    # Optional static groups for basic auth. Useful when RBAC is enabled.
-    # groups: ["cerebro-admins"]
+    users:
+      - username: "${BASIC_AUTH_USER}"
+        password: "${BASIC_AUTH_PWD}"
+        # Optional static groups. Useful when RBAC is enabled.
+        # groups: ["cerebro-admins"]
 
   ldap:
     enabled: false
@@ -153,3 +154,5 @@ logging:
   format: "text"
   # Controls per-request HTTP access logs. Request logs are emitted at info level.
   request_log_enabled: true
+  # Controls auth audit logs.
+  auth_log_enabled: true

@@ -98,9 +98,10 @@ Basic auth can attach static groups:
 auth:
   basic:
     enabled: true
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
-    groups: ["cerebro-admins"]
+    users:
+      - username: "${BASIC_AUTH_USER}"
+        password: "${BASIC_AUTH_PWD}"
+        groups: ["cerebro-admins"]
 ```
 
 LDAP group discovery exposes the short group name from `auth.ldap.group_search.name_attr` and the

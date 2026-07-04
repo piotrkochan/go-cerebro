@@ -92,27 +92,27 @@ func (d *Deps) handleEntraIDLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	authURL, err := d.Auth.BeginEntraIDLogin(w, r, callbackURL, returnPath)
 	if err != nil {
-		auditAuth(r, "entraid_login_start_failed", auth.Identity{}, "failure", err.Error())
+		d.auditAuth(r, "entraid_login_start_failed", auth.Identity{}, "failure", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	auditAuth(r, "entraid_login_started", auth.Identity{Provider: "entra_id"}, "success", "")
+	d.auditAuth(r, "entraid_login_started", auth.Identity{Provider: "entra_id"}, "success", "")
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
 func (d *Deps) handleEntraIDCallback(w http.ResponseWriter, r *http.Request) {
 	if authErr := r.URL.Query().Get("error"); authErr != "" {
-		auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id"}, "failure", authErr)
+		d.auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id"}, "failure", authErr)
 		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
 		return
 	}
 	redirect, err := d.Auth.CompleteEntraIDLogin(w, r, d.entraIDCallbackURL(r))
 	if err != nil {
-		auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id"}, "failure", err.Error())
+		d.auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id"}, "failure", err.Error())
 		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
 		return
 	}
-	auditAuth(r, "entraid_login_succeeded", auth.Identity{Provider: "entra_id"}, "success", "")
+	d.auditAuth(r, "entraid_login_succeeded", auth.Identity{Provider: "entra_id"}, "success", "")
 	if redirect == "" {
 		redirect = basePathFor(d, "/")
 	}
@@ -143,22 +143,22 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 		password = payload.Password
 	}
 	if user == "" || password == "" {
-		auditAuth(r, "password_login_failed", auth.Identity{Username: user, Provider: "password"}, "failure", "missing credentials")
+		d.auditAuth(r, "password_login_failed", auth.Identity{Username: user, Provider: "password"}, "failure", "missing credentials")
 		http.Error(w, "invalid login form data", http.StatusBadRequest)
 		return
 	}
 	identity, err := d.Auth.Authenticate(user, password)
 	if err != nil {
-		auditAuth(r, "password_login_failed", auth.Identity{Username: user, Provider: "password"}, "failure", "invalid credentials")
+		d.auditAuth(r, "password_login_failed", auth.Identity{Username: user, Provider: "password"}, "failure", "invalid credentials")
 		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
 		return
 	}
 	if err := d.Auth.SetSessionIdentity(w, r, identity); err != nil {
-		auditAuth(r, "password_login_failed", identity, "failure", "session error")
+		d.auditAuth(r, "password_login_failed", identity, "failure", "session error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	auditAuth(r, "password_login_succeeded", identity, "success", "")
+	d.auditAuth(r, "password_login_succeeded", identity, "success", "")
 	redirect := d.Auth.ConsumeRedirect(w, r)
 	if redirect == "" {
 		redirect = basePathFor(d, "/")
@@ -169,11 +169,14 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 func (d *Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
 	identity, _ := d.Auth.SessionIdentity(r)
 	_ = d.Auth.ClearSession(w, r)
-	auditAuth(r, "logout", identity, "success", "")
+	d.auditAuth(r, "logout", identity, "success", "")
 	http.Redirect(w, r, basePathFor(d, "/#/login"), http.StatusSeeOther)
 }
 
-func auditAuth(r *http.Request, event string, identity auth.Identity, outcome, reason string) {
+func (d *Deps) auditAuth(r *http.Request, event string, identity auth.Identity, outcome, reason string) {
+	if d.Cfg != nil && !d.Cfg.Logging.AuthLogEnabled {
+		return
+	}
 	attrs := []any{
 		"event", event,
 		"outcome", outcome,

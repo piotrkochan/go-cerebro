@@ -122,7 +122,7 @@ Important sections:
 - `rest.history_size`: number of REST console requests kept in local history.
 - `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
 - `data.path`: SQLite file used for REST request history.
-- `logging.level`, `logging.format`, `logging.request_log_enabled`: application log level/format and per-request HTTP access logs. Request logs are emitted at `info`, so `logging.level: warn` also suppresses normal access logs.
+- `logging.level`, `logging.format`, `logging.request_log_enabled`, `logging.auth_log_enabled`: application log level/format, per-request HTTP access logs and auth audit logs. Request logs are emitted at `info`, so `logging.level: warn` also suppresses normal access logs.
 
 Production baseline:
 
@@ -138,9 +138,17 @@ hosts:
 auth:
   basic:
     enabled: true
-    username: "${CEREBRO_USER}"
-    password: "${CEREBRO_PASSWORD}"
-    groups: ["cerebro-admins"]
+    users:
+      - username: "${CEREBRO_USER}"
+        password: "${CEREBRO_PASSWORD}"
+        groups: ["cerebro-admins"]
+
+rbac:
+  enabled: true
+  bindings:
+    - {subject: "group:cerebro-admins", role: "role:admin"}
+  policies:
+    - {subject: "role:admin", resource: "*", action: "*", object: "*", effect: "allow"}
 
 server:
   port: 9000
@@ -219,25 +227,11 @@ Go Cerebro targets Elasticsearch and OpenSearch clusters through the official El
 
 ## Authentication
 
-Authentication docs:
-
+- [Basic auth](./docs/auth-basic.md)
 - [Microsoft Entra ID](./docs/auth-entra-id.md)
 - [LDAP](./docs/auth-ldap.md)
 - [Trusted proxy / oauth2-proxy](./docs/auth-proxy.md)
 - [RBAC](./docs/RBAC.md)
-
-Basic auth is configured directly in YAML:
-
-```yaml
-auth:
-  basic:
-    enabled: true
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
-    groups: ["cerebro-admins"]
-server:
-  secret: "${APPLICATION_SECRET}"
-```
 
 ## Docker
 

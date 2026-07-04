@@ -5,8 +5,9 @@ hosts:
 auth:
   basic:
     enabled: true
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
+    users:
+      - username: "${BASIC_AUTH_USER}"
+        password: "${BASIC_AUTH_PWD}"
 
 server:
   port: 9000

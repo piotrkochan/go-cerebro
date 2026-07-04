@@ -24,8 +24,9 @@ hosts:
 auth:
   basic:
     enabled: true
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
+    users:
+      - username: "${BASIC_AUTH_USER}"
+        password: "${BASIC_AUTH_PWD}"
 server:
   port: 9100
   secret: "${APPLICATION_SECRET}"
@@ -34,14 +35,16 @@ server:
 	cfg, err := Load(path)
 	require.NoError(t, err)
 	assert.True(t, cfg.Auth.Basic.Enabled)
-	assert.Equal(t, "admin", cfg.Auth.Basic.Username)
-	assert.Equal(t, "s3cret", cfg.Auth.Basic.Password)
+	require.Len(t, cfg.Auth.Basic.Users, 1)
+	assert.Equal(t, "admin", cfg.Auth.Basic.Users[0].Username)
+	assert.Equal(t, "s3cret", cfg.Auth.Basic.Users[0].Password)
 	assert.Equal(t, "from-env", cfg.Server.Secret)
 	assert.True(t, cfg.Server.CSRFEnabled)
 	assert.Equal(t, 9100, cfg.Server.Port)
 	assert.Equal(t, "info", cfg.Logging.Level)
 	assert.Equal(t, "text", cfg.Logging.Format)
 	assert.True(t, cfg.Logging.RequestLogEnabled)
+	assert.True(t, cfg.Logging.AuthLogEnabled)
 	assert.Len(t, cfg.Hosts, 1)
 	assert.Equal(t, "Local", cfg.Hosts[0].Name)
 	assert.Equal(t, "local", cfg.Hosts[0].ID)
@@ -57,8 +60,9 @@ func TestLoad_DevConfigUsesDockerComposeAuthEnv(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, cfg.Auth.Basic.Enabled)
-	assert.Equal(t, "admin", cfg.Auth.Basic.Username)
-	assert.Equal(t, "admin123", cfg.Auth.Basic.Password)
+	require.Len(t, cfg.Auth.Basic.Users, 1)
+	assert.Equal(t, "admin", cfg.Auth.Basic.Users[0].Username)
+	assert.Equal(t, "admin123", cfg.Auth.Basic.Users[0].Password)
 	assert.Equal(t, "docker-compose-dev-auth-secret-change-me", cfg.Server.Secret)
 }
 
@@ -84,6 +88,7 @@ logging:
   level: "WARN"
   format: "json"
   request_log_enabled: false
+  auth_log_enabled: false
 `), 0o600))
 
 	cfg, err := Load(path)
@@ -92,6 +97,7 @@ logging:
 	assert.Equal(t, "warn", cfg.Logging.Level)
 	assert.Equal(t, "json", cfg.Logging.Format)
 	assert.False(t, cfg.Logging.RequestLogEnabled)
+	assert.False(t, cfg.Logging.AuthLogEnabled)
 }
 
 func TestLoad_RBACConfig(t *testing.T) {
@@ -535,4 +541,41 @@ es:
 	_, err := Load(path)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "es.aws.access_key_id")
+}
+
+func TestLoad_RequiresBasicAuthUsers(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    enabled: true
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "auth.basic.users")
+}
+
+func TestLoad_RejectsDuplicateBasicAuthUsers(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    enabled: true
+    users:
+      - username: "admin"
+        password: "admin123"
+      - username: "admin"
+        password: "other"
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duplicated")
 }
