@@ -289,10 +289,22 @@ func TestClassifyClusterRequests(t *testing.T) {
 			expected: Request{Resource: "documents", Action: "write", Object: "local-cluster/logs-000001"},
 		},
 		{
+			name:     "data explorer browse",
+			method:   http.MethodGet,
+			path:     "/clusters/local-cluster/data_explorer/logs-000001",
+			expected: Request{Resource: "documents", Action: "read", Object: "local-cluster/logs-000001"},
+		},
+		{
 			name:     "snapshot restore",
 			method:   http.MethodPost,
 			path:     "/clusters/local-cluster/snapshots/fs/snap-1/restore",
 			expected: Request{Resource: "snapshots", Action: "restore", Object: "local-cluster/fs/snap-1"},
+		},
+		{
+			name:     "overview shard relocation",
+			method:   http.MethodPost,
+			path:     "/clusters/local-cluster/overview/indices/logs-000001/0/node-1/relocation",
+			expected: Request{Resource: "shards", Action: "relocate", Object: "local-cluster/logs-000001"},
 		},
 		{
 			name:     "commons index helper maps to indices",
@@ -301,10 +313,28 @@ func TestClassifyClusterRequests(t *testing.T) {
 			expected: Request{Resource: "indices", Action: "read", Object: "local-cluster/logs-000001"},
 		},
 		{
+			name:     "commons index helper without index id stays index scoped",
+			method:   http.MethodGet,
+			path:     "/clusters/local-cluster/commons/indices",
+			expected: Request{Resource: "indices", Action: "read", Object: "local-cluster"},
+		},
+		{
 			name:     "commons nodes helper maps to nodes",
 			method:   http.MethodGet,
 			path:     "/clusters/local-cluster/commons/nodes/node-1/stats",
 			expected: Request{Resource: "nodes", Action: "read", Object: "local-cluster/node-1"},
+		},
+		{
+			name:     "commons nodes helper without node id stays node scoped",
+			method:   http.MethodGet,
+			path:     "/clusters/local-cluster/commons/nodes",
+			expected: Request{Resource: "nodes", Action: "read", Object: "local-cluster"},
+		},
+		{
+			name:     "create index without target falls back to cluster object",
+			method:   http.MethodPost,
+			path:     "/clusters/local-cluster/create_index",
+			expected: Request{Resource: "indices", Action: "create", Object: "local-cluster"},
 		},
 		{
 			name:     "navbar is system support",
