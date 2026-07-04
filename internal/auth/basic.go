@@ -33,7 +33,7 @@ func (b *BasicService) Authenticate(username, password string) (Identity, error)
 	uOK := subtle.ConstantTimeCompare(usernameHash[:], b.usernameHash[:]) == 1
 	pOK := subtle.ConstantTimeCompare(passwordHash[:], b.passwordHash[:]) == 1
 	if uOK && pOK {
-		return Identity{Username: username, Groups: append([]string(nil), b.groups...)}, nil
+		return Identity{Username: username, Groups: append([]string(nil), b.groups...), Provider: "basic"}, nil
 	}
 	return Identity{}, ErrInvalidCredentials
 }

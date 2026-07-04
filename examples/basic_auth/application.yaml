@@ -1,6 +1,10 @@
 hosts: []
 
 auth:
+  session:
+    cookie_max_age_seconds: 28800
+    max_lifetime_seconds: 28800
+    idle_timeout_seconds: 1800
   basic:
     enabled: true
     username: "${BASIC_AUTH_USER}"

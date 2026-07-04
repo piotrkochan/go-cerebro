@@ -7,6 +7,10 @@ hosts:
       password: "${ES_PASSWORD}"
 
 auth:
+  session:
+    cookie_max_age_seconds: 28800
+    max_lifetime_seconds: 28800
+    idle_timeout_seconds: 1800
   entra_id:
     enabled: true
     tenant_id: "${ENTRA_ID_TENANT_ID}"

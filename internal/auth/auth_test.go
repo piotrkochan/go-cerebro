@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/stretchr/testify/assert"
@@ -28,33 +29,6 @@ func TestAPIMiddleware_ReturnsUnauthorizedWithoutSession(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
-func TestBasicServiceAuthenticate(t *testing.T) {
-	service, err := NewBasicService(config.BasicAuth{Username: "admin", Password: "admin123"})
-	require.NoError(t, err)
-
-	identity, err := service.Authenticate("admin", "admin123")
-	require.NoError(t, err)
-	assert.Equal(t, "admin", identity.Username)
-
-	_, err = service.Authenticate("admin", "wrong")
-	assert.ErrorIs(t, err, ErrInvalidCredentials)
-}
-
-func TestBasicServiceAuthenticateReturnsConfiguredGroups(t *testing.T) {
-	service, err := NewBasicService(config.BasicAuth{Username: "admin", Password: "admin123", Groups: []string{"cerebro-admins"}})
-	require.NoError(t, err)
-
-	identity, err := service.Authenticate("admin", "admin123")
-	require.NoError(t, err)
-
-	assert.Equal(t, []string{"cerebro-admins"}, identity.Groups)
-}
-
-func TestNewBasicServiceRequiresCredentials(t *testing.T) {
-	_, err := NewBasicService(config.BasicAuth{Username: "admin"})
-	assert.EqualError(t, err, "basic auth requires username and password settings")
 }
 
 func TestNewEntraIDProviderRequiresSettings(t *testing.T) {
@@ -100,6 +74,7 @@ func TestSessionUserCSRFAndClearSession(t *testing.T) {
 	identity, ok := mod.SessionIdentity(req)
 	require.True(t, ok)
 	assert.Equal(t, "admin", identity.Username)
+	assert.Equal(t, "", identity.Provider)
 
 	token, ok := mod.CSRFToken(req)
 	require.True(t, ok)
@@ -114,6 +89,77 @@ func TestSessionUserCSRFAndClearSession(t *testing.T) {
 	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
 	_, ok = mod.SessionUser(req)
 	assert.False(t, ok)
+}
+
+func TestSessionIdentityExpiresByMaxLifetime(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth:   config.Auth{Session: config.AuthSession{MaxLifetimeSeconds: 60}},
+		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
+	rr := httptest.NewRecorder()
+	require.NoError(t, mod.SetSessionIdentity(rr, req, Identity{Username: "admin", Provider: "basic"}))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	rr = httptest.NewRecorder()
+	sess, err := mod.Store().Get(req, SessionName)
+	require.NoError(t, err)
+	sess.Values[SessionIssuedAtKey] = time.Now().Add(-2 * time.Minute).Unix()
+	require.NoError(t, sess.Save(req, rr))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	_, ok := mod.SessionIdentity(req)
+	assert.False(t, ok)
+}
+
+func TestSessionIdentityExpiresByIdleTimeout(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth:   config.Auth{Session: config.AuthSession{IdleTimeoutSeconds: 60}},
+		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
+	rr := httptest.NewRecorder()
+	require.NoError(t, mod.SetSessionIdentity(rr, req, Identity{Username: "admin", Provider: "basic"}))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	rr = httptest.NewRecorder()
+	sess, err := mod.Store().Get(req, SessionName)
+	require.NoError(t, err)
+	sess.Values[SessionLastSeenKey] = time.Now().Add(-2 * time.Minute).Unix()
+	require.NoError(t, sess.Save(req, rr))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	_, ok := mod.SessionIdentity(req)
+	assert.False(t, ok)
+}
+
+func TestTouchSessionRefreshesIdleTimestamp(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth:   config.Auth{Session: config.AuthSession{IdleTimeoutSeconds: 3600}},
+		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
+	rr := httptest.NewRecorder()
+	require.NoError(t, mod.SetSessionIdentity(rr, req, Identity{Username: "admin", Provider: "basic"}))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	rr = httptest.NewRecorder()
+	sess, err := mod.Store().Get(req, SessionName)
+	require.NoError(t, err)
+	oldSeen := time.Now().Add(-time.Minute).Unix()
+	sess.Values[SessionLastSeenKey] = oldSeen
+	require.NoError(t, sess.Save(req, rr))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	rr = httptest.NewRecorder()
+	require.NoError(t, mod.TouchSession(rr, req))
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	sess, err = mod.Store().Get(req, SessionName)
+	require.NoError(t, err)
+	assert.Greater(t, sess.Values[SessionLastSeenKey].(int64), oldSeen)
 }
 
 func TestEnsureCSRFTokenReusesExistingToken(t *testing.T) {

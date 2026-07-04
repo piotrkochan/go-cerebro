@@ -2,10 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/lmenezes/cerebro/internal/auth"
+	"github.com/lmenezes/cerebro/internal/config"
 )
 
 // RegisterAuth registers POST /auth/login, POST /auth/logout. The GET /login screen is served
@@ -17,6 +20,7 @@ func (d *Deps) RegisterAuth(api huma.API, mux interface {
 	// We register login/logout directly on chi (mux) instead of via Huma — they need flexible
 	// content-type handling (form vs JSON) and cookie writing on the http.ResponseWriter.
 	mux.HandleFunc("GET /auth/status", d.handleAuthStatus)
+	mux.HandleFunc("GET /auth/me", d.handleAuthMe)
 	mux.HandleFunc("POST /auth/login", d.handleLogin)
 	mux.HandleFunc("GET /auth/entraid/login", d.handleEntraIDLogin)
 	mux.HandleFunc("GET /auth/entraid/callback", d.handleEntraIDCallback)
@@ -24,7 +28,7 @@ func (d *Deps) RegisterAuth(api huma.API, mux interface {
 }
 
 func (d *Deps) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
-	user, authenticated := d.Auth.SessionUser(r)
+	identity, authenticated := d.Auth.SessionIdentity(r)
 	csrfToken := ""
 	if d.Cfg.Server.CSRFEnabled {
 		var err error
@@ -36,7 +40,10 @@ func (d *Deps) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	if !d.Auth.Enabled() {
 		authenticated = false
-		user = ""
+		identity = auth.Identity{}
+	}
+	if authenticated {
+		_ = d.Auth.TouchSession(w, r)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
@@ -47,7 +54,31 @@ func (d *Deps) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
 			"entraid":  d.Auth.EntraIDEnabled(),
 			"password": d.Auth.PasswordLoginEnabled(),
 		},
-		"user": user,
+		"groups":   identity.Groups,
+		"provider": identity.Provider,
+		"roles":    authRoles(d.Cfg.RBAC, identity),
+		"user":     identity.Username,
+	})
+}
+
+func (d *Deps) handleAuthMe(w http.ResponseWriter, r *http.Request) {
+	if !d.Auth.Enabled() {
+		http.Error(w, "authentication not enabled", http.StatusUnauthorized)
+		return
+	}
+	identity, authenticated := d.Auth.SessionIdentity(r)
+	if !authenticated {
+		http.Error(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+	_ = d.Auth.TouchSession(w, r)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"authenticated": true,
+		"groups":        identity.Groups,
+		"provider":      identity.Provider,
+		"roles":         authRoles(d.Cfg.RBAC, identity),
+		"user":          identity.Username,
 	})
 }
 
@@ -59,22 +90,27 @@ func (d *Deps) handleEntraIDLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	authURL, err := d.Auth.BeginEntraIDLogin(w, r, callbackURL, returnPath)
 	if err != nil {
+		auditAuth(r, "entraid_login_start_failed", auth.Identity{}, "failure", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	auditAuth(r, "entraid_login_started", auth.Identity{Provider: "entra_id"}, "success", "")
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
 func (d *Deps) handleEntraIDCallback(w http.ResponseWriter, r *http.Request) {
 	if authErr := r.URL.Query().Get("error"); authErr != "" {
+		auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id"}, "failure", authErr)
 		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
 		return
 	}
 	redirect, err := d.Auth.CompleteEntraIDLogin(w, r, d.entraIDCallbackURL(r))
 	if err != nil {
+		auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id"}, "failure", err.Error())
 		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
 		return
 	}
+	auditAuth(r, "entraid_login_succeeded", auth.Identity{Provider: "entra_id"}, "success", "")
 	if redirect == "" {
 		redirect = basePathFor(d, "/")
 	}
@@ -105,18 +141,22 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 		password = payload.Password
 	}
 	if user == "" || password == "" {
+		auditAuth(r, "password_login_failed", auth.Identity{Username: user, Provider: "password"}, "failure", "missing credentials")
 		http.Error(w, "invalid login form data", http.StatusBadRequest)
 		return
 	}
 	identity, err := d.Auth.Authenticate(user, password)
 	if err != nil {
+		auditAuth(r, "password_login_failed", auth.Identity{Username: user, Provider: "password"}, "failure", "invalid credentials")
 		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
 		return
 	}
 	if err := d.Auth.SetSessionIdentity(w, r, identity); err != nil {
+		auditAuth(r, "password_login_failed", identity, "failure", "session error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	auditAuth(r, "password_login_succeeded", identity, "success", "")
 	redirect := d.Auth.ConsumeRedirect(w, r)
 	if redirect == "" {
 		redirect = basePathFor(d, "/")
@@ -125,8 +165,49 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
+	identity, _ := d.Auth.SessionIdentity(r)
 	_ = d.Auth.ClearSession(w, r)
+	auditAuth(r, "logout", identity, "success", "")
 	http.Redirect(w, r, basePathFor(d, "/#/login"), http.StatusSeeOther)
+}
+
+func auditAuth(r *http.Request, event string, identity auth.Identity, outcome, reason string) {
+	attrs := []any{
+		"event", event,
+		"outcome", outcome,
+		"user", identity.Username,
+		"provider", identity.Provider,
+		"remote_addr", r.RemoteAddr,
+	}
+	if reason != "" {
+		attrs = append(attrs, "reason", reason)
+	}
+	slog.InfoContext(r.Context(), "auth audit", attrs...)
+}
+
+func authRoles(rbac config.RBAC, identity auth.Identity) []string {
+	if !rbac.Enabled || identity.Username == "" {
+		return nil
+	}
+	seen := map[string]bool{}
+	out := []string{}
+	add := func(role string) {
+		if role != "" && !seen[role] {
+			seen[role] = true
+			out = append(out, role)
+		}
+	}
+	add(rbac.DefaultRole)
+	groupSubjects := map[string]bool{}
+	for _, group := range identity.Groups {
+		groupSubjects["group:"+group] = true
+	}
+	for _, binding := range rbac.Bindings {
+		if binding.Subject == identity.Username || groupSubjects[binding.Subject] {
+			add(binding.Role)
+		}
+	}
+	return out
 }
 
 func basePathFor(d *Deps, suffix string) string {

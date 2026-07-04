@@ -4,10 +4,13 @@ export type AuthStatus = {
   authenticated?: boolean;
   csrf_token?: string;
   enabled?: boolean;
+  groups?: string[];
+  provider?: string;
   providers?: {
     entraid?: boolean;
     password?: boolean;
   };
+  roles?: string[];
   user?: string;
 };
 

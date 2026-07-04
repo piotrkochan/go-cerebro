@@ -241,6 +241,7 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 			if authMod.Enabled() {
 				identity, ok := authMod.SessionIdentity(r)
 				if !ok {
+					auditAccess(r, "authentication_required", auth.Identity{}, "failure", "missing or expired session")
 					http.Error(w, "authentication required", http.StatusUnauthorized)
 					return
 				}
@@ -248,24 +249,45 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 			}
 			if serverCfg.CSRFEnabled {
 				if !validRequestOrigin(r) {
+					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid request origin")
 					http.Error(w, "invalid request origin", http.StatusForbidden)
 					return
 				}
 				if !authMod.ValidCSRF(r) {
+					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid csrf token")
 					http.Error(w, "invalid csrf token", http.StatusForbidden)
 					return
 				}
 			}
 			if authorizer.Enabled() {
 				subject := auth.UserFrom(r.Context())
-				if !authorizer.Allow(subject, auth.GroupsFrom(r.Context()), rbac.Classify(r.Method, r.URL.Path)) {
+				rbacRequest := rbac.Classify(r.Method, r.URL.Path)
+				if !authorizer.Allow(subject, auth.GroupsFrom(r.Context()), rbacRequest) {
+					auditAccess(r, "rbac_denied", auth.IdentityFrom(r.Context()), "failure", fmt.Sprintf("%s:%s:%s", rbacRequest.Resource, rbacRequest.Action, rbacRequest.Object))
 					http.Error(w, "authorization denied", http.StatusForbidden)
 					return
 				}
 			}
+			_ = authMod.TouchSession(w, r)
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func auditAccess(r *http.Request, event string, identity auth.Identity, outcome, reason string) {
+	attrs := []any{
+		"event", event,
+		"outcome", outcome,
+		"user", identity.Username,
+		"provider", identity.Provider,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"remote_addr", r.RemoteAddr,
+	}
+	if reason != "" {
+		attrs = append(attrs, "reason", reason)
+	}
+	slog.InfoContext(r.Context(), "auth audit", attrs...)
 }
 
 func validRequestOrigin(r *http.Request) bool {

@@ -15,14 +15,15 @@ import (
 )
 
 type LDAPService struct {
-	url          string
-	userTemplate string
-	baseDN       string
-	insecureLDAP bool
-	groupSearch  *config.GroupSearch
-	bindDN       string
-	bindPW       string
-	tlsConfig    *tls.Config
+	url            string
+	userTemplate   string
+	baseDN         string
+	insecureLDAP   bool
+	groupSearch    *config.GroupSearch
+	bindDN         string
+	bindPW         string
+	requiredGroups []string
+	tlsConfig      *tls.Config
 }
 
 func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
@@ -41,13 +42,14 @@ func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
 		return nil, err
 	}
 	svc := &LDAPService{
-		url:          s.URL,
-		userTemplate: s.UserTemplate,
-		baseDN:       s.BaseDN,
-		insecureLDAP: s.InsecureLDAP,
-		bindDN:       s.BindDN,
-		bindPW:       s.BindPW,
-		tlsConfig:    tlsConfig,
+		url:            s.URL,
+		userTemplate:   s.UserTemplate,
+		baseDN:         s.BaseDN,
+		insecureLDAP:   s.InsecureLDAP,
+		bindDN:         s.BindDN,
+		bindPW:         s.BindPW,
+		requiredGroups: append([]string(nil), s.RequiredGroups...),
+		tlsConfig:      tlsConfig,
 	}
 	if s.GroupSearch != nil && s.GroupSearch.UserAttr != "" {
 		gs := *s.GroupSearch
@@ -83,7 +85,10 @@ func (l *LDAPService) Authenticate(username, password string) (Identity, error) 
 			return Identity{}, ErrInvalidCredentials
 		}
 	}
-	return Identity{Username: username, Groups: groups}, nil
+	if len(l.requiredGroups) > 0 && !hasAnyGroup(groups, l.requiredGroups) {
+		return Identity{}, ErrInvalidCredentials
+	}
+	return Identity{Username: username, Groups: groups, Provider: "ldap"}, nil
 }
 
 func (l *LDAPService) dial() (*ldap.Conn, error) {
@@ -191,4 +196,17 @@ func safeLDAPTemplateValue(value string) bool {
 		}
 	}
 	return true
+}
+
+func hasAnyGroup(groups, required []string) bool {
+	seen := map[string]bool{}
+	for _, group := range groups {
+		seen[group] = true
+	}
+	for _, group := range required {
+		if seen[group] {
+			return true
+		}
+	}
+	return false
 }

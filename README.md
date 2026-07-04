@@ -105,6 +105,7 @@ Important sections:
 - `hosts`: known Elasticsearch clusters. Optional `hosts[].id` becomes the stable cluster slug used in URLs and RBAC; use lowercase letters, digits and hyphens. If omitted, the slug is generated from `hosts[].name`. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
 - `hosts[].headers_whitelist`: request headers that Cerebro may forward to Elasticsearch, useful behind an authenticating proxy.
 - `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id`: optional authentication providers. Enable at least one outside local development.
+- `auth.session`: optional cookie lifetime, max session lifetime and idle timeout settings.
 - `rbac`: optional YAML authorization policies for users and groups.
 - `server.base_path`: URL path prefix when Cerebro is mounted below `/`.
 - `server.secret`: required for authenticated deployments. Set it to a strong random value.

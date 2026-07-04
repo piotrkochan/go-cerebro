@@ -17,6 +17,12 @@ hosts:
 
 # Application authentication. Enable one or more providers.
 auth:
+  session:
+    # 0 disables a limit. Set these for browser-facing deployments.
+    cookie_max_age_seconds: 28800
+    max_lifetime_seconds: 28800
+    idle_timeout_seconds: 1800
+
   basic:
     enabled: false
     username: "${BASIC_AUTH_USER}"
@@ -37,6 +43,8 @@ auth:
     bind_pw: "${LDAP_BIND_PWD}"
     # LDAP requires ldaps:// by default. Set this only for isolated development tests.
     insecure_ldap: false
+    # Optional allow-list. At least one discovered LDAP group must match.
+    # required_groups: ["cerebro-admins"]
     group_search:
       base_dn: "${LDAP_GROUP_BASE_DN}"
       user_attr: "${LDAP_USER_ATTR}"

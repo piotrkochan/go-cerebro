@@ -54,6 +54,7 @@ func (p *ProxyAuthenticator) Identity(r *http.Request) (Identity, bool) {
 	return Identity{
 		Username: username,
 		Groups:   p.groups(r),
+		Provider: "proxy",
 	}, true
 }
 

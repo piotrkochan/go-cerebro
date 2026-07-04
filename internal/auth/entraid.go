@@ -114,9 +114,13 @@ func (p *EntraIDProvider) Exchange(ctx context.Context, redirectURL, code, nonce
 	if username == "" {
 		username = idToken.Subject
 	}
+	if entraIDGroupsOverage(claims, p.groupsClaim) {
+		return Identity{}, errors.New("entra id groups overage is not supported; configure app roles or a smaller groups claim")
+	}
 	return Identity{
 		Username: username,
 		Groups:   claimStringSlice(claims[p.groupsClaim]),
+		Provider: "entra_id",
 	}, nil
 }
 
@@ -191,4 +195,16 @@ func claimStringSlice(value any) []string {
 	default:
 		return nil
 	}
+}
+
+func entraIDGroupsOverage(claims map[string]any, groupsClaim string) bool {
+	if _, ok := claims[groupsClaim]; ok {
+		return false
+	}
+	names, ok := claims["_claim_names"].(map[string]any)
+	if !ok {
+		return false
+	}
+	_, ok = names[groupsClaim]
+	return ok
 }

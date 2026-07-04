@@ -51,16 +51,17 @@ type BasicAuth struct {
 }
 
 type LDAPAuth struct {
-	Enabled      bool         `yaml:"enabled"`
-	URL          string       `yaml:"url"`
-	CACertFile   string       `yaml:"ca_cert_file"`
-	BaseDN       string       `yaml:"base_dn"`
-	Method       string       `yaml:"method"`
-	UserTemplate string       `yaml:"user_template"`
-	BindDN       string       `yaml:"bind_dn"`
-	BindPW       string       `yaml:"bind_pw"`
-	InsecureLDAP bool         `yaml:"insecure_ldap"`
-	GroupSearch  *GroupSearch `yaml:"group_search,omitempty"`
+	Enabled        bool         `yaml:"enabled"`
+	URL            string       `yaml:"url"`
+	CACertFile     string       `yaml:"ca_cert_file"`
+	BaseDN         string       `yaml:"base_dn"`
+	Method         string       `yaml:"method"`
+	UserTemplate   string       `yaml:"user_template"`
+	BindDN         string       `yaml:"bind_dn"`
+	BindPW         string       `yaml:"bind_pw"`
+	InsecureLDAP   bool         `yaml:"insecure_ldap"`
+	GroupSearch    *GroupSearch `yaml:"group_search,omitempty"`
+	RequiredGroups []string     `yaml:"required_groups,omitempty"`
 }
 
 type ProxyAuth struct {
@@ -88,6 +89,13 @@ type Auth struct {
 	LDAP    LDAPAuth    `yaml:"ldap,omitempty"`
 	Proxy   ProxyAuth   `yaml:"proxy,omitempty"`
 	EntraID EntraIDAuth `yaml:"entra_id,omitempty"`
+	Session AuthSession `yaml:"session,omitempty"`
+}
+
+type AuthSession struct {
+	CookieMaxAgeSeconds int `yaml:"cookie_max_age_seconds"`
+	MaxLifetimeSeconds  int `yaml:"max_lifetime_seconds"`
+	IdleTimeoutSeconds  int `yaml:"idle_timeout_seconds"`
 }
 
 type Server struct {
@@ -370,6 +378,15 @@ func (c *Config) validate() error {
 		if isDefaultSecret(c.Server.Secret) {
 			return fmt.Errorf("server.secret must be set to a strong non-default value when authentication is enabled")
 		}
+	}
+	if c.Auth.Session.CookieMaxAgeSeconds < 0 {
+		return fmt.Errorf("auth.session.cookie_max_age_seconds must be greater than or equal to zero")
+	}
+	if c.Auth.Session.MaxLifetimeSeconds < 0 {
+		return fmt.Errorf("auth.session.max_lifetime_seconds must be greater than or equal to zero")
+	}
+	if c.Auth.Session.IdleTimeoutSeconds < 0 {
+		return fmt.Errorf("auth.session.idle_timeout_seconds must be greater than or equal to zero")
 	}
 	if c.Auth.Basic.Enabled {
 		if strings.TrimSpace(c.Auth.Basic.Username) == "" || c.Auth.Basic.Password == "" {

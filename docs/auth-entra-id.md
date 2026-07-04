@@ -51,11 +51,12 @@ rbac:
 
 If your tenant emits group object IDs instead of names, bind those IDs as `group:<id>` or use app roles and set `groups_claim` to the roles claim.
 
+If Entra ID returns a group overage marker instead of the configured groups claim, Cerebro rejects the login. Configure app roles or reduce emitted groups so the ID token contains the claim Cerebro should use.
+
 ## Security Notes
 
 - Keep `client_secret` only in backend config or secret management.
 - Serve Cerebro over HTTPS.
 - Keep `server.cookie_secure: true` for browser-facing deployments.
 - Register only trusted redirect URIs in Entra ID.
-- Avoid relying on Microsoft Graph group overage for now; Cerebro validates token claims only.
-
+- Do not rely on Microsoft Graph group overage; Cerebro validates token claims only.

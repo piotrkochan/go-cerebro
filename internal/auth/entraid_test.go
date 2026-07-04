@@ -92,6 +92,7 @@ func TestEntraIDLoginWithMockOIDCProvider(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "alice@example.org", identity.Username)
 	assert.Equal(t, []string{"cerebro-admins", "operators"}, identity.Groups)
+	assert.Equal(t, "entra_id", identity.Provider)
 }
 
 func signedIDToken(t *testing.T, issuer string, key *rsa.PrivateKey, nonce string) string {
@@ -134,4 +135,12 @@ func TestEntraIDProviderRequiresTenantOrIssuer(t *testing.T) {
 	_, err := NewEntraIDProvider(config.EntraIDAuth{ClientID: "client", ClientSecret: "secret"})
 	assert.Error(t, err)
 	assert.True(t, strings.Contains(err.Error(), "tenant_id") || strings.Contains(err.Error(), "issuer"))
+}
+
+func TestEntraIDGroupsOverageDetection(t *testing.T) {
+	assert.False(t, entraIDGroupsOverage(map[string]any{"groups": []any{"admins"}}, "groups"))
+	assert.False(t, entraIDGroupsOverage(map[string]any{}, "groups"))
+	assert.True(t, entraIDGroupsOverage(map[string]any{
+		"_claim_names": map[string]any{"groups": "src1"},
+	}, "groups"))
 }

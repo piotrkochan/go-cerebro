@@ -155,6 +155,49 @@ server:
 	assert.Equal(t, []string{"127.0.0.1/32"}, cfg.Auth.Proxy.TrustedProxies)
 }
 
+func TestLoad_AuthSessionConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  session:
+    cookie_max_age_seconds: 28800
+    max_lifetime_seconds: 28800
+    idle_timeout_seconds: 1800
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.Equal(t, 28800, cfg.Auth.Session.CookieMaxAgeSeconds)
+	assert.Equal(t, 28800, cfg.Auth.Session.MaxLifetimeSeconds)
+	assert.Equal(t, 1800, cfg.Auth.Session.IdleTimeoutSeconds)
+}
+
+func TestLoad_RejectsNegativeAuthSessionTimeouts(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "cookie max age", body: "cookie_max_age_seconds: -1"},
+		{name: "max lifetime", body: "max_lifetime_seconds: -1"},
+		{name: "idle timeout", body: "idle_timeout_seconds: -1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "app.yaml")
+			require.NoError(t, os.WriteFile(path, []byte("auth:\n  session:\n    "+tt.body+"\n"), 0o600))
+
+			_, err := Load(path)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "auth.session")
+		})
+	}
+}
+
 func TestLoad_EntraIDAuthConfig(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")
@@ -179,6 +222,27 @@ server:
 	assert.Equal(t, "example.onmicrosoft.com", cfg.Auth.EntraID.TenantID)
 	assert.Equal(t, "client-id", cfg.Auth.EntraID.ClientID)
 	assert.Equal(t, "roles", cfg.Auth.EntraID.GroupsClaim)
+}
+
+func TestLoad_LDAPRequiredGroupsConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  ldap:
+    enabled: true
+    url: "ldaps://ldap.example.org:636"
+    base_dn: "dc=example,dc=org"
+    user_template: "uid=%s,%s"
+    required_groups: ["cerebro-admins"]
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"cerebro-admins"}, cfg.Auth.LDAP.RequiredGroups)
 }
 
 func TestLoad_RejectsIncompleteEntraIDAuth(t *testing.T) {

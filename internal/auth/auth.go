@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/sessions"
 	"github.com/lmenezes/cerebro/internal/config"
@@ -17,7 +18,10 @@ const (
 	SessionName           = "cerebro"
 	SessionUserKey        = "username"
 	SessionGroupsKey      = "groups"
+	SessionProviderKey    = "provider"
 	SessionCSRFKey        = "csrf"
+	SessionIssuedAtKey    = "issued_at"
+	SessionLastSeenKey    = "last_seen"
 	SessionEntraStateKey  = "entra_state"
 	SessionEntraNonceKey  = "entra_nonce"
 	SessionEntraReturnKey = "entra_return"
@@ -31,6 +35,7 @@ type Service interface {
 type Identity struct {
 	Username string
 	Groups   []string
+	Provider string
 }
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
@@ -63,19 +68,22 @@ func IdentityFrom(ctx context.Context) Identity {
 }
 
 type Module struct {
-	enabled  bool
-	entraID  *EntraIDProvider
-	proxies  []*ProxyAuthenticator
-	services []Service
-	store    *sessions.CookieStore
+	enabled       bool
+	entraID       *EntraIDProvider
+	proxies       []*ProxyAuthenticator
+	services      []Service
+	store         *sessions.CookieStore
+	sessionMaxAge time.Duration
+	sessionIdle   time.Duration
 }
 
 func NewModule(cfg *config.Config) (*Module, error) {
 	store := sessions.NewCookieStore([]byte(cfg.Server.Secret))
+	cookieMaxAge := cfg.Auth.Session.CookieMaxAgeSeconds
 	store.Options = &sessions.Options{
 		Path:     strings.TrimRight(cfg.Server.BasePath, "/") + "/",
 		HttpOnly: true,
-		MaxAge:   0,
+		MaxAge:   cookieMaxAge,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   cfg.Server.CookieSecure,
 	}
@@ -83,7 +91,11 @@ func NewModule(cfg *config.Config) (*Module, error) {
 		store.Options.Path = "/"
 	}
 
-	m := &Module{store: store}
+	m := &Module{
+		store:         store,
+		sessionMaxAge: secondsDuration(cfg.Auth.Session.MaxLifetimeSeconds),
+		sessionIdle:   secondsDuration(cfg.Auth.Session.IdleTimeoutSeconds),
+	}
 	if cfg.Auth.Basic.Enabled {
 		svc, err := NewBasicService(cfg.Auth.Basic)
 		if err != nil {
@@ -162,6 +174,9 @@ func (m *Module) SessionIdentity(r *http.Request) (Identity, bool) {
 	if err != nil {
 		return Identity{}, false
 	}
+	if m.sessionExpired(sess) {
+		return Identity{}, false
+	}
 	v, ok := sess.Values[SessionUserKey]
 	if !ok {
 		return Identity{}, false
@@ -170,7 +185,8 @@ func (m *Module) SessionIdentity(r *http.Request) (Identity, bool) {
 	if !ok || s == "" {
 		return Identity{}, false
 	}
-	return Identity{Username: s, Groups: sessionGroups(sess.Values[SessionGroupsKey])}, true
+	provider, _ := sess.Values[SessionProviderKey].(string)
+	return Identity{Username: s, Groups: sessionGroups(sess.Values[SessionGroupsKey]), Provider: provider}, true
 }
 
 func (m *Module) SetSessionUser(w http.ResponseWriter, r *http.Request, username string) error {
@@ -179,14 +195,34 @@ func (m *Module) SetSessionUser(w http.ResponseWriter, r *http.Request, username
 
 func (m *Module) SetSessionIdentity(w http.ResponseWriter, r *http.Request, identity Identity) error {
 	sess, _ := m.store.Get(r, SessionName)
+	resetSession(sess)
 	sess.Values[SessionUserKey] = identity.Username
 	sess.Values[SessionGroupsKey] = identity.Groups
+	sess.Values[SessionProviderKey] = identity.Provider
+	now := time.Now().Unix()
+	sess.Values[SessionIssuedAtKey] = now
+	sess.Values[SessionLastSeenKey] = now
 	token, err := newCSRFToken()
 	if err != nil {
 		return err
 	}
 	sess.Values[SessionCSRFKey] = token
 	delete(sess.Values, RedirectURL)
+	return sess.Save(r, w)
+}
+
+func (m *Module) TouchSession(w http.ResponseWriter, r *http.Request) error {
+	if m.sessionIdle <= 0 {
+		return nil
+	}
+	sess, err := m.store.Get(r, SessionName)
+	if err != nil || m.sessionExpired(sess) {
+		return nil
+	}
+	if _, ok := sess.Values[SessionUserKey].(string); !ok {
+		return nil
+	}
+	sess.Values[SessionLastSeenKey] = time.Now().Unix()
 	return sess.Save(r, w)
 }
 
@@ -241,8 +277,13 @@ func (m *Module) CompleteEntraIDLogin(w http.ResponseWriter, r *http.Request, ca
 	if err != nil {
 		return "", err
 	}
+	resetSession(sess)
 	sess.Values[SessionUserKey] = identity.Username
 	sess.Values[SessionGroupsKey] = identity.Groups
+	sess.Values[SessionProviderKey] = identity.Provider
+	now := time.Now().Unix()
+	sess.Values[SessionIssuedAtKey] = now
+	sess.Values[SessionLastSeenKey] = now
 	token, err := newCSRFToken()
 	if err != nil {
 		return "", err
@@ -360,6 +401,7 @@ func (m *Module) APIMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "authentication required", http.StatusUnauthorized)
 			return
 		}
+		_ = m.TouchSession(w, r)
 		next.ServeHTTP(w, r.WithContext(WithIdentity(r.Context(), identity)))
 	})
 }
@@ -379,6 +421,49 @@ func sessionGroups(value any) []string {
 	default:
 		return nil
 	}
+}
+
+func (m *Module) sessionExpired(sess *sessions.Session) bool {
+	now := time.Now()
+	if m.sessionMaxAge > 0 {
+		issuedAt, ok := sessionUnix(sess.Values[SessionIssuedAtKey])
+		if !ok || now.Sub(issuedAt) > m.sessionMaxAge {
+			return true
+		}
+	}
+	if m.sessionIdle > 0 {
+		lastSeen, ok := sessionUnix(sess.Values[SessionLastSeenKey])
+		if !ok || now.Sub(lastSeen) > m.sessionIdle {
+			return true
+		}
+	}
+	return false
+}
+
+func sessionUnix(value any) (time.Time, bool) {
+	switch typed := value.(type) {
+	case int64:
+		return time.Unix(typed, 0), true
+	case int:
+		return time.Unix(int64(typed), 0), true
+	case float64:
+		return time.Unix(int64(typed), 0), true
+	default:
+		return time.Time{}, false
+	}
+}
+
+func resetSession(sess *sessions.Session) {
+	for key := range sess.Values {
+		delete(sess.Values, key)
+	}
+}
+
+func secondsDuration(seconds int) time.Duration {
+	if seconds <= 0 {
+		return 0
+	}
+	return time.Duration(seconds) * time.Second
 }
 
 func newCSRFToken() (string, error) {
