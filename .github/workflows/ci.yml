@@ -96,7 +96,7 @@ jobs:
         run: bash scripts/e2e-floci-opensearch-compat.sh
 
   ldap-rbac:
-    name: LDAP RBAC
+    name: Auth e2e
     runs-on: ubuntu-latest
 
     steps:
@@ -113,3 +113,6 @@ jobs:
 
       - name: Run LDAP RBAC tests
         run: bash scripts/e2e-ldap-rbac.sh
+
+      - name: Run proxy auth tests
+        run: bash scripts/e2e-proxy-auth.sh

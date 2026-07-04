@@ -1,5 +1,7 @@
 import { useSearch } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 
+import { loadAuthStatus, type AuthStatus } from '../api/security';
 import { CerebroLogo } from '../components/CerebroLogo';
 import { Icon } from '../components/Icon';
 import { APP_VERSION } from '../version';
@@ -7,6 +9,20 @@ import { APP_VERSION } from '../version';
 export function LoginPage() {
   const search = useSearch({ strict: false });
   const invalidLogin = search.error === 'invalid';
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>();
+  const loading = authStatus === undefined;
+  const passwordLogin = !loading && authStatus?.providers?.password !== false;
+  const entraIDLogin = authStatus?.providers?.entraid === true;
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAuthStatus().then((status) => {
+      if (!cancelled) setAuthStatus(status);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -24,19 +40,33 @@ export function LoginPage() {
             Invalid username or password.
           </div>
         ) : null}
-        <form action="/auth/login" className="form-signin" method="POST">
-          <div className="form-group">
-            <label className="sr-only" htmlFor="inputUser">User</label>
-            <input autoFocus required className="form-control form-control-sm" id="inputUser" name="user" placeholder="User" type="text" />
+        {loading ? (
+          <div className="text-center">
+            <Icon name="spinner" spin /> Loading...
           </div>
-          <div className="form-group">
-            <label className="sr-only" htmlFor="inputPassword">Password</label>
-            <input required className="form-control form-control-sm" id="inputPassword" name="password" placeholder="Password" type="password" />
+        ) : null}
+        {passwordLogin ? (
+          <form action="/auth/login" className="form-signin" method="POST">
+            <div className="form-group">
+              <label className="sr-only" htmlFor="inputUser">User</label>
+              <input autoFocus required className="form-control form-control-sm" id="inputUser" name="user" placeholder="User" type="text" />
+            </div>
+            <div className="form-group">
+              <label className="sr-only" htmlFor="inputPassword">Password</label>
+              <input required className="form-control form-control-sm" id="inputPassword" name="password" placeholder="Password" type="password" />
+            </div>
+            <button className="btn btn-success pull-right" type="submit">
+              <Icon name="plug" /> Sign in
+            </button>
+          </form>
+        ) : null}
+        {entraIDLogin ? (
+          <div className={passwordLogin ? 'mt-[50px]' : ''}>
+            <a className="btn btn-success w-full" href="/auth/entraid/login">
+              <Icon name="lock" /> Sign in with Microsoft Entra ID
+            </a>
           </div>
-          <button className="btn btn-success pull-right" type="submit">
-            <Icon name="plug" /> Sign in
-          </button>
-        </form>
+        ) : null}
       </div>
     </>
   );

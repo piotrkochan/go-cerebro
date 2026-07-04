@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strconv"
@@ -70,10 +71,23 @@ type ProxyAuth struct {
 	TrustedProxies []string `yaml:"trusted_proxies"`
 }
 
+type EntraIDAuth struct {
+	Enabled       bool     `yaml:"enabled"`
+	TenantID      string   `yaml:"tenant_id"`
+	IssuerURL     string   `yaml:"issuer_url"`
+	ClientID      string   `yaml:"client_id"`
+	ClientSecret  string   `yaml:"client_secret"`
+	RedirectURL   string   `yaml:"redirect_url"`
+	Scopes        []string `yaml:"scopes,omitempty"`
+	UsernameClaim string   `yaml:"username_claim"`
+	GroupsClaim   string   `yaml:"groups_claim"`
+}
+
 type Auth struct {
-	Basic BasicAuth `yaml:"basic,omitempty"`
-	LDAP  LDAPAuth  `yaml:"ldap,omitempty"`
-	Proxy ProxyAuth `yaml:"proxy,omitempty"`
+	Basic   BasicAuth   `yaml:"basic,omitempty"`
+	LDAP    LDAPAuth    `yaml:"ldap,omitempty"`
+	Proxy   ProxyAuth   `yaml:"proxy,omitempty"`
+	EntraID EntraIDAuth `yaml:"entra_id,omitempty"`
 }
 
 type Server struct {
@@ -137,6 +151,35 @@ type RBAC struct {
 	Policies    []RBACPolicy  `yaml:"policies"`
 	Bindings    []RBACBinding `yaml:"bindings"`
 }
+
+var rbacResourceActions = map[string]map[string]bool{
+	"overview":         boolSet("read"),
+	"nodes":            boolSet("read"),
+	"indices":          boolSet("read", "create", "write", "delete", "refresh", "close", "open", "clear_cache", "force_merge"),
+	"documents":        boolSet("read", "write"),
+	"rest":             boolSet("read", "execute"),
+	"analysis":         boolSet("read", "execute"),
+	"cat":              boolSet("read"),
+	"aliases":          boolSet("read", "write", "delete"),
+	"templates":        boolSet("read", "write", "delete"),
+	"repositories":     boolSet("read", "write", "delete"),
+	"snapshots":        boolSet("read", "write", "delete", "restore"),
+	"data_streams":     boolSet("read", "write", "delete", "rollover", "update_lifecycle", "attach_ilm", "detach_ilm"),
+	"ilm":              boolSet("read", "write", "delete"),
+	"cluster_settings": boolSet("read", "write"),
+	"shard_allocation": boolSet("enable", "disable"),
+	"shards":           boolSet("relocate"),
+}
+
+var rbacAnyResourceActions = func() map[string]bool {
+	actions := map[string]bool{}
+	for _, resourceActions := range rbacResourceActions {
+		for action := range resourceActions {
+			actions[action] = true
+		}
+	}
+	return actions
+}()
 
 type Data struct {
 	Path string `yaml:"path"`
@@ -291,6 +334,9 @@ func (c *Config) validate() error {
 			if p.Subject == "" || p.Resource == "" || p.Action == "" || p.Object == "" {
 				return fmt.Errorf("rbac.policies[%d] requires subject, resource, action and object", i)
 			}
+			if err := validateRBACPolicy(p); err != nil {
+				return fmt.Errorf("rbac.policies[%d]: %w", i, err)
+			}
 			if p.Effect != "allow" && p.Effect != "deny" {
 				return fmt.Errorf("rbac.policies[%d].effect must be allow or deny", i)
 			}
@@ -320,7 +366,7 @@ func (c *Config) validate() error {
 	if err := c.validateHostIDs(); err != nil {
 		return err
 	}
-	if c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled {
+	if c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled || c.Auth.EntraID.Enabled {
 		if isDefaultSecret(c.Server.Secret) {
 			return fmt.Errorf("server.secret must be set to a strong non-default value when authentication is enabled")
 		}
@@ -349,7 +395,81 @@ func (c *Config) validate() error {
 			return fmt.Errorf("auth.proxy.trusted_proxies is required when auth.proxy.enabled is true")
 		}
 	}
+	if c.Auth.EntraID.Enabled {
+		if strings.TrimSpace(c.Auth.EntraID.TenantID) == "" && strings.TrimSpace(c.Auth.EntraID.IssuerURL) == "" {
+			return fmt.Errorf("auth.entra_id.tenant_id is required when auth.entra_id.enabled is true")
+		}
+		if strings.Contains(c.Auth.EntraID.TenantID, "/") {
+			return fmt.Errorf("auth.entra_id.tenant_id must not contain slashes")
+		}
+		if c.Auth.EntraID.IssuerURL != "" {
+			if err := validateOIDCIssuerURL(c.Auth.EntraID.IssuerURL); err != nil {
+				return fmt.Errorf("auth.entra_id.issuer_url: %w", err)
+			}
+		}
+		if strings.TrimSpace(c.Auth.EntraID.ClientID) == "" {
+			return fmt.Errorf("auth.entra_id.client_id is required when auth.entra_id.enabled is true")
+		}
+		if c.Auth.EntraID.ClientSecret == "" {
+			return fmt.Errorf("auth.entra_id.client_secret is required when auth.entra_id.enabled is true")
+		}
+		if c.Auth.EntraID.RedirectURL != "" {
+			u, err := url.Parse(strings.TrimSpace(c.Auth.EntraID.RedirectURL))
+			if err != nil || u.Scheme == "" || u.Host == "" {
+				return fmt.Errorf("auth.entra_id.redirect_url must be an absolute URL")
+			}
+		}
+	}
 	return nil
+}
+
+func validateRBACPolicy(p RBACPolicy) error {
+	if p.Resource == "*" {
+		if p.Action == "*" || rbacAnyResourceActions[p.Action] {
+			return nil
+		}
+		return fmt.Errorf("unsupported action %q for resource %q", p.Action, p.Resource)
+	}
+	actions, ok := rbacResourceActions[p.Resource]
+	if !ok {
+		return fmt.Errorf("unsupported resource %q", p.Resource)
+	}
+	if p.Action != "*" && !actions[p.Action] {
+		return fmt.Errorf("unsupported action %q for resource %q", p.Action, p.Resource)
+	}
+	return nil
+}
+
+func boolSet(values ...string) map[string]bool {
+	out := make(map[string]bool, len(values))
+	for _, value := range values {
+		out[value] = true
+	}
+	return out
+}
+
+func validateOIDCIssuerURL(raw string) error {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return err
+	}
+	if u.Scheme == "https" && u.Host != "" {
+		return nil
+	}
+	if u.Scheme == "http" && isLoopbackHost(u.Hostname()) {
+		return nil
+	}
+	return fmt.Errorf("must be an https URL, or http on localhost/loopback for tests")
+}
+
+func isLoopbackHost(host string) bool {
+	switch strings.ToLower(strings.TrimSpace(host)) {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	default:
+		ip := net.ParseIP(host)
+		return ip != nil && ip.IsLoopback()
+	}
 }
 
 func validateHostURL(raw string) error {

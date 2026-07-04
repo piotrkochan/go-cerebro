@@ -14,11 +14,14 @@ import (
 )
 
 const (
-	SessionName      = "cerebro"
-	SessionUserKey   = "username"
-	SessionGroupsKey = "groups"
-	SessionCSRFKey   = "csrf"
-	RedirectURL      = "redirect"
+	SessionName           = "cerebro"
+	SessionUserKey        = "username"
+	SessionGroupsKey      = "groups"
+	SessionCSRFKey        = "csrf"
+	SessionEntraStateKey  = "entra_state"
+	SessionEntraNonceKey  = "entra_nonce"
+	SessionEntraReturnKey = "entra_return"
+	RedirectURL           = "redirect"
 )
 
 type Service interface {
@@ -61,6 +64,7 @@ func IdentityFrom(ctx context.Context) Identity {
 
 type Module struct {
 	enabled  bool
+	entraID  *EntraIDProvider
 	proxies  []*ProxyAuthenticator
 	services []Service
 	store    *sessions.CookieStore
@@ -101,11 +105,29 @@ func NewModule(cfg *config.Config) (*Module, error) {
 		}
 		m.proxies = append(m.proxies, proxy)
 	}
-	m.enabled = len(m.services) > 0 || len(m.proxies) > 0
+	if cfg.Auth.EntraID.Enabled {
+		provider, err := NewEntraIDProvider(cfg.Auth.EntraID)
+		if err != nil {
+			return nil, err
+		}
+		m.entraID = provider
+	}
+	m.enabled = len(m.services) > 0 || len(m.proxies) > 0 || m.entraID != nil
 	return m, nil
 }
 
 func (m *Module) Enabled() bool { return m.enabled }
+
+func (m *Module) PasswordLoginEnabled() bool { return len(m.services) > 0 }
+
+func (m *Module) EntraIDEnabled() bool { return m.entraID != nil }
+
+func (m *Module) EntraIDRedirectURL() string {
+	if m.entraID == nil {
+		return ""
+	}
+	return m.entraID.ConfiguredRedirectURL()
+}
 
 func (m *Module) Store() *sessions.CookieStore { return m.store }
 
@@ -166,6 +188,74 @@ func (m *Module) SetSessionIdentity(w http.ResponseWriter, r *http.Request, iden
 	sess.Values[SessionCSRFKey] = token
 	delete(sess.Values, RedirectURL)
 	return sess.Save(r, w)
+}
+
+func (m *Module) BeginEntraIDLogin(w http.ResponseWriter, r *http.Request, callbackURL, returnPath string) (string, error) {
+	if m.entraID == nil {
+		return "", errors.New("entra id authentication not enabled")
+	}
+	state, err := newCSRFToken()
+	if err != nil {
+		return "", err
+	}
+	nonce, err := newCSRFToken()
+	if err != nil {
+		return "", err
+	}
+	sess, _ := m.store.Get(r, SessionName)
+	sess.Values[SessionEntraStateKey] = state
+	sess.Values[SessionEntraNonceKey] = nonce
+	if safe := safeRedirect(returnPath); safe != "" {
+		sess.Values[SessionEntraReturnKey] = safe
+	} else {
+		delete(sess.Values, SessionEntraReturnKey)
+	}
+	if err := sess.Save(r, w); err != nil {
+		return "", err
+	}
+	return m.entraID.AuthCodeURL(r.Context(), callbackURL, state, nonce)
+}
+
+func (m *Module) CompleteEntraIDLogin(w http.ResponseWriter, r *http.Request, callbackURL string) (string, error) {
+	if m.entraID == nil {
+		return "", errors.New("entra id authentication not enabled")
+	}
+	code := strings.TrimSpace(r.URL.Query().Get("code"))
+	if code == "" {
+		return "", ErrInvalidCredentials
+	}
+	sess, err := m.store.Get(r, SessionName)
+	if err != nil {
+		return "", err
+	}
+	state, ok := sess.Values[SessionEntraStateKey].(string)
+	if !ok || state == "" || !subtleConstantTimeEqual(r.URL.Query().Get("state"), state) {
+		return "", ErrInvalidCredentials
+	}
+	nonce, ok := sess.Values[SessionEntraNonceKey].(string)
+	if !ok || nonce == "" {
+		return "", ErrInvalidCredentials
+	}
+	returnPath, _ := sess.Values[SessionEntraReturnKey].(string)
+	identity, err := m.entraID.Exchange(r.Context(), callbackURL, code, nonce)
+	if err != nil {
+		return "", err
+	}
+	sess.Values[SessionUserKey] = identity.Username
+	sess.Values[SessionGroupsKey] = identity.Groups
+	token, err := newCSRFToken()
+	if err != nil {
+		return "", err
+	}
+	sess.Values[SessionCSRFKey] = token
+	delete(sess.Values, SessionEntraStateKey)
+	delete(sess.Values, SessionEntraNonceKey)
+	delete(sess.Values, SessionEntraReturnKey)
+	delete(sess.Values, RedirectURL)
+	if err := sess.Save(r, w); err != nil {
+		return "", err
+	}
+	return safeRedirect(returnPath), nil
 }
 
 func (m *Module) CSRFToken(r *http.Request) (string, bool) {

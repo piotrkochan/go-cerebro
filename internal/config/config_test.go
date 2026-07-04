@@ -134,6 +134,69 @@ server:
 	assert.Equal(t, []string{"127.0.0.1/32"}, cfg.Auth.Proxy.TrustedProxies)
 }
 
+func TestLoad_EntraIDAuthConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  entra_id:
+    enabled: true
+    tenant_id: "example.onmicrosoft.com"
+    client_id: "client-id"
+    client_secret: "client-secret"
+    redirect_url: "https://cerebro.example.org/auth/entraid/callback"
+    username_claim: "email"
+    groups_claim: "roles"
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.True(t, cfg.Auth.EntraID.Enabled)
+	assert.Equal(t, "example.onmicrosoft.com", cfg.Auth.EntraID.TenantID)
+	assert.Equal(t, "client-id", cfg.Auth.EntraID.ClientID)
+	assert.Equal(t, "roles", cfg.Auth.EntraID.GroupsClaim)
+}
+
+func TestLoad_RejectsIncompleteEntraIDAuth(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  entra_id:
+    enabled: true
+    tenant_id: "example.onmicrosoft.com"
+    client_id: "client-id"
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "auth.entra_id.client_secret")
+}
+
+func TestLoad_ValidatesEntraIDIssuerURL(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  entra_id:
+    enabled: true
+    issuer_url: "http://example.org"
+    client_id: "client-id"
+    client_secret: "client-secret"
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "auth.entra_id.issuer_url")
+}
+
 func TestLoad_RejectsProxyAuthWithoutTrustedProxies(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")
@@ -168,6 +231,36 @@ rbac:
 	_, err := Load(path)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "effect")
+}
+
+func TestLoad_RejectsUnsupportedRBACResource(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+rbac:
+  enabled: true
+  policies:
+    - {subject: "role:admin", resource: "commons", action: "read", object: "*", effect: "allow"}
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported resource")
+}
+
+func TestLoad_RejectsUnsupportedRBACAction(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+rbac:
+  enabled: true
+  policies:
+    - {subject: "role:admin", resource: "nodes", action: "delete", object: "*", effect: "allow"}
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported action")
 }
 
 func TestLoad_RejectsInvalidLoggingLevel(t *testing.T) {

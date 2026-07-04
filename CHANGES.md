@@ -3,9 +3,10 @@
 ## Unreleased
 
 ### Security
-- Added configurable YAML RBAC policies for backend API authorization.
+- Added configurable YAML RBAC policies backed by Casbin for backend API authorization.
 - Added LDAP group discovery for RBAC bindings and LDAPS e2e coverage.
 - Reworked authentication config into independent `auth.basic`, `auth.ldap` and trusted `auth.proxy` providers.
+- Added direct Microsoft Entra ID authentication through OIDC authorization-code flow.
 
 ### Documentation
 - Added dedicated RBAC documentation and updated authentication examples to the provider-based config format.

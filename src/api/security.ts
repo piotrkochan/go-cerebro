@@ -1,9 +1,13 @@
 import { client } from './client/client.gen';
 
-type AuthStatus = {
+export type AuthStatus = {
   authenticated?: boolean;
   csrf_token?: string;
   enabled?: boolean;
+  providers?: {
+    entraid?: boolean;
+    password?: boolean;
+  };
   user?: string;
 };
 

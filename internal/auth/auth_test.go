@@ -57,6 +57,35 @@ func TestNewBasicServiceRequiresCredentials(t *testing.T) {
 	assert.EqualError(t, err, "basic auth requires username and password settings")
 }
 
+func TestNewEntraIDProviderRequiresSettings(t *testing.T) {
+	_, err := NewEntraIDProvider(config.EntraIDAuth{TenantID: "tenant", ClientID: "client"})
+	assert.EqualError(t, err, "entra id auth requires tenant_id, client_id and client_secret")
+}
+
+func TestNewModuleEnablesEntraID(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth: config.Auth{
+			EntraID: config.EntraIDAuth{Enabled: true, TenantID: "example.onmicrosoft.com", ClientID: "client", ClientSecret: "secret"},
+		},
+		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+	})
+	require.NoError(t, err)
+
+	assert.True(t, mod.Enabled())
+	assert.True(t, mod.EntraIDEnabled())
+	assert.False(t, mod.PasswordLoginEnabled())
+}
+
+func TestEntraIDClaimHelpers(t *testing.T) {
+	claims := map[string]any{
+		"preferred_username": "alice@example.org",
+		"groups":             []any{"admins", "operators"},
+	}
+
+	assert.Equal(t, "alice@example.org", firstClaimString(claims, "missing", "preferred_username"))
+	assert.Equal(t, []string{"admins", "operators"}, claimStringSlice(claims["groups"]))
+}
+
 func TestSessionUserCSRFAndClearSession(t *testing.T) {
 	mod := testModule(t)
 	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)

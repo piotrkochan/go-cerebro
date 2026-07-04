@@ -18,6 +18,8 @@ func (d *Deps) RegisterAuth(api huma.API, mux interface {
 	// content-type handling (form vs JSON) and cookie writing on the http.ResponseWriter.
 	mux.HandleFunc("GET /auth/status", d.handleAuthStatus)
 	mux.HandleFunc("POST /auth/login", d.handleLogin)
+	mux.HandleFunc("GET /auth/entraid/login", d.handleEntraIDLogin)
+	mux.HandleFunc("GET /auth/entraid/callback", d.handleEntraIDCallback)
 	mux.HandleFunc("POST /auth/logout", d.handleLogout)
 }
 
@@ -41,8 +43,42 @@ func (d *Deps) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
 		"authenticated": authenticated,
 		"csrf_token":    csrfToken,
 		"enabled":       d.Auth.Enabled(),
-		"user":          user,
+		"providers": map[string]bool{
+			"entraid":  d.Auth.EntraIDEnabled(),
+			"password": d.Auth.PasswordLoginEnabled(),
+		},
+		"user": user,
 	})
+}
+
+func (d *Deps) handleEntraIDLogin(w http.ResponseWriter, r *http.Request) {
+	callbackURL := d.entraIDCallbackURL(r)
+	returnPath := r.URL.Query().Get("redirect")
+	if returnPath == "" {
+		returnPath = "/"
+	}
+	authURL, err := d.Auth.BeginEntraIDLogin(w, r, callbackURL, returnPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, authURL, http.StatusFound)
+}
+
+func (d *Deps) handleEntraIDCallback(w http.ResponseWriter, r *http.Request) {
+	if authErr := r.URL.Query().Get("error"); authErr != "" {
+		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
+		return
+	}
+	redirect, err := d.Auth.CompleteEntraIDLogin(w, r, d.entraIDCallbackURL(r))
+	if err != nil {
+		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
+		return
+	}
+	if redirect == "" {
+		redirect = basePathFor(d, "/")
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther) // #nosec G710 -- redirect is same-origin absolute path from auth.CompleteEntraIDLogin.
 }
 
 func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -99,4 +135,23 @@ func basePathFor(d *Deps, suffix string) string {
 		return suffix
 	}
 	return prefix + suffix
+}
+
+func (d *Deps) entraIDCallbackURL(r *http.Request) string {
+	if configured := d.Auth.EntraIDRedirectURL(); configured != "" {
+		return configured
+	}
+	return requestOrigin(r) + basePathFor(d, "/auth/entraid/callback")
+}
+
+func requestOrigin(r *http.Request) string {
+	scheme := "http"
+	if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
+		scheme = "https"
+	}
+	host := r.Host
+	if forwardedHost := strings.TrimSpace(r.Header.Get("X-Forwarded-Host")); forwardedHost != "" {
+		host = forwardedHost
+	}
+	return scheme + "://" + host
 }

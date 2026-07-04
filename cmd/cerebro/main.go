@@ -177,6 +177,9 @@ func enabledAuthProviders(cfg config.Auth) string {
 	if cfg.Proxy.Enabled {
 		providers = append(providers, "proxy")
 	}
+	if cfg.EntraID.Enabled {
+		providers = append(providers, "entra_id")
+	}
 	if len(providers) == 0 {
 		return "disabled"
 	}

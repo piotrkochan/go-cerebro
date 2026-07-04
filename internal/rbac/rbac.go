@@ -5,6 +5,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/casbin/casbin/v2"
+	"github.com/casbin/casbin/v2/model"
 	"github.com/lmenezes/cerebro/internal/config"
 )
 
@@ -20,21 +22,23 @@ type Request struct {
 type Authorizer struct {
 	enabled     bool
 	defaultRole string
-	policies    []config.RBACPolicy
-	bindings    map[string][]string
+	enforcer    *casbin.Enforcer
 }
 
 func New(cfg config.RBAC) *Authorizer {
-	bindings := map[string][]string{}
-	for _, binding := range cfg.Bindings {
-		bindings[binding.Subject] = append(bindings[binding.Subject], binding.Role)
-	}
-	return &Authorizer{
+	authorizer := &Authorizer{
 		enabled:     cfg.Enabled,
 		defaultRole: cfg.DefaultRole,
-		policies:    cfg.Policies,
-		bindings:    bindings,
 	}
+	if !cfg.Enabled {
+		return authorizer
+	}
+	enforcer, err := newEnforcer(cfg)
+	if err != nil {
+		return authorizer
+	}
+	authorizer.enforcer = enforcer
+	return authorizer
 }
 
 func (a *Authorizer) Enabled() bool {
@@ -48,26 +52,26 @@ func (a *Authorizer) Allow(subject string, groups []string, req Request) bool {
 	if req.System {
 		return true
 	}
-	subjects := a.subjects(subject, groups)
+	if a.enforcer == nil {
+		return false
+	}
 	allowed := false
-	for _, policy := range a.policies {
-		if !matchesAny(policy.Subject, subjects) ||
-			!wildcardMatch(policy.Resource, req.Resource) ||
-			!wildcardMatch(policy.Action, req.Action) ||
-			!wildcardMatch(policy.Object, req.Object) {
-			continue
-		}
-		if policy.Effect == "deny" {
+	for _, principal := range a.principals(subject, groups) {
+		ok, explanation, err := a.enforcer.EnforceEx(principal, req.Resource, req.Action, req.Object)
+		if err != nil {
 			return false
 		}
-		if policy.Effect == "allow" {
+		if len(explanation) >= 5 && explanation[4] == "deny" {
+			return false
+		}
+		if ok {
 			allowed = true
 		}
 	}
 	return allowed
 }
 
-func (a *Authorizer) subjects(subject string, groups []string) []string {
+func (a *Authorizer) principals(subject string, groups []string) []string {
 	if subject == "" {
 		subject = AnonymousSubject
 	}
@@ -81,22 +85,62 @@ func (a *Authorizer) subjects(subject string, groups []string) []string {
 	if a.defaultRole != "" {
 		out = append(out, a.defaultRole)
 	}
-	out = append(out, a.bindings[subject]...)
-	out = append(out, a.bindings["user:"+subject]...)
-	for _, group := range groups {
-		out = append(out, a.bindings[group]...)
-		out = append(out, a.bindings["group:"+group]...)
-	}
 	return out
 }
 
-func matchesAny(pattern string, values []string) bool {
-	for _, value := range values {
-		if wildcardMatch(pattern, value) {
-			return true
+func newEnforcer(cfg config.RBAC) (*casbin.Enforcer, error) {
+	m, err := model.NewModelFromString(casbinModel)
+	if err != nil {
+		return nil, err
+	}
+	enforcer, err := casbin.NewEnforcer(m)
+	if err != nil {
+		return nil, err
+	}
+	enforcer.AddFunction("cerebroMatch", casbinPatternMatch)
+	for _, policy := range cfg.Policies {
+		if _, err := enforcer.AddPolicy(policy.Subject, policy.Resource, policy.Action, policy.Object, policy.Effect); err != nil {
+			return nil, err
 		}
 	}
-	return false
+	for _, binding := range cfg.Bindings {
+		if _, err := enforcer.AddGroupingPolicy(binding.Subject, binding.Role); err != nil {
+			return nil, err
+		}
+	}
+	return enforcer, nil
+}
+
+const casbinModel = `
+[request_definition]
+r = sub, res, act, obj
+
+[policy_definition]
+p = sub, res, act, obj, eft
+
+[role_definition]
+g = _, _
+
+[policy_effect]
+e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
+
+[matchers]
+m = (r.sub == p.sub || g(r.sub, p.sub)) && cerebroMatch(p.res, r.res) && cerebroMatch(p.act, r.act) && cerebroMatch(p.obj, r.obj)
+`
+
+func casbinPatternMatch(args ...interface{}) (interface{}, error) {
+	if len(args) != 2 {
+		return false, nil
+	}
+	pattern, ok := args[0].(string)
+	if !ok {
+		return false, nil
+	}
+	value, ok := args[1].(string)
+	if !ok {
+		return false, nil
+	}
+	return wildcardMatch(pattern, value), nil
 }
 
 func wildcardMatch(pattern, value string) bool {

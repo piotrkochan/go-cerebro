@@ -6,6 +6,7 @@ import (
 
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAuthorizer_AllowsBoundRoleAndDenyOverrides(t *testing.T) {
@@ -20,6 +21,10 @@ func TestAuthorizer_AllowsBoundRoleAndDenyOverrides(t *testing.T) {
 		},
 	})
 
+	require.NotNil(t, authorizer.enforcer)
+	allowed, explanation, err := authorizer.enforcer.EnforceEx("alice", "indices", "refresh", "local-cluster/logs-000001")
+	require.NoError(t, err)
+	assert.True(t, allowed, explanation)
 	assert.True(t, authorizer.Allow("alice", nil, Request{Resource: "indices", Action: "refresh", Object: "local-cluster/logs-000001"}))
 	assert.False(t, authorizer.Allow("alice", nil, Request{Resource: "indices", Action: "delete", Object: "local-cluster/logs-000001"}))
 	assert.False(t, authorizer.Allow("alice", nil, Request{Resource: "indices", Action: "refresh", Object: "local-cluster/users-000001"}))
@@ -36,6 +41,20 @@ func TestAuthorizer_UsesDefaultRole(t *testing.T) {
 
 	assert.True(t, authorizer.Allow("bob", nil, Request{Resource: "overview", Action: "read", Object: "local-cluster"}))
 	assert.False(t, authorizer.Allow("bob", nil, Request{Resource: "indices", Action: "delete", Object: "local-cluster/logs"}))
+}
+
+func TestAuthorizer_DenyOverridesAllowAcrossPrincipals(t *testing.T) {
+	authorizer := New(config.RBAC{
+		Enabled:     true,
+		DefaultRole: "role:viewer",
+		Policies: []config.RBACPolicy{
+			{Subject: "role:viewer", Resource: "*", Action: "read", Object: "*", Effect: "allow"},
+			{Subject: "alice", Resource: "rest", Action: "read", Object: "*", Effect: "deny"},
+		},
+	})
+
+	assert.False(t, authorizer.Allow("alice", nil, Request{Resource: "rest", Action: "read", Object: "local-cluster"}))
+	assert.True(t, authorizer.Allow("bob", nil, Request{Resource: "rest", Action: "read", Object: "local-cluster"}))
 }
 
 func TestAuthorizer_UsesGroupBindings(t *testing.T) {

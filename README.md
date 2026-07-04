@@ -104,7 +104,7 @@ Important sections:
 
 - `hosts`: known Elasticsearch clusters. Optional `hosts[].id` becomes the stable cluster slug used in URLs and RBAC; use lowercase letters, digits and hyphens. If omitted, the slug is generated from `hosts[].name`. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
 - `hosts[].headers_whitelist`: request headers that Cerebro may forward to Elasticsearch, useful behind an authenticating proxy.
-- `auth.basic`, `auth.ldap`, `auth.proxy`: optional authentication providers. Enable at least one outside local development.
+- `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id`: optional authentication providers. Enable at least one outside local development.
 - `rbac`: optional YAML authorization policies for users and groups.
 - `server.base_path`: URL path prefix when Cerebro is mounted below `/`.
 - `server.secret`: required for authenticated deployments. Set it to a strong random value.
@@ -218,7 +218,14 @@ Go Cerebro targets Elasticsearch and OpenSearch clusters through the official El
 
 ## Authentication
 
-Basic auth example:
+Authentication docs:
+
+- [Microsoft Entra ID](./docs/auth-entra-id.md)
+- [LDAP](./docs/auth-ldap.md)
+- [Trusted proxy / oauth2-proxy](./docs/auth-proxy.md)
+- [RBAC](./docs/RBAC.md)
+
+Basic auth is configured directly in YAML:
 
 ```yaml
 auth:
@@ -230,43 +237,6 @@ auth:
 server:
   secret: "${APPLICATION_SECRET}"
 ```
-
-LDAP uses `ldaps://` by default. For a private test-only LDAP server you can set `insecure_ldap: true`, but do not use that in production.
-
-```yaml
-auth:
-  ldap:
-    enabled: true
-    url: "ldaps://ldap.example.org:636"
-    ca_cert_file: "/etc/cerebro/ldap-ca.pem"
-    base_dn: "ou=people,dc=example,dc=org"
-    method: "simple"
-    user_template: "uid=%s,%s"
-    bind_dn: "cn=readonly,dc=example,dc=org"
-    bind_pw: "${LDAP_BIND_PWD}"
-    group_search:
-      base_dn: "ou=groups,dc=example,dc=org"
-      user_attr: "member"
-      user_attr_template: "uid=%s,ou=people,dc=example,dc=org"
-      group: "(objectClass=groupOfNames)"
-      name_attr: "cn"
-```
-
-Trusted proxy auth example for oauth2-proxy, Azure Entra ID through oauth2-proxy, Authelia, Traefik ForwardAuth or nginx `auth_request`:
-
-```yaml
-auth:
-  proxy:
-    enabled: true
-    user_header: "X-Forwarded-User"
-    groups_header: "X-Forwarded-Groups"
-    group_separator: ","
-    trusted_proxies: ["10.0.0.10/32"]
-server:
-  secret: "${APPLICATION_SECRET}"
-```
-
-RBAC is documented separately in [docs/RBAC.md](./docs/RBAC.md).
 
 ## Docker
 

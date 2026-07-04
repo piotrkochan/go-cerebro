@@ -2,6 +2,8 @@
 
 Go Cerebro can enforce backend authorization with YAML policies. Authentication identifies the user and groups. RBAC decides which API operations are allowed.
 
+The policy engine is Casbin. The YAML shape is kept Cerebro-specific: policies target Cerebro features and actions instead of raw Elasticsearch endpoints.
+
 RBAC is disabled by default.
 
 ```yaml
@@ -23,15 +25,15 @@ Policy fields:
 
 - `subject`: user, group or role name. Roles conventionally use `role:name`.
 - `resource`: API resource, for example `overview`, `indices`, `templates`, `rest`, `cluster_settings`, `data_streams`, `ilm`.
-- `action`: operation type. Common values are `read`, `create`, `update`, `delete`, `execute`.
-- `object`: cluster-scoped target. Cluster-wide operations use the cluster id, resource operations use `cluster-id/name`, for example `prod` or `prod/logs-*`.
+- `action`: operation type. Common values are `read`, `create`, `write`, `delete`, `execute`.
+- `object`: cluster-scoped target. Cluster-wide operations use the cluster id, resource operations use `cluster-id/name`, for example `prod` or `prod/index-*`.
 - `effect`: `allow` or `deny`.
 
-Wildcards use shell-style matching. `deny` wins over `allow`.
+Wildcards use shell-style matching. `deny` wins over `allow`, including denies on one principal overriding allows inherited from another principal or default role.
 
 ## Resources
 
-These are the current backend RBAC resources. They are intentionally named after Cerebro features and user actions, not after internal helper endpoints.
+Only resources listed in this table are part of the supported RBAC model.
 
 | Resource | Actions | Object format | Covers |
 | --- | --- | --- | --- |
@@ -51,14 +53,6 @@ These are the current backend RBAC resources. They are intentionally named after
 | `cluster_settings` | `read`, `write` | `cluster` | Cluster settings page. |
 | `shard_allocation` | `enable`, `disable` | `cluster` | Overview shard allocation toggle. |
 | `shards` | `relocate` | `cluster/index` | Shard relocation. |
-
-For endpoints not listed above, the resource is the first path segment after `/clusters/{cluster}/`, the action is derived from the HTTP method, and the object is the cluster id.
-
-Default HTTP action mapping:
-
-- `GET`, `HEAD`: `read`
-- `DELETE`: `delete`
-- other methods: `write`
 
 ## Subjects
 
@@ -117,7 +111,7 @@ Every cluster-scoped request sets `object` to the cluster id or to a value prefi
 - `object: "*"`: all clusters.
 - `object: "prod"`: cluster-wide operations on the `prod` cluster.
 - `object: "prod/*"`: all resource-level operations inside the `prod` cluster.
-- `object: "prod/logs-*"`: only matching resources inside the `prod` cluster.
+- `object: "prod/index-*"`: only matching index-like objects inside the `prod` cluster.
 
 Allow read-only access to one cluster:
 
@@ -140,7 +134,7 @@ rbac:
     - {subject: "group:devs", role: "role:dev-editor"}
   policies:
     - {subject: "role:dev-editor", resource: "*", action: "read", object: "dev*", effect: "allow"}
-    - {subject: "role:dev-editor", resource: "documents", action: "*", object: "dev/test-*", effect: "allow"}
+    - {subject: "role:dev-editor", resource: "documents", action: "*", object: "dev/index-*", effect: "allow"}
 ```
 
 ## Recommended Roles
