@@ -269,3 +269,104 @@ func TestAPIAuthGate_EnforcesRBAC(t *testing.T) {
 	handler.ServeHTTP(deleteRR, deleteReq)
 	assert.Equal(t, http.StatusForbidden, deleteRR.Code)
 }
+
+func TestAPIAuthGate_EnforcesRBACIndexObjectsAndActions(t *testing.T) {
+	authMod, err := auth.NewModule(&config.Config{
+		Auth: config.Auth{
+			Basic: config.BasicAuth{Enabled: true, Username: "alice", Password: "secret"},
+		},
+		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+	})
+	require.NoError(t, err)
+
+	authorizer := rbac.New(config.RBAC{
+		Enabled: true,
+		Bindings: []config.RBACBinding{
+			{Subject: "alice", Role: "role:index-maintainer"},
+		},
+		Policies: []config.RBACPolicy{
+			{Subject: "role:index-maintainer", Resource: "indices", Action: "read", Object: "prod/index-*", Effect: "allow"},
+			{Subject: "role:index-maintainer", Resource: "indices", Action: "delete", Object: "prod/index-*", Effect: "allow"},
+			{Subject: "role:index-maintainer", Resource: "documents", Action: "write", Object: "prod/index-*", Effect: "allow"},
+			{Subject: "role:index-maintainer", Resource: "snapshots", Action: "read", Object: "prod/*/*", Effect: "allow"},
+		},
+	})
+	handler := apiAuthGate(authMod, config.Server{}, authorizer)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	loginReq := httptest.NewRequest(http.MethodPost, "http://example.test/auth/login", nil)
+	loginRR := httptest.NewRecorder()
+	require.NoError(t, authMod.SetSessionUser(loginRR, loginReq, "alice"))
+	cookies := loginRR.Result().Cookies()
+
+	tests := []struct {
+		name       string
+		method     string
+		path       string
+		wantStatus int
+	}{
+		{
+			name:       "can read matching index settings",
+			method:     http.MethodGet,
+			path:       "/clusters/prod/commons/indices/index-users/settings",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "cannot read non matching index settings",
+			method:     http.MethodGet,
+			path:       "/clusters/prod/commons/indices/app-users/settings",
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "can delete matching index",
+			method:     http.MethodDelete,
+			path:       "/clusters/prod/overview/indices/index-users",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "cannot delete non matching index",
+			method:     http.MethodDelete,
+			path:       "/clusters/prod/overview/indices/app-users",
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "cannot refresh matching index without refresh action",
+			method:     http.MethodPost,
+			path:       "/clusters/prod/overview/indices/index-users/refresh",
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "can write documents in matching index",
+			method:     http.MethodPut,
+			path:       "/clusters/prod/data_explorer/index-users/documents",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "cannot write documents in non matching index",
+			method:     http.MethodPut,
+			path:       "/clusters/prod/data_explorer/app-users/documents",
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "can read two level snapshot object",
+			method:     http.MethodGet,
+			path:       "/clusters/prod/snapshots/repository/snapshot",
+			wantStatus: http.StatusNoContent,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, "http://example.test"+tt.path, nil)
+			for _, cookie := range cookies {
+				req.AddCookie(cookie)
+			}
+			rr := httptest.NewRecorder()
+
+			handler.ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.wantStatus, rr.Code)
+		})
+	}
+}

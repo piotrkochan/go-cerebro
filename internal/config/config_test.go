@@ -112,6 +112,27 @@ rbac:
 	assert.Equal(t, "allow", cfg.RBAC.Policies[0].Effect)
 }
 
+func TestLoad_RBACDefaultRoleIsOptional(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+rbac:
+  enabled: true
+  bindings:
+    - {subject: "alice", role: "role:admin"}
+  policies:
+    - {subject: "role:admin", resource: "*", action: "*", object: "*", effect: "allow"}
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.True(t, cfg.RBAC.Enabled)
+	assert.Empty(t, cfg.RBAC.DefaultRole)
+	assert.Equal(t, []RBACBinding{{Subject: "alice", Role: "role:admin"}}, cfg.RBAC.Bindings)
+	require.Len(t, cfg.RBAC.Policies, 1)
+}
+
 func TestLoad_ProxyAuthConfig(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")

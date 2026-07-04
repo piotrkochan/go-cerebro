@@ -126,8 +126,9 @@ rbac:
     - {subject: "admin", role: "role:admin"}
     - {subject: "group:cerebro-admins", role: "role:admin"}
   policies:
-    # Argo-style policy shape: subject + resource + action + object + effect.
-    # Wildcards use shell-style matching. Deny wins over allow.
+    # Cerebro-feature policy shape: subject + resource + action + object + effect.
+    # Policies are evaluated by Casbin. Wildcards use shell-style matching.
+    # Deny wins over allow.
     # Object is cluster-scoped: cluster-wide actions use the cluster id, resource
     # actions use cluster-id/name, e.g. "prod" or "prod/index-*".
     - {subject: "role:admin", resource: "*", action: "*", object: "*", effect: "allow"}
