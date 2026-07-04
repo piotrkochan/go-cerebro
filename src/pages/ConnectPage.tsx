@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 
 import { connect, connectHosts, type HostRef } from '../api/client';
-import { loadAuthStatus } from '../api/security';
+import { loadAuthStatus, logout } from '../api/security';
 import { Button } from '../components/Button';
 import { CerebroLogo } from '../components/CerebroLogo';
 import { Icon } from '../components/Icon';
@@ -98,11 +98,9 @@ export function ConnectPage({
         {authStatus?.enabled && authStatus.authenticated ? (
           <div className="mb-3 flex items-center justify-end gap-3 text-muted">
             {authStatus.user ? <span>{authStatus.user}</span> : null}
-            <form action="/auth/logout" method="POST">
-              <Button icon="log-out" size="xs" type="submit">
-                Logout
-              </Button>
-            </form>
+            <Button icon="log-out" size="xs" onClick={() => void logout()}>
+              Logout
+            </Button>
           </div>
         ) : null}
         <div className="text-center">

@@ -1,5 +1,5 @@
 import { client } from './client/client.gen';
-import { authActions, type AuthPermission } from '../stores/authStore';
+import { authActions, authStore, type AuthPermission } from '../stores/authStore';
 
 export type AuthStatus = {
   authenticated?: boolean;
@@ -77,6 +77,7 @@ export async function loadAuthMe(): Promise<AuthStatus> {
 }
 
 export async function logout(): Promise<void> {
+  const proxyLogout = authStore.state.provider === 'proxy';
   try {
     await fetch('/auth/logout', {
       credentials: 'same-origin',
@@ -85,6 +86,9 @@ export async function logout(): Promise<void> {
     });
   } finally {
     clearAuthSecurityState();
+    if (proxyLogout) {
+      window.location.assign(`/oauth2/sign_out?rd=${encodeURIComponent('/oauth2/sign_in')}`);
+    }
   }
 }
 

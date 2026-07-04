@@ -1,15 +1,15 @@
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION:-8.15.0}
     environment:
       node.name: elasticsearch
-      cluster.name: cerebro-dev
+      cluster.name: ${ELASTICSEARCH_CLUSTER_NAME:-cerebro-dev}
       discovery.seed_hosts: elasticsearch,elasticsearch-2
       cluster.initial_master_nodes: elasticsearch,elasticsearch-2
       xpack.security.enabled: "false"
-      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      ES_JAVA_OPTS: "${ELASTICSEARCH_JAVA_OPTS:--Xms512m -Xmx512m}"
     ports:
-      - "9200:9200"
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
       interval: 5s
@@ -19,14 +19,14 @@ services:
       - es-data:/usr/share/elasticsearch/data
 
   elasticsearch-2:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION:-8.15.0}
     environment:
       node.name: elasticsearch-2
-      cluster.name: cerebro-dev
+      cluster.name: ${ELASTICSEARCH_CLUSTER_NAME:-cerebro-dev}
       discovery.seed_hosts: elasticsearch,elasticsearch-2
       cluster.initial_master_nodes: elasticsearch,elasticsearch-2
       xpack.security.enabled: "false"
-      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      ES_JAVA_OPTS: "${ELASTICSEARCH_JAVA_OPTS:--Xms512m -Xmx512m}"
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
       interval: 5s
@@ -40,13 +40,13 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "9000:9000"
+      - "${CEREBRO_PORT:-9000}:${CEREBRO_PORT:-9000}"
     environment:
-      CEREBRO_PORT: "9000"
-      APPLICATION_SECRET: "docker-compose-dev-auth-secret-change-me"
-      BASIC_AUTH_ENABLED: "true"
-      BASIC_AUTH_USER: "admin"
-      BASIC_AUTH_PWD: "admin123"
+      CEREBRO_PORT: "${CEREBRO_PORT:-9000}"
+      APPLICATION_SECRET: "${APPLICATION_SECRET:-docker-compose-dev-auth-secret-change-me}"
+      BASIC_AUTH_ENABLED: "${BASIC_AUTH_ENABLED:-true}"
+      BASIC_AUTH_USER: "${BASIC_AUTH_USER:-admin}"
+      BASIC_AUTH_PWD: "${BASIC_AUTH_PWD:-admin123}"
     volumes:
       - ./:/workspace/cerebro
     working_dir: /workspace/cerebro
@@ -61,14 +61,36 @@ services:
     working_dir: /workspace/cerebro
     command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
     ports:
-      - "5173:5173"
+      - "${FRONTEND_PORT:-5173}:5173"
     environment:
-      VITE_API_TARGET: "http://cerebro:9000"
+      VITE_API_TARGET: "${VITE_API_TARGET:-http://cerebro:9000}"
     volumes:
       - ./:/workspace/cerebro
       - node-modules:/workspace/cerebro/node_modules
     depends_on:
       - cerebro
+
+  github-auth-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.3
+    command:
+      - --provider=github
+      - --http-address=0.0.0.0:4180
+      - --upstream=${OAUTH2_PROXY_UPSTREAM:-http://frontend:5173}
+      - --redirect-url=${OAUTH2_PROXY_REDIRECT_URL:-http://localhost:9001/oauth2/callback}
+      - --email-domain=*
+      - --cookie-secure=false
+      - --pass-user-headers=true
+      - --set-xauthrequest=true
+      - --skip-provider-button=${OAUTH2_PROXY_SKIP_PROVIDER_BUTTON:-false}
+      - --reverse-proxy=true
+    ports:
+      - "${OAUTH2_PROXY_PORT:-9001}:4180"
+    environment:
+      OAUTH2_PROXY_CLIENT_ID: "${GITHUB_CLIENT_ID:?set GITHUB_CLIENT_ID from your GitHub OAuth App}"
+      OAUTH2_PROXY_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET:?set GITHUB_CLIENT_SECRET from your GitHub OAuth App}"
+      OAUTH2_PROXY_COOKIE_SECRET: "${OAUTH2_PROXY_COOKIE_SECRET:-dev-cookie-secret-32-bytes-ok!!!}"
+    depends_on:
+      - frontend
 
 volumes:
   es-data:

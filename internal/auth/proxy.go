@@ -49,6 +49,12 @@ func (p *ProxyAuthenticator) Identity(r *http.Request) (Identity, bool) {
 	}
 	username := strings.TrimSpace(r.Header.Get(p.userHeader))
 	if username == "" {
+		username = strings.TrimSpace(r.Header.Get("X-Forwarded-Preferred-Username"))
+	}
+	if username == "" {
+		username = strings.TrimSpace(r.Header.Get("X-Forwarded-Email"))
+	}
+	if username == "" {
 		return Identity{}, false
 	}
 	return Identity{

@@ -30,6 +30,23 @@ func TestProxyAuthenticatorIdentity(t *testing.T) {
 	assert.Equal(t, []string{"cerebro-admins", "developers"}, identity.Groups)
 }
 
+func TestProxyAuthenticatorUsesOAuthProxyFallbackHeaders(t *testing.T) {
+	proxy, err := NewProxyAuthenticator(config.ProxyAuth{
+		UserHeader:     "X-Forwarded-User",
+		TrustedProxies: []string{"127.0.0.1/32"},
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest("GET", "http://example.test/auth/status", nil)
+	req.RemoteAddr = "127.0.0.1:12345"
+	req.Header.Set("X-Forwarded-Preferred-Username", "alice")
+
+	identity, ok := proxy.Identity(req)
+
+	require.True(t, ok)
+	assert.Equal(t, "alice", identity.Username)
+	assert.Equal(t, "proxy", identity.Provider)
+}
+
 func TestProxyAuthenticatorRejectsUntrustedRemote(t *testing.T) {
 	proxy, err := NewProxyAuthenticator(config.ProxyAuth{
 		UserHeader:     "X-Forwarded-User",
