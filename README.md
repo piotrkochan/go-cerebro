@@ -142,13 +142,19 @@ auth:
       - username: "${CEREBRO_USER}"
         password: "${CEREBRO_PASSWORD}"
         groups: ["cerebro-admins"]
+      - username: "${CEREBRO_VIEWER_USER}"
+        password: "${CEREBRO_VIEWER_PASSWORD}"
+        groups: ["cerebro-viewers"]
 
 rbac:
   enabled: true
   bindings:
     - {subject: "group:cerebro-admins", role: "role:admin"}
+    - {subject: "group:cerebro-viewers", role: "role:viewer"}
   policies:
     - {subject: "role:admin", resource: "*", action: "*", object: "*", effect: "allow"}
+    - {subject: "role:viewer", resource: "*", action: "read", object: "*", effect: "allow"}
+    - {subject: "role:viewer", resource: "rest", action: "execute", object: "*", effect: "deny"}
 
 server:
   port: 9000
