@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/lmenezes/cerebro/internal/config"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type BasicService struct {
@@ -16,7 +17,7 @@ type BasicService struct {
 type basicUser struct {
 	username     string
 	usernameHash [sha256.Size]byte
-	passwordHash [sha256.Size]byte
+	passwordHash []byte
 	groups       []string
 }
 
@@ -35,26 +36,31 @@ func NewBasicService(s config.BasicAuth) (*BasicService, error) {
 			return nil, errors.New("basic auth usernames must be unique")
 		}
 		seen[username] = true
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
 		users = append(users, basicUser{
 			username:     username,
 			usernameHash: sha256.Sum256([]byte(username)),
-			passwordHash: sha256.Sum256([]byte(user.Password)),
+			passwordHash: passwordHash,
 			groups:       append([]string(nil), user.Groups...),
 		})
 	}
 	return &BasicService{users: users}, nil
 }
 
-// Authenticate hashes both fields before constant-time comparison so input length does not
-// affect comparison timing.
+// Authenticate checks every configured username before returning to avoid early username probing.
 func (b *BasicService) Authenticate(username, password string) (Identity, error) {
 	usernameHash := sha256.Sum256([]byte(username))
-	passwordHash := sha256.Sum256([]byte(password))
 	var matched *basicUser
 	for i := range b.users {
 		user := &b.users[i]
 		uOK := subtle.ConstantTimeCompare(usernameHash[:], user.usernameHash[:])
-		pOK := subtle.ConstantTimeCompare(passwordHash[:], user.passwordHash[:])
+		pOK := 1
+		if bcrypt.CompareHashAndPassword(user.passwordHash, []byte(password)) != nil {
+			pOK = 0
+		}
 		if uOK&pOK == 1 {
 			matched = user
 		}
