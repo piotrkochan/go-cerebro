@@ -18,6 +18,8 @@ Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmene
 
 AI assistance was used during the refactor. Despite careful review, there may still be rough edges, so please keep that in mind while evaluating or using this version.
 
+Go Cerebro is an independent project and is not affiliated with, endorsed by or sponsored by Elastic NV or any Elastic company. Elasticsearch, Elastic and related marks are trademarks of Elastic NV or its affiliates.
+
 ## Requirements
 
 - Go Cerebro binary or Docker image
