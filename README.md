@@ -1,5 +1,7 @@
 # Go Cerebro
 
+<img align="right" width="220" src="./docs/assets/go-cerebro-logo-400x400.png" alt="Go Cerebro logo">
+
 [![CI](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml)
 [![Release](https://github.com/piotrkochan/go-cerebro/actions/workflows/release.yml/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/release.yml)
 [![CodeQL](https://github.com/piotrkochan/go-cerebro/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/github-code-scanning/codeql)
@@ -17,6 +19,8 @@ Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmene
 - AWS OpenSearch SigV4 support with dedicated compatibility tests
 
 AI assistance was used during the refactor. Despite careful review, there may still be rough edges, so please keep that in mind while evaluating or using this version.
+
+Go Cerebro is an independent project and is not affiliated with, endorsed by or sponsored by Elastic NV or any Elastic company. Elasticsearch, Elastic and related marks are trademarks of Elastic NV or its affiliates.
 
 ## Requirements
 

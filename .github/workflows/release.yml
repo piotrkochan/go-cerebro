@@ -67,7 +67,7 @@ jobs:
           VITE_APP_VERSION="${VERSION}" npm run build:vite
 
       - name: Upload frontend assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-assets
           path: internal/server/static
@@ -93,7 +93,7 @@ jobs:
         run: go mod download
 
       - name: Download frontend assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-assets
           path: internal/server/static
@@ -138,7 +138,7 @@ jobs:
           sha256sum dist/cerebro-* | sort -k2 > dist/checksums.txt
 
       - name: Upload release binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-binaries
           path: dist
@@ -208,7 +208,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download release binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-binaries
           path: dist
