@@ -1,0 +1,92 @@
+# Go Cerebro full example configuration.
+#
+# Copy the sections you need to conf/application.yaml and edit for your
+# environment. Environment variables are expanded inside string values, for
+# example "${APPLICATION_SECRET}".
+#
+# Direct environment overrides:
+# - CEREBRO_PORT overrides server.port
+# - APPLICATION_SECRET overrides server.secret
+# - AUTH_TYPE overrides auth.type
+
+hosts:
+  - name: "Local cluster"
+    host: "http://localhost:9200"
+    auth:
+      username: "${ES_USERNAME}"
+      password: "${ES_PASSWORD}"
+    headers_whitelist:
+      - "x-proxy-user"
+      - "x-proxy-roles"
+      - "X-Forwarded-For"
+
+auth:
+  # disabled | none | basic | ldap
+  type: "disabled"
+  settings:
+    # Basic auth.
+    username: "${BASIC_AUTH_USER}"
+    password: "${BASIC_AUTH_PWD}"
+
+    # LDAP auth.
+    url: "ldaps://ldap.example.org:636"
+    ca_cert_file: "/etc/cerebro/certs/ldap-ca.pem"
+    base_dn: "dc=example,dc=org"
+    # simple | bind
+    method: "simple"
+    user_template: "uid=%s,ou=people,dc=example,dc=org"
+    bind_dn: "cn=cerebro,ou=services,dc=example,dc=org"
+    bind_pw: "${LDAP_BIND_PWD}"
+    # Only for isolated local development with ldap:// test servers.
+    insecure_ldap: false
+    group_search:
+      base_dn: "ou=groups,dc=example,dc=org"
+      user_attr: "uid"
+      user_attr_template: "%s"
+      group: "cn=cerebro-users,ou=groups,dc=example,dc=org"
+
+server:
+  port: 9000
+  base_path: "/"
+  secret: "${APPLICATION_SECRET}"
+  cookie_secure: true
+  csrf_enabled: true
+  max_request_bytes: 5242880
+  # tls_cert_file: "/etc/cerebro/tls/tls.crt"
+  # tls_key_file: "/etc/cerebro/tls/tls.key"
+  hsts_enabled: true
+  hsts_max_age_seconds: 31536000
+  hsts_include_subdomains: true
+
+es:
+  gzip: true
+  allow_ad_hoc_hosts: false
+  max_response_bytes: 26214400
+  # ca_cert_file: "/etc/cerebro/certs/es-ca.pem"
+  # client_cert_file: "/etc/cerebro/certs/es-client.pem"
+  # client_key_file: "/etc/cerebro/certs/es-client-key.pem"
+  aws:
+    enabled: false
+    region: "eu-central-1"
+    # es for Amazon OpenSearch Service, aoss for OpenSearch Serverless.
+    service: "es"
+    profile: "default"
+    access_key_id: "${AWS_ACCESS_KEY_ID}"
+    secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+    session_token: "${AWS_SESSION_TOKEN}"
+
+rest:
+  history_size: 50
+
+features:
+  data_explorer: false
+
+data:
+  path: "./cerebro.db"
+
+logging:
+  # debug | info | warn | error
+  level: "info"
+  # text | json
+  format: "text"
+  request_log_enabled: true

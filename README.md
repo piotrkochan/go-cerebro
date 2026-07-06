@@ -93,7 +93,7 @@ cerebro serve -config conf/application.yaml
 Generate the OpenAPI spec:
 
 ```sh
-cerebro openapi -config conf/application.example.yaml > openapi/cerebro.json
+cerebro openapi -config conf/application.full-example.yaml > openapi/cerebro.json
 ```
 
 Print the version:
@@ -104,29 +104,69 @@ cerebro version
 
 ## Configuration
 
-Copy [conf/application.example.yaml](./conf/application.example.yaml) to `conf/application.yaml` and edit it for your environment.
+Copy [conf/application.full-example.yaml](./conf/application.full-example.yaml) to `conf/application.yaml`, remove options you do not need and edit it for your environment.
 
-Important sections:
+Environment variables are expanded inside YAML string values. These direct overrides are also supported:
 
-- `hosts`: known Elasticsearch clusters. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
-- `hosts[].headers_whitelist`: request headers that Cerebro may forward to Elasticsearch, useful behind an authenticating proxy.
-- `auth`: `disabled`, `basic` or `ldap`. Do not expose an instance with `auth.type: disabled`.
-- `server.base_path`: URL path prefix when Cerebro is mounted below `/`.
-- `server.secret`: required for authenticated deployments. Set it to a strong random value.
-- `server.cookie_secure`: keep `true` behind HTTPS.
-- `server.csrf_enabled`: session-bound CSRF protection for Cerebro API requests. Keep enabled for browser-facing deployments.
-- `server.max_request_bytes`: maximum accepted Cerebro API request body size.
-- `server.tls_cert_file`, `server.tls_key_file`: optional HTTPS listener certificate and private key.
-- `server.hsts_enabled`, `server.hsts_max_age_seconds`, `server.hsts_include_subdomains`: HTTPS Strict Transport Security settings. Enable only for domains that should always use HTTPS.
-- `es.gzip`: enable gzip for Elasticsearch responses.
-- `es.max_response_bytes`: maximum Elasticsearch response body size Cerebro will read.
-- `es.aws`: AWS SigV4 signing for Amazon OpenSearch Service and OpenSearch Serverless.
-- `es.ca_cert_file`, `es.client_cert_file`, `es.client_key_file`: TLS trust and mutual TLS for Elasticsearch.
-- `auth.settings.ca_cert_file`: custom LDAP CA trust.
-- `rest.history_size`: number of REST console requests kept in local history.
-- `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
-- `data.path`: SQLite file used for REST request history.
-- `logging.level`, `logging.format`, `logging.request_log_enabled`: application log level/format and per-request HTTP access logs. Request logs are emitted at `info`, so `logging.level: warn` also suppresses normal access logs.
+| Environment variable | Overrides |
+| --- | --- |
+| `CEREBRO_PORT` | `server.port` |
+| `APPLICATION_SECRET` | `server.secret` |
+| `AUTH_TYPE` | `auth.type` |
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `hosts` | `[]` | Known Elasticsearch/OpenSearch clusters shown on the connect page. |
+| `hosts[].name` | `hosts[].host` | Display name and source for the stable cluster slug used in API routes. |
+| `hosts[].host` | required | Elasticsearch/OpenSearch HTTP URL. Credentials in the URL are rejected; use `hosts[].auth`. |
+| `hosts[].auth.username` | empty | Username for this Elasticsearch/OpenSearch host. Kept server-side. |
+| `hosts[].auth.password` | empty | Password for this Elasticsearch/OpenSearch host. Kept server-side. |
+| `hosts[].headers_whitelist` | `[]` | Request headers Cerebro may forward to Elasticsearch, useful behind an authenticating proxy. |
+| `auth.type` | `disabled` | Application login provider: `disabled`, `none`, `basic` or `ldap`. Do not expose shared instances with auth disabled. |
+| `auth.settings.username` | empty | Basic-auth username. |
+| `auth.settings.password` | empty | Basic-auth password. |
+| `auth.settings.url` | empty | LDAP URL. `ldaps://` is required unless `insecure_ldap` is enabled. |
+| `auth.settings.ca_cert_file` | empty | LDAP CA certificate file for private LDAP trust. |
+| `auth.settings.base_dn` | empty | LDAP base DN for user lookup. |
+| `auth.settings.method` | empty | LDAP authentication method used by the LDAP service. |
+| `auth.settings.user_template` | empty | LDAP user DN/search template. |
+| `auth.settings.bind_dn` | empty | LDAP bind DN for searches. |
+| `auth.settings.bind_pw` | empty | LDAP bind password for searches. |
+| `auth.settings.insecure_ldap` | `false` | Allows plain `ldap://` for isolated development tests. Do not use in production. |
+| `auth.settings.group_search.base_dn` | empty | LDAP group search base DN. |
+| `auth.settings.group_search.user_attr` | empty | LDAP user attribute used for group membership matching. |
+| `auth.settings.group_search.user_attr_template` | empty | LDAP group membership value template. |
+| `auth.settings.group_search.group` | empty | Required LDAP group DN/name. |
+| `server.port` | `9000` | HTTP/HTTPS listen port. Can be overridden with `CEREBRO_PORT`. |
+| `server.base_path` | `/` | URL path prefix when Cerebro is mounted below `/`. |
+| `server.secret` | `change-me` | Session signing secret. Required and must be changed when auth is enabled. Can be overridden with `APPLICATION_SECRET`. |
+| `server.cookie_secure` | `true` | Marks session cookies as secure. Keep `true` behind HTTPS; set `false` only for local HTTP development. |
+| `server.csrf_enabled` | `true` | Enables session-bound CSRF protection for Cerebro API requests. |
+| `server.max_request_bytes` | `5242880` | Maximum accepted Cerebro API request body size. |
+| `server.tls_cert_file` | empty | TLS certificate file. Must be set together with `server.tls_key_file`. |
+| `server.tls_key_file` | empty | TLS private key file. Must be set together with `server.tls_cert_file`. |
+| `server.hsts_enabled` | `true` | Emits HSTS for HTTPS requests, including proxied HTTPS via `X-Forwarded-Proto: https`. |
+| `server.hsts_max_age_seconds` | `31536000` | HSTS max-age. |
+| `server.hsts_include_subdomains` | `true` | Adds `includeSubDomains` to HSTS. Enable only for domains that should always use HTTPS. |
+| `es.gzip` | `true` | Enables gzip for Elasticsearch responses. |
+| `es.allow_ad_hoc_hosts` | `false` | Allows users to connect to arbitrary Elasticsearch URLs from the connect page. Keep `false` in shared environments. |
+| `es.max_response_bytes` | `26214400` | Maximum Elasticsearch response body size Cerebro will read. |
+| `es.ca_cert_file` | empty | Custom CA bundle for Elasticsearch TLS trust. |
+| `es.client_cert_file` | empty | Elasticsearch client certificate for mutual TLS. Must be set together with `es.client_key_file`. |
+| `es.client_key_file` | empty | Elasticsearch client private key for mutual TLS. Must be set together with `es.client_cert_file`. |
+| `es.aws.enabled` | `false` | Enables AWS SigV4 signing for Amazon OpenSearch Service or OpenSearch Serverless. |
+| `es.aws.region` | empty | AWS region. Required when `es.aws.enabled` is `true`. |
+| `es.aws.service` | `es` when AWS is enabled | SigV4 service name. Use `es` for Amazon OpenSearch Service and `aoss` for OpenSearch Serverless. |
+| `es.aws.profile` | empty | AWS shared config profile. |
+| `es.aws.access_key_id` | empty | Static AWS access key ID. If omitted, the default AWS credential chain is used. |
+| `es.aws.secret_access_key` | empty | Static AWS secret access key. Must be set together with `es.aws.access_key_id`. |
+| `es.aws.session_token` | empty | Optional AWS session token for temporary credentials. |
+| `rest.history_size` | `50` | Number of REST console requests kept in local history. |
+| `features.data_explorer` | `false` | Enables the document browser/editor. Keep disabled unless users are allowed to read and modify index documents. |
+| `data.path` | `./cerebro.db` | SQLite file used for REST request history. |
+| `logging.level` | `info` | Log level: `debug`, `info`, `warn` or `error`. |
+| `logging.format` | `text` | Log format: `text` or `json`. |
+| `logging.request_log_enabled` | `true` | Enables per-request HTTP access logs. Request logs are emitted at `info`, so `logging.level: warn` suppresses normal access logs. |
 
 Production baseline:
 

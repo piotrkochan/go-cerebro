@@ -42,4 +42,4 @@ COPY --from=build /src/conf /opt/cerebro/conf
 
 EXPOSE 9000
 ENTRYPOINT ["cerebro"]
-CMD ["serve", "-config", "/opt/cerebro/conf/application.example.yaml"]
+CMD ["serve", "-config", "/opt/cerebro/conf/application.full-example.yaml"]

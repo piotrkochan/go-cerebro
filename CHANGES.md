@@ -144,7 +144,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 ### Configuration
 - Replaced old JVM-style configuration examples with YAML config examples.
 - Added `conf/application.dev.yaml` for Docker Compose development.
-- Updated `conf/application.example.yaml` with current auth, Elasticsearch TLS, REST, feature flag, data and logging settings.
+- Added `conf/application.full-example.yaml` with current auth, Elasticsearch TLS, REST, feature flag, data and logging settings.
 - Added configurable log level, log format and HTTP request log toggle.
 - Added example configs for basic auth, OpenLDAP auth, OpenLDAP group auth and Elasticsearch mutual TLS.
 - Updated README and CONTRIBUTING for the Go/React fork.

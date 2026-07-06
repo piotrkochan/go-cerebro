@@ -4,7 +4,7 @@
   "description": "cerebro - elasticsearch admin",
   "type": "module",
   "scripts": {
-    "api:openapi": "go run ./cmd/cerebro openapi -config conf/application.example.yaml > openapi/cerebro.json",
+    "api:openapi": "go run ./cmd/cerebro openapi -config conf/application.full-example.yaml > openapi/cerebro.json",
     "api:generate": "npm run api:openapi && openapi-ts -f openapi-ts.config.ts",
     "api:typecheck": "tsc -p tsconfig.api.json --noEmit",
     "dev": "vite --host 0.0.0.0",
