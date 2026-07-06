@@ -1,5 +1,7 @@
 # Go Cerebro
 
+<img align="right" width="220" src="./docs/assets/go-cerebro-logo-400x400.png" alt="Go Cerebro logo">
+
 [![CI](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/ci.yml)
 [![Release](https://github.com/piotrkochan/go-cerebro/actions/workflows/release.yml/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/release.yml)
 [![CodeQL](https://github.com/piotrkochan/go-cerebro/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/piotrkochan/go-cerebro/actions/workflows/github-code-scanning/codeql)

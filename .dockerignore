@@ -4,6 +4,7 @@
 node_modules
 dist
 tmp
+docs/assets
 cerebro
 cerebro.db
 cerebro.db-*
