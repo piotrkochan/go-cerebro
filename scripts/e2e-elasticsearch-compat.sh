@@ -16,6 +16,8 @@ if [[ "${CEREBRO_E2E_ES_VERSIONS:-}" != "" ]]; then
   IFS=" " read -r -a versions <<< "${CEREBRO_E2E_ES_VERSIONS}"
 fi
 
+echo "Elasticsearch compatibility versions: ${versions[*]}"
+
 cleanup() {
   if [[ "${container:-}" != "" ]]; then
     docker rm -f "${container}" >/dev/null 2>&1 || true
@@ -40,7 +42,8 @@ for entry in "${versions[@]}"; do
   major="${entry%%:*}"
   tag="${entry#*:}"
   image="docker.elastic.co/elasticsearch/elasticsearch:${tag}"
-  container="go-cerebro-e2e-es-${major}-${RANDOM}"
+  safe_tag="${tag//./-}"
+  container="go-cerebro-e2e-es-${safe_tag}-${RANDOM}"
 
   echo "==> Elasticsearch ${tag}"
   docker rm -f "${container}" >/dev/null 2>&1 || true
