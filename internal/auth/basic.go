@@ -14,6 +14,8 @@ type BasicService struct {
 	users []basicUser
 }
 
+var basicBcryptCost = bcrypt.DefaultCost
+
 type basicUser struct {
 	username     string
 	usernameHash [sha256.Size]byte
@@ -36,7 +38,7 @@ func NewBasicService(s config.BasicAuth) (*BasicService, error) {
 			return nil, errors.New("basic auth usernames must be unique")
 		}
 		seen[username] = true
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), basicBcryptCost)
 		if err != nil {
 			return nil, err
 		}

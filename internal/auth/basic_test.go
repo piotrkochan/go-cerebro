@@ -1,12 +1,19 @@
 package auth
 
 import (
+	"os"
 	"testing"
 
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 )
+
+func TestMain(m *testing.M) {
+	basicBcryptCost = bcrypt.MinCost
+	os.Exit(m.Run())
+}
 
 func TestNewBasicServiceRequiresCredentials(t *testing.T) {
 	tests := []struct {
