@@ -9,7 +9,6 @@ auth:
     enabled: true
     url: "ldap://ldap:389"
     base_dn: "ou=people,dc=example,dc=org"
-    method: "simple"
     user_template: "uid=%s,%s"
     bind_dn: "cn=admin,dc=example,dc=org"
     bind_pw: "admin"

@@ -27,12 +27,14 @@ auth:
     scopes: ["openid", "profile", "email"]
 
 server:
+  public_url: "https://cerebro.example.org"
+  trusted_proxies: ["10.0.0.10/32"]
   secret: "${APPLICATION_SECRET}"
   cookie_secure: true
   csrf_enabled: true
 ```
 
-If `redirect_url` is omitted, Cerebro derives it from the incoming request and forwarded host/proto headers. Set it explicitly when Cerebro is behind a reverse proxy and the external URL differs from the internal URL.
+If `redirect_url` is omitted, Cerebro derives it from `server.public_url` or from the incoming request. Forwarded host/proto headers are used only when the request comes from `server.trusted_proxies`. Set `redirect_url` explicitly when the external callback URL differs from Cerebro's public URL plus `server.base_path`.
 
 ## RBAC Groups
 

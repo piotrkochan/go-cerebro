@@ -18,6 +18,9 @@ auth:
 
 server:
   secret: "${APPLICATION_SECRET}"
+  public_url: "https://cerebro.example.org"
+  trusted_proxies:
+    - "10.0.0.10/32"
 ```
 
 ## oauth2-proxy Example
@@ -58,6 +61,6 @@ rbac:
 - Never expose Cerebro directly when `auth.proxy.enabled: true`.
 - Restrict network access so only the trusted proxy can reach Cerebro.
 - Set `trusted_proxies` to exact proxy IPs/CIDRs.
+- Use `server.public_url` or `server.trusted_proxies` when the proxy terminates TLS or rewrites the external host.
 - Do not trust identity headers from arbitrary clients.
 - Strip incoming identity headers at the edge before oauth2-proxy or your reverse proxy sets them.
-

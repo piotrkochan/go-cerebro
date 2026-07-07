@@ -307,6 +307,12 @@ func TestClassifyClusterRequests(t *testing.T) {
 			expected: Request{Resource: "shards", Action: "relocate", Object: "local-cluster/logs-000001"},
 		},
 		{
+			name:     "index flush",
+			method:   http.MethodPost,
+			path:     "/clusters/local-cluster/overview/indices/logs-000001/flush",
+			expected: Request{Resource: "indices", Action: "flush", Object: "local-cluster/logs-000001"},
+		},
+		{
 			name:     "commons index helper maps to indices",
 			method:   http.MethodGet,
 			path:     "/clusters/local-cluster/commons/indices/logs-000001/settings",

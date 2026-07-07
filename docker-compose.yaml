@@ -47,6 +47,7 @@ services:
       BASIC_AUTH_ENABLED: "${BASIC_AUTH_ENABLED:-true}"
       BASIC_AUTH_USER: "${BASIC_AUTH_USER:-admin}"
       BASIC_AUTH_PWD: "${BASIC_AUTH_PWD:-admin123}"
+      PROXY_AUTH_ENABLED: "${PROXY_AUTH_ENABLED:-false}"
     volumes:
       - ./:/workspace/cerebro
     working_dir: /workspace/cerebro

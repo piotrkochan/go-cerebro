@@ -109,6 +109,9 @@ func runServe(args []string) {
 	authProviders := enabledAuthProviders(cfg.Auth)
 	if authProviders == "disabled" {
 		slog.Warn("authentication is disabled — anyone reaching this port can manage the configured Elasticsearch clusters")
+		if cfg.Server.CSRFEnabled {
+			slog.Warn("csrf is enabled without authentication — csrf protects browsers from cross-site requests but does not restrict direct API clients")
+		}
 	}
 	slog.Info("cerebro starting", "addr", fmt.Sprintf(":%d", cfg.Server.Port), "scheme", srv.Scheme(), "auth", authProviders, "hosts", len(cfg.Hosts))
 	if err := srv.Run(ctx); err != nil {

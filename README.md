@@ -112,9 +112,11 @@ Important sections:
 - `auth.session`: optional cookie lifetime, max session lifetime and idle timeout settings.
 - `rbac`: optional YAML authorization policies for users and groups.
 - `server.base_path`: URL path prefix when Cerebro is mounted below `/`.
+- `server.public_url`: external origin used for redirects when Cerebro is behind a reverse proxy.
+- `server.trusted_proxies`: proxy IPs/CIDRs allowed to provide `X-Forwarded-Host` and `X-Forwarded-Proto`.
 - `server.secret`: required for authenticated deployments. Set it to a strong random value.
 - `server.cookie_secure`: keep `true` behind HTTPS.
-- `server.csrf_enabled`: session-bound CSRF protection for Cerebro API requests. Keep enabled for browser-facing deployments.
+- `server.csrf_enabled`: session-bound CSRF protection for browser requests. Keep enabled for browser-facing deployments; it is not a replacement for authentication.
 - `server.max_request_bytes`: maximum accepted Cerebro API request body size.
 - `server.tls_cert_file`, `server.tls_key_file`: optional HTTPS listener certificate and private key.
 - `server.hsts_enabled`, `server.hsts_max_age_seconds`, `server.hsts_include_subdomains`: HTTPS Strict Transport Security settings. Enable only for domains that should always use HTTPS.

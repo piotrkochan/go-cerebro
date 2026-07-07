@@ -11,7 +11,6 @@ auth:
     url: "ldaps://ldap.example.org:636"
     ca_cert_file: "/etc/cerebro/ldap-ca.pem"
     base_dn: "ou=people,dc=example,dc=org"
-    method: "simple"
     user_template: "uid=%s,%s"
     bind_dn: "cn=readonly,dc=example,dc=org"
     bind_pw: "${LDAP_BIND_PWD}"

@@ -18,7 +18,7 @@ auth:
   ldap:
     enabled: false
   proxy:
-    enabled: true
+    enabled: ${PROXY_AUTH_ENABLED}
     user_header: "X-Forwarded-User"
     groups_header: "X-Forwarded-Groups"
     group_separator: ","
@@ -27,6 +27,7 @@ auth:
 server:
   port: 9000
   base_path: "/"
+  trusted_proxies: ["127.0.0.1/32"]
   secret: "${APPLICATION_SECRET}"
   cookie_secure: false
   csrf_enabled: false

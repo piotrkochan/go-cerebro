@@ -5,8 +5,9 @@ Go Cerebro can enforce backend authorization with RBAC policies written in `appl
 Authentication answers: "who is this user and which groups do they have?" RBAC answers:
 "which Cerebro features may this user use?"
 
-RBAC is disabled by default. When it is enabled, every protected API request must match at least one
-`allow` policy. A matching `deny` policy always wins.
+RBAC is disabled by default. RBAC requires at least one authentication provider. When it is enabled,
+every protected API request must match at least one `allow` policy. A matching `deny` policy always
+wins.
 
 Go Cerebro uses Casbin as the policy engine, but the configuration is intentionally Cerebro-specific:
 policies target Cerebro features such as `indices`, `templates`, `data_streams` and `rest`, not raw

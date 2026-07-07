@@ -38,7 +38,6 @@ auth:
     url: "${LDAP_URL}"
     # ca_cert_file: "/etc/cerebro/ldap-ca.pem"
     base_dn: "${LDAP_BASE_DN}"
-    method: "${LDAP_METHOD}"
     user_template: "${LDAP_USER_TEMPLATE}"
     bind_dn: "${LDAP_BIND_DN}"
     bind_pw: "${LDAP_BIND_PWD}"
@@ -83,11 +82,18 @@ auth:
 server:
   port: 9000
   base_path: "/"
+  # External origin when Cerebro is behind a reverse proxy, for example
+  # "https://cerebro.example.org". If empty, Cerebro uses the request host.
+  public_url: ""
+  # Reverse proxy IPs/CIDRs allowed to supply X-Forwarded-Host and
+  # X-Forwarded-Proto for redirects and CSRF origin checks.
+  trusted_proxies: []
   # Required when any auth provider is enabled. Use a strong random value.
   secret: "${APPLICATION_SECRET}"
   # Keep true when served through HTTPS. Set false only for local HTTP dev.
   cookie_secure: true
-  # Require a session-bound CSRF token for Cerebro API requests.
+  # Require a session-bound CSRF token for Cerebro API requests. This protects
+  # browser requests; it is not a replacement for authentication.
   csrf_enabled: true
   max_request_bytes: 5242880
   # Optional HTTPS listener. When both files are configured, Cerebro serves HTTPS.

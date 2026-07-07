@@ -5,7 +5,9 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -85,7 +87,7 @@ func New(opts Options) *Server {
 	deps.RegisterAuth(humaAPI, &chiMux{r: r})
 
 	// Static + login screen — served outside Huma.
-	r.Get("/login", loginHandler(opts.Auth))
+	r.Get("/login", loginHandler(opts.Cfg, opts.Auth))
 	r.Get("/", indexHandler(opts.Auth))
 
 	// Wildcard GET fallback — chi only reaches here when no specific route matched.
@@ -93,9 +95,11 @@ func New(opts Options) *Server {
 	publicHandler := publicAssets()
 	r.Get("/*", publicHandler.ServeHTTP)
 
+	router := mountBasePath(opts.Cfg.Server.BasePath, r)
+
 	return &Server{
 		cfg:     opts.Cfg,
-		router:  r,
+		router:  router,
 		humaAPI: humaAPI,
 		addr:    fmt.Sprintf(":%d", opts.Cfg.Server.Port),
 	}
@@ -229,13 +233,17 @@ func maxRequestBody(maxBytes int64) func(http.Handler) http.Handler {
 // apiAuthGate runs the auth check only for combinations of method+path that the Cerebro API
 // actually handles — every POST under an API prefix plus the single authenticated GET
 // (/connect/hosts). All other GETs (HTML partials served from public/, /openapi.json, /, /login,
-// static assets) pass through. /auth/login and /auth/logout are explicitly excluded so users can
-// authenticate.
+// static assets) pass through. /auth/login is explicitly excluded so users can authenticate.
 func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac.Authorizer, authLogEnabled bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !shouldGate(r) {
 				next.ServeHTTP(w, r)
+				return
+			}
+			if authorizer.Enabled() && !authMod.Enabled() {
+				auditAccess(r, "authentication_required", auth.Identity{}, "failure", "rbac requires authentication", authLogEnabled)
+				http.Error(w, "authentication required", http.StatusUnauthorized)
 				return
 			}
 			if authMod.Enabled() {
@@ -248,7 +256,7 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 				r = r.WithContext(auth.WithIdentity(r.Context(), identity))
 			}
 			if serverCfg.CSRFEnabled {
-				if !validRequestOrigin(r) {
+				if !validRequestOrigin(serverCfg, r) {
 					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid request origin", authLogEnabled)
 					http.Error(w, "invalid request origin", http.StatusForbidden)
 					return
@@ -293,42 +301,60 @@ func auditAccess(r *http.Request, event string, identity auth.Identity, outcome,
 	slog.InfoContext(r.Context(), "auth audit", attrs...)
 }
 
-func validRequestOrigin(r *http.Request) bool {
+func validRequestOrigin(serverCfg config.Server, r *http.Request) bool {
 	switch strings.ToLower(strings.TrimSpace(r.Header.Get("Sec-Fetch-Site"))) {
 	case "", "same-origin", "same-site", "none":
 	default:
 		return false
 	}
 	origin := r.Header.Get("Origin")
-	if origin != "" && !sameOriginValue(origin, r) {
+	if origin != "" && !sameOriginValue(serverCfg, origin, r) {
 		return false
 	}
 	referer := r.Header.Get("Referer")
-	if referer != "" && !sameOriginValue(referer, r) {
+	if referer != "" && !sameOriginValue(serverCfg, referer, r) {
 		return false
 	}
 	return true
 }
 
-func sameOriginValue(value string, r *http.Request) bool {
-	expected := requestOrigin(r)
+func sameOriginValue(serverCfg config.Server, value string, r *http.Request) bool {
+	expected := requestOrigin(serverCfg, r)
 	return value == expected || strings.HasPrefix(value, expected+"/")
 }
 
-func requestOrigin(r *http.Request) string {
+func requestOrigin(serverCfg config.Server, r *http.Request) string {
+	if serverCfg.PublicURL != "" {
+		if origin := publicOrigin(serverCfg.PublicURL); origin != "" {
+			return origin
+		}
+	}
 	scheme := "http"
-	if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
+	if r.TLS != nil {
 		scheme = "https"
 	}
 	host := r.Host
-	if forwardedHost := strings.TrimSpace(r.Header.Get("X-Forwarded-Host")); forwardedHost != "" {
-		host = forwardedHost
+	if trustedRemote(r.RemoteAddr, serverCfg.TrustedProxies) {
+		if forwardedProto := forwardedProto(r); forwardedProto != "" {
+			scheme = strings.ToLower(forwardedProto)
+		}
+		if forwardedHost := strings.TrimSpace(r.Header.Get("X-Forwarded-Host")); forwardedHost != "" {
+			host = forwardedHost
+		}
 	}
 	return scheme + "://" + host
 }
 
+func forwardedProto(r *http.Request) string {
+	value := strings.ToLower(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")))
+	if value == "http" || value == "https" {
+		return value
+	}
+	return ""
+}
+
 func shouldGate(r *http.Request) bool {
-	if r.URL.Path == "/auth/login" || r.URL.Path == "/auth/logout" {
+	if r.URL.Path == "/auth/login" {
 		return false
 	}
 	if strings.HasPrefix(r.URL.Path, "/clusters/") {
@@ -343,6 +369,73 @@ func shouldGate(r *http.Request) bool {
 		return isAPI(r.URL.Path)
 	}
 	return false
+}
+
+func mountBasePath(basePath string, app chi.Router) chi.Router {
+	base := normalizedBasePath(basePath)
+	if base == "/" {
+		return app
+	}
+	outer := chi.NewRouter()
+	outer.Mount(base, app)
+	outer.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, base+"/", http.StatusSeeOther)
+	})
+	return outer
+}
+
+func normalizedBasePath(basePath string) string {
+	base := "/" + strings.Trim(strings.TrimSpace(basePath), "/")
+	if base == "/" {
+		return "/"
+	}
+	return strings.TrimRight(base, "/")
+}
+
+func publicOrigin(raw string) string {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
+}
+
+func trustedRemote(remoteAddr string, trustedProxies []string) bool {
+	if len(trustedProxies) == 0 {
+		return false
+	}
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+	ip := net.ParseIP(strings.TrimSpace(host))
+	if ip == nil {
+		return false
+	}
+	for _, raw := range trustedProxies {
+		network, err := trustedProxyNet(raw)
+		if err == nil && network.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func trustedProxyNet(raw string) (*net.IPNet, error) {
+	value := strings.TrimSpace(raw)
+	if strings.Contains(value, "/") {
+		_, network, err := net.ParseCIDR(value)
+		return network, err
+	}
+	ip := net.ParseIP(value)
+	if ip == nil {
+		return nil, fmt.Errorf("invalid IP")
+	}
+	bits := 32
+	if ip.To4() == nil {
+		bits = 128
+	}
+	return &net.IPNet{IP: ip, Mask: net.CIDRMask(bits, bits)}, nil
 }
 
 // API paths that match exactly. Prefix-style matching would make future static files with API-like

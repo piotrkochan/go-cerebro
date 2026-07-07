@@ -9,7 +9,6 @@ auth:
     enabled: true
     url: "ldap://ldap:389"
     base_dn: "DC=example,DC=org"
-    method: "simple"
     user_template: "uid=%s,%s"
     # The example LDAP container uses plain ldap:// for local testing.
     # Production config should use ldaps:// or ca_cert_file.

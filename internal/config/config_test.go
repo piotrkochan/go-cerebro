@@ -121,6 +121,14 @@ rbac:
       action: "read"
       object: "*"
       effect: "allow"
+auth:
+  basic:
+    enabled: true
+    users:
+      - username: "admin"
+        password: "admin123"
+server:
+  secret: "test-secret"
 `), 0o600))
 
 	cfg, err := Load(path)
@@ -143,6 +151,14 @@ rbac:
     - {subject: "alice", role: "role:admin"}
   policies:
     - {subject: "role:admin", resource: "*", action: "*", object: "*", effect: "allow"}
+auth:
+  basic:
+    enabled: true
+    users:
+      - username: "admin"
+        password: "admin123"
+server:
+  secret: "test-secret"
 `), 0o600))
 
 	cfg, err := Load(path)
@@ -152,6 +168,87 @@ rbac:
 	assert.Empty(t, cfg.RBAC.DefaultRole)
 	assert.Equal(t, []RBACBinding{{Subject: "alice", Role: "role:admin"}}, cfg.RBAC.Bindings)
 	require.Len(t, cfg.RBAC.Policies, 1)
+}
+
+func TestLoad_RBACAllowsIndexFlushAction(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    enabled: true
+    users:
+      - username: "admin"
+        password: "admin123"
+server:
+  secret: "test-secret"
+rbac:
+  enabled: true
+  policies:
+    - {subject: "admin", resource: "indices", action: "flush", object: "*", effect: "allow"}
+`), 0o600))
+
+	cfg, err := Load(path)
+
+	require.NoError(t, err)
+	require.Len(t, cfg.RBAC.Policies, 1)
+	assert.Equal(t, "flush", cfg.RBAC.Policies[0].Action)
+}
+
+func TestLoad_RBACRequiresAuthProvider(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+rbac:
+  enabled: true
+  policies:
+    - {subject: "role:viewer", resource: "*", action: "read", object: "*", effect: "allow"}
+`), 0o600))
+
+	_, err := Load(path)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "rbac.enabled requires at least one auth provider")
+}
+
+func TestLoad_ServerPublicURLAndTrustedProxies(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+server:
+  public_url: "https://cerebro.example.org"
+  trusted_proxies: ["127.0.0.1/32", "10.0.0.10"]
+`), 0o600))
+
+	cfg, err := Load(path)
+
+	require.NoError(t, err)
+	assert.Equal(t, "https://cerebro.example.org", cfg.Server.PublicURL)
+	assert.Equal(t, []string{"127.0.0.1/32", "10.0.0.10"}, cfg.Server.TrustedProxies)
+}
+
+func TestLoad_RejectsInvalidServerPublicURLAndTrustedProxy(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{name: "public url", body: "public_url: \"://bad\"", want: "server.public_url"},
+		{name: "trusted proxy", body: "trusted_proxies: [\"bad\"]", want: "server.trusted_proxies"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "app.yaml")
+			require.NoError(t, os.WriteFile(path, []byte("server:\n  "+tt.body+"\n"), 0o600))
+
+			_, err := Load(path)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.want)
+		})
+	}
 }
 
 func TestLoad_ProxyAuthConfig(t *testing.T) {
@@ -324,6 +421,14 @@ func TestLoad_RejectsInvalidRBACPolicy(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")
 	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    enabled: true
+    users:
+      - username: "admin"
+        password: "admin123"
+server:
+  secret: "test-secret"
 rbac:
   enabled: true
   policies:
@@ -343,6 +448,14 @@ func TestLoad_RejectsUnsupportedRBACResource(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")
 	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    enabled: true
+    users:
+      - username: "admin"
+        password: "admin123"
+server:
+  secret: "test-secret"
 rbac:
   enabled: true
   policies:
@@ -358,6 +471,14 @@ func TestLoad_RejectsUnsupportedRBACAction(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")
 	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    enabled: true
+    users:
+      - username: "admin"
+        password: "admin123"
+server:
+  secret: "test-secret"
 rbac:
   enabled: true
   policies:

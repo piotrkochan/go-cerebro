@@ -59,7 +59,6 @@ type LDAPAuth struct {
 	URL            string       `yaml:"url"`
 	CACertFile     string       `yaml:"ca_cert_file"`
 	BaseDN         string       `yaml:"base_dn"`
-	Method         string       `yaml:"method"`
 	UserTemplate   string       `yaml:"user_template"`
 	BindDN         string       `yaml:"bind_dn"`
 	BindPW         string       `yaml:"bind_pw"`
@@ -103,17 +102,19 @@ type AuthSession struct {
 }
 
 type Server struct {
-	Port                  int    `yaml:"port"`
-	BasePath              string `yaml:"base_path"`
-	Secret                string `yaml:"secret"`
-	CookieSecure          bool   `yaml:"cookie_secure"`
-	CSRFEnabled           bool   `yaml:"csrf_enabled"`
-	MaxRequestBytes       int64  `yaml:"max_request_bytes"`
-	TLSCertFile           string `yaml:"tls_cert_file"`
-	TLSKeyFile            string `yaml:"tls_key_file"`
-	HSTSEnabled           bool   `yaml:"hsts_enabled"`
-	HSTSMaxAgeSeconds     int    `yaml:"hsts_max_age_seconds"`
-	HSTSIncludeSubDomains bool   `yaml:"hsts_include_subdomains"`
+	Port                  int      `yaml:"port"`
+	BasePath              string   `yaml:"base_path"`
+	PublicURL             string   `yaml:"public_url"`
+	Secret                string   `yaml:"secret"`
+	CookieSecure          bool     `yaml:"cookie_secure"`
+	CSRFEnabled           bool     `yaml:"csrf_enabled"`
+	MaxRequestBytes       int64    `yaml:"max_request_bytes"`
+	TLSCertFile           string   `yaml:"tls_cert_file"`
+	TLSKeyFile            string   `yaml:"tls_key_file"`
+	TrustedProxies        []string `yaml:"trusted_proxies"`
+	HSTSEnabled           bool     `yaml:"hsts_enabled"`
+	HSTSMaxAgeSeconds     int      `yaml:"hsts_max_age_seconds"`
+	HSTSIncludeSubDomains bool     `yaml:"hsts_include_subdomains"`
 }
 
 type ES struct {
@@ -167,7 +168,7 @@ type RBAC struct {
 var rbacResourceActions = map[string]map[string]bool{
 	"overview":         boolSet("read"),
 	"nodes":            boolSet("read"),
-	"indices":          boolSet("read", "create", "write", "delete", "refresh", "close", "open", "clear_cache", "force_merge"),
+	"indices":          boolSet("read", "create", "write", "delete", "refresh", "flush", "close", "open", "clear_cache", "force_merge"),
 	"documents":        boolSet("read", "write"),
 	"rest":             boolSet("read", "execute"),
 	"analysis":         boolSet("read", "execute"),
@@ -330,6 +331,16 @@ func (c *Config) validate() error {
 	if (c.Server.TLSCertFile == "") != (c.Server.TLSKeyFile == "") {
 		return fmt.Errorf("server.tls_cert_file and server.tls_key_file must be configured together")
 	}
+	if c.Server.PublicURL != "" {
+		if err := validatePublicURL(c.Server.PublicURL); err != nil {
+			return fmt.Errorf("server.public_url: %w", err)
+		}
+	}
+	for i, trustedProxy := range c.Server.TrustedProxies {
+		if _, err := parseTrustedProxy(trustedProxy); err != nil {
+			return fmt.Errorf("server.trusted_proxies[%d]: %w", i, err)
+		}
+	}
 	switch c.Logging.Level {
 	case "debug", "info", "warn", "error":
 	default:
@@ -344,6 +355,9 @@ func (c *Config) validate() error {
 		return fmt.Errorf("es.client_cert_file and es.client_key_file must be configured together")
 	}
 	if c.RBAC.Enabled {
+		if !c.authEnabled() {
+			return fmt.Errorf("rbac.enabled requires at least one auth provider")
+		}
 		if len(c.RBAC.Policies) == 0 {
 			return fmt.Errorf("rbac.policies must not be empty when rbac.enabled is true")
 		}
@@ -434,6 +448,11 @@ func (c *Config) validate() error {
 		if len(c.Auth.Proxy.TrustedProxies) == 0 {
 			return fmt.Errorf("auth.proxy.trusted_proxies is required when auth.proxy.enabled is true")
 		}
+		for i, trustedProxy := range c.Auth.Proxy.TrustedProxies {
+			if _, err := parseTrustedProxy(trustedProxy); err != nil {
+				return fmt.Errorf("auth.proxy.trusted_proxies[%d]: %w", i, err)
+			}
+		}
 	}
 	if c.Auth.EntraID.Enabled {
 		if strings.TrimSpace(c.Auth.EntraID.TenantID) == "" && strings.TrimSpace(c.Auth.EntraID.IssuerURL) == "" {
@@ -463,6 +482,10 @@ func (c *Config) validate() error {
 	return nil
 }
 
+func (c *Config) authEnabled() bool {
+	return c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled || c.Auth.EntraID.Enabled
+}
+
 func validateRBACPolicy(p RBACPolicy) error {
 	if p.Resource == "*" {
 		if p.Action == "*" || rbacAnyResourceActions[p.Action] {
@@ -476,6 +499,23 @@ func validateRBACPolicy(p RBACPolicy) error {
 	}
 	if p.Action != "*" && !actions[p.Action] {
 		return fmt.Errorf("unsupported action %q for resource %q", p.Action, p.Resource)
+	}
+	return nil
+}
+
+func validatePublicURL(raw string) error {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return err
+	}
+	if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return fmt.Errorf("must be an absolute http or https URL")
+	}
+	if u.User != nil {
+		return fmt.Errorf("must not contain credentials")
+	}
+	if u.RawQuery != "" || u.Fragment != "" {
+		return fmt.Errorf("must not contain query or fragment")
 	}
 	return nil
 }
@@ -500,6 +540,29 @@ func validateOIDCIssuerURL(raw string) error {
 		return nil
 	}
 	return fmt.Errorf("must be an https URL, or http on localhost/loopback for tests")
+}
+
+func parseTrustedProxy(raw string) (*net.IPNet, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return nil, fmt.Errorf("empty trusted proxy")
+	}
+	if strings.Contains(value, "/") {
+		_, network, err := net.ParseCIDR(value)
+		if err != nil {
+			return nil, fmt.Errorf("invalid CIDR %q: %w", raw, err)
+		}
+		return network, nil
+	}
+	ip := net.ParseIP(value)
+	if ip == nil {
+		return nil, fmt.Errorf("invalid IP %q", raw)
+	}
+	bits := 32
+	if ip.To4() == nil {
+		bits = 128
+	}
+	return &net.IPNet{IP: ip, Mask: net.CIDRMask(bits, bits)}, nil
 }
 
 func isLoopbackHost(host string) bool {

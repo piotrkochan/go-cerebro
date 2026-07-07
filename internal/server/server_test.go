@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/lmenezes/cerebro/internal/auth"
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/lmenezes/cerebro/internal/rbac"
@@ -122,6 +123,12 @@ func TestShouldGate_LeavesAuthStatusPublic(t *testing.T) {
 	assert.False(t, shouldGate(req))
 }
 
+func TestShouldGate_ProtectsLogout(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "http://example.test/auth/logout", nil)
+
+	assert.True(t, shouldGate(req))
+}
+
 func TestShouldGate_LeavesEntraIDRedirectFlowPublic(t *testing.T) {
 	tests := []struct {
 		name string
@@ -140,6 +147,50 @@ func TestShouldGate_LeavesEntraIDRedirectFlowPublic(t *testing.T) {
 	}
 }
 
+func TestMountBasePath(t *testing.T) {
+	app := chi.NewRouter()
+	app.Get("/auth/status", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	handler := mountBasePath("/cerebro", app)
+
+	mountedReq := httptest.NewRequest(http.MethodGet, "http://example.test/cerebro/auth/status", nil)
+	mountedRR := httptest.NewRecorder()
+	handler.ServeHTTP(mountedRR, mountedReq)
+	assert.Equal(t, http.StatusNoContent, mountedRR.Code)
+
+	rootReq := httptest.NewRequest(http.MethodGet, "http://example.test/auth/status", nil)
+	rootRR := httptest.NewRecorder()
+	handler.ServeHTTP(rootRR, rootReq)
+	assert.Equal(t, http.StatusNotFound, rootRR.Code)
+}
+
+func TestRequestOriginUsesPublicURL(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://internal.test/auth/status", nil)
+	req.Header.Set("X-Forwarded-Proto", "https")
+	req.Header.Set("X-Forwarded-Host", "forwarded.example.org")
+
+	assert.Equal(t, "https://public.example.org", requestOrigin(config.Server{PublicURL: "https://public.example.org"}, req))
+}
+
+func TestRequestOriginIgnoresForwardedHeadersFromUntrustedRemote(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://internal.test/auth/status", nil)
+	req.RemoteAddr = "203.0.113.10:12345"
+	req.Header.Set("X-Forwarded-Proto", "https")
+	req.Header.Set("X-Forwarded-Host", "evil.example.org")
+
+	assert.Equal(t, "http://internal.test", requestOrigin(config.Server{TrustedProxies: []string{"127.0.0.1/32"}}, req))
+}
+
+func TestRequestOriginUsesForwardedHeadersFromTrustedRemote(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://internal.test/auth/status", nil)
+	req.RemoteAddr = "127.0.0.1:12345"
+	req.Header.Set("X-Forwarded-Proto", "https")
+	req.Header.Set("X-Forwarded-Host", "cerebro.example.org")
+
+	assert.Equal(t, "https://cerebro.example.org", requestOrigin(config.Server{TrustedProxies: []string{"127.0.0.1/32"}}, req))
+}
+
 func TestAPIAuthGate_RequiresCSRFWhenAuthDisabled(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Server: config.Server{Secret: "test-secret", BasePath: "/"},
@@ -155,6 +206,28 @@ func TestAPIAuthGate_RequiresCSRFWhenAuthDisabled(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusForbidden, rr.Code)
+}
+
+func TestAPIAuthGate_RBACRequiresAuthenticationProvider(t *testing.T) {
+	authMod, err := auth.NewModule(&config.Config{
+		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+	})
+	require.NoError(t, err)
+	authorizer := rbac.New(config.RBAC{
+		Enabled: true,
+		Policies: []config.RBACPolicy{
+			{Subject: "role:viewer", Resource: "*", Action: "read", Object: "*", Effect: "allow"},
+		},
+	})
+	handler := apiAuthGate(authMod, config.Server{}, authorizer, true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/clusters/local-cluster/overview", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 func TestAPIAuthGate_AllowsValidCSRFWhenAuthDisabled(t *testing.T) {
@@ -181,6 +254,31 @@ func TestAPIAuthGate_AllowsValidCSRFWhenAuthDisabled(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusNoContent, rr.Code)
+}
+
+func TestAPIAuthGate_LogoutRequiresCSRF(t *testing.T) {
+	authMod, err := auth.NewModule(&config.Config{
+		Auth: config.Auth{
+			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+		},
+		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+	})
+	require.NoError(t, err)
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	loginReq := httptest.NewRequest(http.MethodPost, "http://example.test/auth/login", nil)
+	loginRR := httptest.NewRecorder()
+	require.NoError(t, authMod.SetSessionUser(loginRR, loginReq, "admin"))
+
+	req := httptest.NewRequest(http.MethodPost, "http://example.test/auth/logout", nil)
+	for _, cookie := range loginRR.Result().Cookies() {
+		req.AddCookie(cookie)
+	}
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
 }
 
 func TestAPIAuthGate_RejectsCrossSiteFetchMetadata(t *testing.T) {

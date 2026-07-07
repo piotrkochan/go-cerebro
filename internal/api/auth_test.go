@@ -79,3 +79,27 @@ func TestHandleAuthMeRequiresSession(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
+
+func TestAuthRolesAndPermissionsUseSamePrincipalsAsRBAC(t *testing.T) {
+	rbac := config.RBAC{
+		Enabled: true,
+		Bindings: []config.RBACBinding{
+			{Subject: "user:alice", Role: "role:user-prefix"},
+			{Subject: "operators", Role: "role:raw-group"},
+			{Subject: "group:cerebro-admins", Role: "role:admin"},
+		},
+		Policies: []config.RBACPolicy{
+			{Subject: "role:user-prefix", Resource: "overview", Action: "read", Object: "*", Effect: "allow"},
+			{Subject: "role:raw-group", Resource: "nodes", Action: "read", Object: "*", Effect: "allow"},
+			{Subject: "role:admin", Resource: "*", Action: "*", Object: "*", Effect: "allow"},
+		},
+	}
+	identity := auth.Identity{Username: "alice", Groups: []string{"operators", "cerebro-admins"}}
+
+	assert.Equal(t, []string{"role:user-prefix", "role:raw-group", "role:admin"}, authRoles(rbac, identity))
+	assert.Equal(t, []authPermission{
+		{Resource: "overview", Action: "read", Object: "*", Effect: "allow"},
+		{Resource: "nodes", Action: "read", Object: "*", Effect: "allow"},
+		{Resource: "*", Action: "*", Object: "*", Effect: "allow"},
+	}, authPermissions(rbac, identity))
+}
