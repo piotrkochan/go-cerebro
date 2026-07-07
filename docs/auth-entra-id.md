@@ -7,7 +7,7 @@ Go Cerebro can authenticate users directly with Microsoft Entra ID using OIDC au
 Create an app registration in Microsoft Entra ID and configure a web redirect URI:
 
 ```text
-https://cerebro.example.org/auth/entraid/callback
+https://cerebro.example.org/auth/entraid/entra_id/callback
 ```
 
 Create a client secret and store it outside source control.
@@ -21,9 +21,10 @@ auth:
     tenant_id: "${ENTRA_ID_TENANT_ID}"
     client_id: "${ENTRA_ID_CLIENT_ID}"
     client_secret: "${ENTRA_ID_CLIENT_SECRET}"
-    redirect_url: "https://cerebro.example.org/auth/entraid/callback"
+    redirect_url: "https://cerebro.example.org/auth/entraid/entra_id/callback"
     username_claim: "preferred_username"
     groups_claim: "groups"
+    default_groups: ["cerebro-viewers"]
     scopes: ["openid", "profile", "email"]
 
 server:
@@ -38,7 +39,8 @@ If `redirect_url` is omitted, Cerebro derives it from `server.public_url` or fro
 
 ## RBAC Groups
 
-Cerebro reads groups from the configured ID token claim. It does not call Microsoft Graph.
+Cerebro adds `auth.entra_id.default_groups` and reads additional groups from the configured ID token
+claim. It does not call Microsoft Graph.
 
 For RBAC group bindings, configure the Entra ID app registration to emit groups or app roles in the ID token, then bind them in RBAC:
 

@@ -1,13 +1,21 @@
 import { client } from './client/client.gen';
-import { authActions, authStore, type AuthPermission } from '../stores/authStore';
+import { authLogout } from './client';
+import { authActions, type AuthPermission } from '../stores/authStore';
 
 export type AuthStatus = {
   authenticated?: boolean;
   csrf_token?: string;
   enabled?: boolean;
+  external_providers?: Array<{
+    id?: string;
+    kind?: string;
+    login_path?: string;
+    name?: string;
+  }>;
   groups?: string[];
   permissions?: AuthPermission[];
   provider?: string;
+  provider_id?: string;
   providers?: {
     entraid?: boolean;
     oauth?: boolean;
@@ -31,7 +39,7 @@ let authStatusPromise: Promise<AuthStatus | null> | null = null;
 const AUTH_STATUS_CACHE_MS = 1000;
 
 export function configureAPIClientSecurity() {
-  client.setConfig({ baseUrl: apiBasePath() });
+  client.setConfig({ baseUrl: apiBasePath(), credentials: 'same-origin' });
   client.interceptors.request.use(async (request) => {
     if (!csrfToken) await ensureCSRFToken();
     if (csrfToken) request.headers.set('X-Cerebro-CSRF', csrfToken);
@@ -58,12 +66,12 @@ export function clearAuthSecurityState() {
   authActions.clear();
 }
 
-export async function loadAuthStatus(): Promise<AuthStatus | null> {
+export async function loadAuthStatus(force = false): Promise<AuthStatus | null> {
   const now = Date.now();
-  if (authStatusCache && now - authStatusLoadedAt < AUTH_STATUS_CACHE_MS) {
+  if (!force && authStatusCache && now - authStatusLoadedAt < AUTH_STATUS_CACHE_MS) {
     return authStatusCache;
   }
-  if (!authStatusPromise) {
+  if (force || !authStatusPromise) {
     authStatusPromise = fetchAuthStatus().finally(() => {
       authStatusPromise = null;
     });
@@ -77,7 +85,7 @@ export async function loadAuthStatus(): Promise<AuthStatus | null> {
 }
 
 export async function loadAuthMe(): Promise<AuthStatus> {
-  const response = await fetch(apiURL('/auth/me'), { headers: { Accept: 'application/json' } });
+  const response = await fetch(apiURL('/auth/me'), { credentials: 'same-origin', headers: { Accept: 'application/json' } });
   if (!response.ok) {
     throw new Error(response.status === 401 ? 'authentication required' : 'unable to load profile');
   }
@@ -87,21 +95,16 @@ export async function loadAuthMe(): Promise<AuthStatus> {
 }
 
 export async function logout(): Promise<void> {
-  const proxyLogout = authStore.state.provider === 'proxy';
+  let redirectURL = apiURL('/#/login');
   try {
     if (!csrfToken) await ensureCSRFToken();
-    const headers = new Headers({ Accept: 'application/json' });
-    if (csrfToken) headers.set('X-Cerebro-CSRF', csrfToken);
-    await fetch(apiURL('/auth/logout'), {
-      credentials: 'same-origin',
-      headers,
-      method: 'POST',
-    });
+    const response = await authLogout({ throwOnError: false });
+    if (response.data?.redirect_url) {
+      redirectURL = response.data.redirect_url;
+    }
   } finally {
     clearAuthSecurityState();
-    if (proxyLogout) {
-      window.location.assign(`/oauth2/sign_out?rd=${encodeURIComponent('/oauth2/sign_in')}`);
-    }
+    window.location.assign(redirectURL);
   }
 }
 
@@ -117,7 +120,7 @@ async function ensureCSRFToken(): Promise<AuthStatus | null> {
 
 async function fetchAuthStatus(): Promise<AuthStatus | null> {
   try {
-    const response = await fetch(apiURL('/auth/status'), { headers: { Accept: 'application/json' } });
+    const response = await fetch(apiURL('/auth/status'), { credentials: 'same-origin', headers: { Accept: 'application/json' } });
     if (!response.ok) {
       authActions.setStatus(null);
       return null;

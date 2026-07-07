@@ -108,7 +108,7 @@ Important sections:
 
 - `hosts`: known Elasticsearch clusters. Optional `hosts[].id` becomes the stable cluster slug used in URLs and RBAC; use lowercase letters, digits and hyphens. If omitted, the slug is generated from `hosts[].name`. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
 - `hosts[].headers_whitelist`: request headers that Cerebro may forward to Elasticsearch, useful behind an authenticating proxy.
-- `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id`, `auth.oauth`: optional authentication providers. Enable at least one outside local development.
+- `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id`, `auth.oauth`: optional authentication providers. Enable at least one outside local development. A single provider can use the short form (`auth.basic.enabled`); multiple providers use named maps (`auth.basic.local_admins.enabled`). Short-form providers are stored as `default`. Provider IDs may contain lowercase letters, digits, `_` and `-`.
 - `auth.session`: optional cookie lifetime, max session lifetime and idle timeout settings.
 - `rbac`: optional YAML authorization policies for users and groups.
 - `server.base_path`: URL path prefix when Cerebro is mounted below `/`.
@@ -124,7 +124,7 @@ Important sections:
 - `es.max_response_bytes`: maximum Elasticsearch response body size Cerebro will read.
 - `es.aws`: AWS SigV4 signing for Amazon OpenSearch Service and OpenSearch Serverless.
 - `es.ca_cert_file`, `es.client_cert_file`, `es.client_key_file`: TLS trust and mutual TLS for Elasticsearch.
-- `auth.ldap.ca_cert_file`: custom LDAP CA trust.
+- `auth.ldap.ca_cert_file`: custom LDAP CA trust in short form. For named LDAP providers, use `auth.ldap.<provider>.ca_cert_file`.
 - `rest.history_size`: number of REST console requests kept in local history.
 - `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
 - `data.path`: SQLite file used for REST request history.
@@ -238,6 +238,35 @@ Environment variables are expanded inside YAML values. These direct overrides ar
 Go Cerebro targets Elasticsearch and OpenSearch clusters through the official Elasticsearch Go client v9 transport path. Docker-backed e2e compatibility tests cover Elasticsearch major versions from 5 to 9 for the core APIs used by Cerebro.
 
 ## Authentication
+
+Each auth type supports one short-form provider:
+
+```yaml
+auth:
+  basic:
+    enabled: true
+```
+
+For multiple providers of the same type, use named providers:
+
+```yaml
+auth:
+  basic:
+    local_admins:
+      enabled: true
+    local_viewers:
+      enabled: true
+  oauth:
+    github:
+      enabled: true
+    dex:
+      enabled: true
+```
+
+Short-form providers use the auth type as their provider ID (`basic`, `proxy`,
+`oauth`, etc.). Named provider IDs must be unique across all auth types and may
+contain lowercase letters, digits, `_` and `-`. Do not mix short-form fields and
+named providers under the same auth type.
 
 - [Basic auth](./docs/auth-basic.md)
 - [Microsoft Entra ID](./docs/auth-entra-id.md)

@@ -11,12 +11,11 @@ import { APP_VERSION } from '../version';
 export function LoginPage() {
   const search = useSearch({ strict: false });
   const invalidLogin = search.error === 'invalid';
+  const externalLoginFailed = search.error === 'external';
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>();
   const loading = authStatus === undefined;
   const passwordLogin = !loading && authStatus?.providers?.password !== false;
-  const entraIDLogin = authStatus?.providers?.entraid === true;
-  const oauthLogin = authStatus?.providers?.oauth === true;
-  const oauthName = authStatus?.provider_names?.oauth || authStatus?.providers?.oauth_name || 'OAuth';
+  const externalProviders = authStatus?.external_providers?.length ? authStatus.external_providers : legacyExternalProviders(authStatus);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,13 +45,18 @@ export function LoginPage() {
             Invalid username or password.
           </div>
         ) : null}
+        {externalLoginFailed ? (
+          <div className="alert alert-danger" role="alert">
+            External sign-in failed. Check the server logs and identity provider configuration.
+          </div>
+        ) : null}
         {loading ? (
           <div className="text-center">
             <Icon name="spinner" spin /> Loading...
           </div>
         ) : null}
         {passwordLogin ? (
-          <form action={apiURL('/auth/login')} className="form-signin" method="POST">
+          <form action={apiURL('/auth/login')} className="form-signin mb-[14px] flow-root" method="POST">
             <div className="form-group">
               <label className="sr-only" htmlFor="inputUser">User</label>
               <input autoFocus required className="form-control form-control-sm" id="inputUser" name="user" placeholder="User" type="text" />
@@ -66,21 +70,30 @@ export function LoginPage() {
             </button>
           </form>
         ) : null}
-        {entraIDLogin ? (
-          <div className={passwordLogin ? 'mt-[50px]' : ''}>
-            <a className="btn btn-success w-full" href={apiURL('/auth/entraid/login')}>
-              <Icon name="lock" /> Sign in with Microsoft Entra ID
+        <div className="space-y-[10px]">
+          {externalProviders.map((provider) => (
+            <a className="btn btn-success w-full" href={apiURL(provider.login_path || '/')} key={`${provider.kind}-${provider.id}`}>
+              <Icon name="lock" /> Sign in with {provider.name || provider.kind || 'provider'}
             </a>
-          </div>
-        ) : null}
-        {oauthLogin ? (
-          <div className={passwordLogin || entraIDLogin ? 'mt-[10px]' : ''}>
-            <a className="btn btn-success w-full" href={apiURL('/auth/oauth/login')}>
-              <Icon name="lock" /> Sign in with {oauthName}
-            </a>
-          </div>
-        ) : null}
+          ))}
+        </div>
       </div>
     </>
   );
+}
+
+function legacyExternalProviders(status: AuthStatus | null | undefined) {
+  const providers = [];
+  if (status?.providers?.entraid === true) {
+    providers.push({ id: 'default', kind: 'entra_id', login_path: '/auth/entraid/login', name: 'Microsoft Entra ID' });
+  }
+  if (status?.providers?.oauth === true) {
+    providers.push({
+      id: 'default',
+      kind: 'oauth',
+      login_path: '/auth/oauth/login',
+      name: status.provider_names?.oauth || status.providers?.oauth_name || 'OAuth',
+    });
+  }
+  return providers;
 }

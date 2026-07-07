@@ -14,11 +14,13 @@ import (
 )
 
 const (
+	defaultEntraIDName          = "Microsoft Entra ID"
 	defaultEntraIDUsernameClaim = "preferred_username"
 	defaultEntraIDGroupsClaim   = "groups"
 )
 
 type EntraIDProvider struct {
+	name          string
 	tenantID      string
 	issuerURL     string
 	clientID      string
@@ -27,6 +29,7 @@ type EntraIDProvider struct {
 	scopes        []string
 	usernameClaim string
 	groupsClaim   string
+	defaultGroups []string
 
 	mu       sync.Mutex
 	provider *oidc.Provider
@@ -34,6 +37,10 @@ type EntraIDProvider struct {
 }
 
 func NewEntraIDProvider(settings config.EntraIDAuth) (*EntraIDProvider, error) {
+	name := strings.TrimSpace(settings.Name)
+	if name == "" {
+		name = defaultEntraIDName
+	}
 	tenantID := strings.TrimSpace(settings.TenantID)
 	issuerURL := strings.TrimSpace(settings.IssuerURL)
 	clientID := strings.TrimSpace(settings.ClientID)
@@ -56,6 +63,7 @@ func NewEntraIDProvider(settings config.EntraIDAuth) (*EntraIDProvider, error) {
 		groupsClaim = defaultEntraIDGroupsClaim
 	}
 	return &EntraIDProvider{
+		name:          name,
 		tenantID:      tenantID,
 		issuerURL:     issuerURL,
 		clientID:      clientID,
@@ -64,7 +72,15 @@ func NewEntraIDProvider(settings config.EntraIDAuth) (*EntraIDProvider, error) {
 		scopes:        scopes,
 		usernameClaim: usernameClaim,
 		groupsClaim:   groupsClaim,
+		defaultGroups: mergeGroups(settings.DefaultGroups),
 	}, nil
+}
+
+func (p *EntraIDProvider) Name() string {
+	if p == nil || p.name == "" {
+		return defaultEntraIDName
+	}
+	return p.name
 }
 
 func (p *EntraIDProvider) ConfiguredRedirectURL() string {
@@ -119,7 +135,7 @@ func (p *EntraIDProvider) Exchange(ctx context.Context, redirectURL, code, nonce
 	}
 	return Identity{
 		Username: username,
-		Groups:   claimStringSlice(claims[p.groupsClaim]),
+		Groups:   mergeGroups(p.defaultGroups, claimStringSlice(claims[p.groupsClaim])),
 		Provider: "entra_id",
 	}, nil
 }

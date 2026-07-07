@@ -16,7 +16,7 @@ auth:
     tenant_id: "${ENTRA_ID_TENANT_ID}"
     client_id: "${ENTRA_ID_CLIENT_ID}"
     client_secret: "${ENTRA_ID_CLIENT_SECRET}"
-    redirect_url: "https://cerebro.example.org/auth/entraid/callback"
+    redirect_url: "https://cerebro.example.org/auth/entraid/default/callback"
     username_claim: "preferred_username"
     groups_claim: "groups"
 

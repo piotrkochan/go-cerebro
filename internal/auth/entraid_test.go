@@ -60,12 +60,15 @@ func TestEntraIDLoginWithMockOIDCProvider(t *testing.T) {
 
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			EntraID: config.EntraIDAuth{
-				Enabled:      true,
-				IssuerURL:    issuer,
-				ClientID:     "cerebro-client",
-				ClientSecret: "client-secret",
-				GroupsClaim:  "groups",
+			EntraID: map[string]config.EntraIDAuth{
+				config.DefaultAuthProviderID: {
+					Enabled:       true,
+					IssuerURL:     issuer,
+					ClientID:      "cerebro-client",
+					ClientSecret:  "client-secret",
+					GroupsClaim:   "groups",
+					DefaultGroups: []string{"cerebro-viewers", "operators"},
+				},
 			},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
@@ -74,16 +77,16 @@ func TestEntraIDLoginWithMockOIDCProvider(t *testing.T) {
 
 	beginReq := httptest.NewRequest(http.MethodGet, "http://cerebro.test/auth/entraid/login", nil)
 	beginRR := httptest.NewRecorder()
-	authURL, err := mod.BeginEntraIDLogin(beginRR, beginReq, "http://cerebro.test/auth/entraid/callback", "/#/overview")
+	authURL, err := mod.BeginEntraIDLogin(config.DefaultAuthProviderID, beginRR, beginReq, "http://cerebro.test/auth/entraid/default/callback", "/#/overview")
 	require.NoError(t, err)
 	parsedAuthURL, err := url.Parse(authURL)
 	require.NoError(t, err)
 	nonce = parsedAuthURL.Query().Get("nonce")
 	require.NotEmpty(t, nonce)
 
-	callbackReq := requestWithCookies(beginRR, http.MethodGet, "http://cerebro.test/auth/entraid/callback?code=test-code&state="+url.QueryEscape(parsedAuthURL.Query().Get("state")))
+	callbackReq := requestWithCookies(beginRR, http.MethodGet, "http://cerebro.test/auth/entraid/default/callback?code=test-code&state="+url.QueryEscape(parsedAuthURL.Query().Get("state")))
 	callbackRR := httptest.NewRecorder()
-	redirect, err := mod.CompleteEntraIDLogin(callbackRR, callbackReq, "http://cerebro.test/auth/entraid/callback")
+	redirect, err := mod.CompleteEntraIDLogin(config.DefaultAuthProviderID, callbackRR, callbackReq, "http://cerebro.test/auth/entraid/default/callback")
 	require.NoError(t, err)
 	assert.Equal(t, "/#/overview", redirect)
 
@@ -91,8 +94,9 @@ func TestEntraIDLoginWithMockOIDCProvider(t *testing.T) {
 	identity, ok := mod.SessionIdentity(sessionReq)
 	require.True(t, ok)
 	assert.Equal(t, "alice@example.org", identity.Username)
-	assert.Equal(t, []string{"cerebro-admins", "operators"}, identity.Groups)
+	assert.Equal(t, []string{"cerebro-viewers", "operators", "cerebro-admins"}, identity.Groups)
 	assert.Equal(t, "entra_id", identity.Provider)
+	assert.Equal(t, config.DefaultAuthProviderID, identity.ProviderID)
 }
 
 func signedIDToken(t *testing.T, issuer string, key *rsa.PrivateKey, nonce string) string {

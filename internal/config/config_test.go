@@ -34,10 +34,11 @@ server:
 
 	cfg, err := Load(path)
 	require.NoError(t, err)
-	assert.True(t, cfg.Auth.Basic.Enabled)
-	require.Len(t, cfg.Auth.Basic.Users, 1)
-	assert.Equal(t, "admin", cfg.Auth.Basic.Users[0].Username)
-	assert.Equal(t, "s3cret", cfg.Auth.Basic.Users[0].Password)
+	basic := cfg.Auth.Basic["basic"]
+	assert.True(t, basic.Enabled)
+	require.Len(t, basic.Users, 1)
+	assert.Equal(t, "admin", basic.Users[0].Username)
+	assert.Equal(t, "s3cret", basic.Users[0].Password)
 	assert.Equal(t, "from-env", cfg.Server.Secret)
 	assert.True(t, cfg.Server.CSRFEnabled)
 	assert.Equal(t, 9100, cfg.Server.Port)
@@ -59,11 +60,116 @@ func TestLoad_DevConfigUsesDockerComposeAuthEnv(t *testing.T) {
 	cfg, err := Load("../../conf/application.dev.yaml")
 	require.NoError(t, err)
 
-	assert.True(t, cfg.Auth.Basic.Enabled)
-	require.Len(t, cfg.Auth.Basic.Users, 1)
-	assert.Equal(t, "admin", cfg.Auth.Basic.Users[0].Username)
-	assert.Equal(t, "admin123", cfg.Auth.Basic.Users[0].Password)
+	basic := cfg.Auth.Basic["basic"]
+	assert.True(t, basic.Enabled)
+	require.Len(t, basic.Users, 2)
+	assert.Equal(t, "admin", basic.Users[0].Username)
+	assert.Equal(t, "admin123", basic.Users[0].Password)
+	assert.Equal(t, []string{"cerebro-admins"}, basic.Users[0].Groups)
+	assert.Equal(t, "user", basic.Users[1].Username)
+	assert.Equal(t, "user123", basic.Users[1].Password)
+	assert.Equal(t, []string{"cerebro-viewers"}, basic.Users[1].Groups)
 	assert.Equal(t, "docker-compose-dev-auth-secret-change-me", cfg.Server.Secret)
+	assert.True(t, cfg.RBAC.Enabled)
+	assert.Empty(t, cfg.RBAC.DefaultRole)
+	assert.Contains(t, cfg.RBAC.Bindings, RBACBinding{Subject: "group:cerebro-viewers", Role: "role:viewer"})
+	assert.Contains(t, cfg.RBAC.Policies, RBACPolicy{Subject: "role:viewer", Resource: "*", Action: "read", Object: "*", Effect: "allow"})
+}
+
+func TestLoad_NamedAuthProviderConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    local_dev:
+      enabled: true
+      users:
+        - username: "admin"
+          password: "admin123"
+    backup-1:
+      enabled: false
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	require.Contains(t, cfg.Auth.Basic, "local_dev")
+	require.Contains(t, cfg.Auth.Basic, "backup-1")
+	assert.True(t, cfg.Auth.Basic["local_dev"].Enabled)
+	assert.False(t, cfg.Auth.Basic["backup-1"].Enabled)
+}
+
+func TestLoad_RejectsMixedInlineAndNamedAuthProviderConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    enabled: true
+    local_dev:
+      enabled: true
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "mixes inline provider settings and named providers")
+}
+
+func TestLoad_RejectsDuplicateEnabledAuthProviderIDs(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    local:
+      enabled: true
+      users:
+        - username: "admin"
+          password: "admin123"
+  proxy:
+    local:
+      enabled: true
+      user_header: "X-Forwarded-User"
+      trusted_proxies: ["127.0.0.1/32"]
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `auth provider id "local" is duplicated`)
+}
+
+func TestLoad_AllowsMultipleInlineAuthProviders(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    enabled: true
+    users:
+      - username: "admin"
+        password: "admin123"
+  proxy:
+    enabled: true
+    user_header: "X-Forwarded-User"
+    trusted_proxies: ["127.0.0.1/32"]
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	require.Contains(t, cfg.Auth.Basic, "basic")
+	require.Contains(t, cfg.Auth.Proxy, "proxy")
+	assert.True(t, cfg.Auth.Basic["basic"].Enabled)
+	assert.True(t, cfg.Auth.Proxy["proxy"].Enabled)
 }
 
 func TestLoad_AllowsDisablingCSRF(t *testing.T) {
@@ -260,6 +366,8 @@ auth:
     enabled: true
     user_header: "X-Forwarded-User"
     groups_header: "X-Forwarded-Groups"
+    default_groups: ["cerebro-viewers"]
+    logout_url: "/oauth2/sign_out?rd=/oauth2/sign_in"
     trusted_proxies: ["127.0.0.1/32"]
 server:
   secret: "test-secret"
@@ -268,9 +376,37 @@ server:
 	cfg, err := Load(path)
 	require.NoError(t, err)
 
-	assert.True(t, cfg.Auth.Proxy.Enabled)
-	assert.Equal(t, "X-Forwarded-User", cfg.Auth.Proxy.UserHeader)
-	assert.Equal(t, []string{"127.0.0.1/32"}, cfg.Auth.Proxy.TrustedProxies)
+	proxy := cfg.Auth.Proxy["proxy"]
+	assert.True(t, proxy.Enabled)
+	assert.Equal(t, "X-Forwarded-User", proxy.UserHeader)
+	assert.Equal(t, []string{"cerebro-viewers"}, proxy.DefaultGroups)
+	assert.Equal(t, "/oauth2/sign_out?rd=/oauth2/sign_in", proxy.LogoutURL)
+	assert.Equal(t, []string{"127.0.0.1/32"}, proxy.TrustedProxies)
+}
+
+func TestLoad_RejectsUnsafeProxyLogoutURL(t *testing.T) {
+	tests := []string{"javascript:alert(1)", "//evil.example.org/logout", `/\evil`}
+	for _, logoutURL := range tests {
+		t.Run(logoutURL, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "app.yaml")
+			require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  proxy:
+    enabled: true
+    user_header: "X-Forwarded-User"
+    logout_url: '`+logoutURL+`'
+    trusted_proxies: ["127.0.0.1/32"]
+server:
+  secret: "test-secret"
+`), 0o600))
+
+			_, err := Load(path)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "auth.proxy.proxy.logout_url")
+		})
+	}
 }
 
 func TestLoad_AuthSessionConfig(t *testing.T) {
@@ -329,6 +465,7 @@ auth:
     redirect_url: "https://cerebro.example.org/auth/entraid/callback"
     username_claim: "email"
     groups_claim: "roles"
+    default_groups: ["cerebro-viewers"]
 server:
   secret: "test-secret"
 `), 0o600))
@@ -336,10 +473,12 @@ server:
 	cfg, err := Load(path)
 	require.NoError(t, err)
 
-	assert.True(t, cfg.Auth.EntraID.Enabled)
-	assert.Equal(t, "example.onmicrosoft.com", cfg.Auth.EntraID.TenantID)
-	assert.Equal(t, "client-id", cfg.Auth.EntraID.ClientID)
-	assert.Equal(t, "roles", cfg.Auth.EntraID.GroupsClaim)
+	entraID := cfg.Auth.EntraID["entra_id"]
+	assert.True(t, entraID.Enabled)
+	assert.Equal(t, "example.onmicrosoft.com", entraID.TenantID)
+	assert.Equal(t, "client-id", entraID.ClientID)
+	assert.Equal(t, "roles", entraID.GroupsClaim)
+	assert.Equal(t, []string{"cerebro-viewers"}, entraID.DefaultGroups)
 }
 
 func TestLoad_OAuthAuthConfig(t *testing.T) {
@@ -358,6 +497,7 @@ auth:
     redirect_url: "https://cerebro.example.org/auth/oauth/callback"
     username_claim: "login"
     groups_claim: "teams"
+    default_groups: ["cerebro-viewers"]
     scopes: ["read:user"]
 server:
   secret: "test-secret"
@@ -366,11 +506,13 @@ server:
 	cfg, err := Load(path)
 	require.NoError(t, err)
 
-	assert.True(t, cfg.Auth.OAuth.Enabled)
-	assert.Equal(t, "GitHub", cfg.Auth.OAuth.Name)
-	assert.Equal(t, "https://github.com/login/oauth/authorize", cfg.Auth.OAuth.AuthURL)
-	assert.Equal(t, "login", cfg.Auth.OAuth.UsernameClaim)
-	assert.Equal(t, []string{"read:user"}, cfg.Auth.OAuth.Scopes)
+	oauth := cfg.Auth.OAuth["oauth"]
+	assert.True(t, oauth.Enabled)
+	assert.Equal(t, "GitHub", oauth.Name)
+	assert.Equal(t, "https://github.com/login/oauth/authorize", oauth.AuthURL)
+	assert.Equal(t, "login", oauth.UsernameClaim)
+	assert.Equal(t, []string{"cerebro-viewers"}, oauth.DefaultGroups)
+	assert.Equal(t, []string{"read:user"}, oauth.Scopes)
 }
 
 func TestLoad_OAuthOIDCConfig(t *testing.T) {
@@ -391,9 +533,10 @@ server:
 	cfg, err := Load(path)
 	require.NoError(t, err)
 
-	assert.True(t, cfg.Auth.OAuth.Enabled)
-	assert.Equal(t, "Dex", cfg.Auth.OAuth.Name)
-	assert.Equal(t, "https://dex.example.org", cfg.Auth.OAuth.IssuerURL)
+	oauth := cfg.Auth.OAuth["oauth"]
+	assert.True(t, oauth.Enabled)
+	assert.Equal(t, "Dex", oauth.Name)
+	assert.Equal(t, "https://dex.example.org", oauth.IssuerURL)
 }
 
 func TestLoad_LDAPRequiredGroupsConfig(t *testing.T) {
@@ -406,6 +549,7 @@ auth:
     url: "ldaps://ldap.example.org:636"
     base_dn: "dc=example,dc=org"
     user_template: "uid=%s,%s"
+    default_groups: ["cerebro-viewers"]
     required_groups: ["cerebro-admins"]
 server:
   secret: "test-secret"
@@ -414,7 +558,8 @@ server:
 	cfg, err := Load(path)
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{"cerebro-admins"}, cfg.Auth.LDAP.RequiredGroups)
+	assert.Equal(t, []string{"cerebro-viewers"}, cfg.Auth.LDAP["ldap"].DefaultGroups)
+	assert.Equal(t, []string{"cerebro-admins"}, cfg.Auth.LDAP["ldap"].RequiredGroups)
 }
 
 func TestLoad_RejectsIncompleteOAuthAuth(t *testing.T) {
@@ -434,7 +579,7 @@ server:
 
 	_, err := Load(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "auth.oauth.userinfo_url")
+	assert.Contains(t, err.Error(), "auth.oauth.oauth.userinfo_url")
 }
 
 func TestLoad_RejectsInsecureOAuthEndpoint(t *testing.T) {
@@ -455,7 +600,7 @@ server:
 
 	_, err := Load(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "auth.oauth.auth_url")
+	assert.Contains(t, err.Error(), "auth.oauth.oauth.auth_url")
 }
 
 func TestLoad_RejectsIncompleteEntraIDAuth(t *testing.T) {
@@ -473,7 +618,7 @@ server:
 
 	_, err := Load(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "auth.entra_id.client_secret")
+	assert.Contains(t, err.Error(), "auth.entra_id.entra_id.client_secret")
 }
 
 func TestLoad_ValidatesEntraIDIssuerURL(t *testing.T) {
@@ -492,7 +637,7 @@ server:
 
 	_, err := Load(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "auth.entra_id.issuer_url")
+	assert.Contains(t, err.Error(), "auth.entra_id.entra_id.issuer_url")
 }
 
 func TestLoad_RejectsProxyAuthWithoutTrustedProxies(t *testing.T) {
@@ -772,7 +917,7 @@ server:
 
 	_, err := Load(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "auth.basic.users")
+	assert.Contains(t, err.Error(), "auth.basic.basic.users")
 }
 
 func TestLoad_RejectsDuplicateBasicAuthUsers(t *testing.T) {

@@ -47,7 +47,13 @@ services:
       BASIC_AUTH_ENABLED: "${BASIC_AUTH_ENABLED:-true}"
       BASIC_AUTH_USER: "${BASIC_AUTH_USER:-admin}"
       BASIC_AUTH_PWD: "${BASIC_AUTH_PWD:-admin123}"
-      PROXY_AUTH_ENABLED: "${PROXY_AUTH_ENABLED:-false}"
+      PROXY_AUTH_ENABLED: "${PROXY_AUTH_ENABLED:-true}"
+      ENTRA_ID_ENABLED: "${ENTRA_ID_ENABLED:-false}"
+      ENTRA_ID_NAME: "${ENTRA_ID_NAME:-Microsoft Entra ID}"
+      ENTRA_ID_TENANT_ID: "${ENTRA_ID_TENANT_ID:-}"
+      ENTRA_ID_CLIENT_ID: "${ENTRA_ID_CLIENT_ID:-}"
+      ENTRA_ID_CLIENT_SECRET: "${ENTRA_ID_CLIENT_SECRET:-}"
+      ENTRA_ID_REDIRECT_URL: "${ENTRA_ID_REDIRECT_URL:-http://localhost:5173/auth/entraid/entra_id/callback}"
     volumes:
       - ./:/workspace/cerebro
     working_dir: /workspace/cerebro

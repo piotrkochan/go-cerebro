@@ -19,12 +19,14 @@ import (
 func TestProxyAuthThroughTrustedReverseProxy(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Auth: config.Auth{
-			Proxy: config.ProxyAuth{
-				Enabled:        true,
-				UserHeader:     "X-Forwarded-User",
-				GroupsHeader:   "X-Forwarded-Groups",
-				GroupSeparator: ",",
-				TrustedProxies: []string{"127.0.0.1/32"},
+			Proxy: map[string]config.ProxyAuth{
+				config.DefaultAuthProviderID: {
+					Enabled:        true,
+					UserHeader:     "X-Forwarded-User",
+					GroupsHeader:   "X-Forwarded-Groups",
+					GroupSeparator: ",",
+					TrustedProxies: []string{"127.0.0.1/32"},
+				},
 			},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},

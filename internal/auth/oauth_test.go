@@ -41,15 +41,18 @@ func TestOAuthLoginWithMockProvider(t *testing.T) {
 
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			OAuth: config.OAuthAuth{
-				Enabled:      true,
-				Name:         "Test OAuth",
-				AuthURL:      providerURL + "/authorize",
-				TokenURL:     providerURL + "/token",
-				UserInfoURL:  providerURL + "/userinfo",
-				ClientID:     "cerebro-client",
-				ClientSecret: "client-secret",
-				GroupsClaim:  "groups",
+			OAuth: map[string]config.OAuthAuth{
+				config.DefaultAuthProviderID: {
+					Enabled:       true,
+					Name:          "Test OAuth",
+					AuthURL:       providerURL + "/authorize",
+					TokenURL:      providerURL + "/token",
+					UserInfoURL:   providerURL + "/userinfo",
+					ClientID:      "cerebro-client",
+					ClientSecret:  "client-secret",
+					GroupsClaim:   "groups",
+					DefaultGroups: []string{"cerebro-viewers", "operators"},
+				},
 			},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
@@ -58,16 +61,16 @@ func TestOAuthLoginWithMockProvider(t *testing.T) {
 
 	beginReq := httptest.NewRequest(http.MethodGet, "http://cerebro.test/auth/oauth/login", nil)
 	beginRR := httptest.NewRecorder()
-	authURL, err := mod.BeginOAuthLogin(beginRR, beginReq, "http://cerebro.test/auth/oauth/callback", "/#/overview")
+	authURL, err := mod.BeginOAuthLogin(config.DefaultAuthProviderID, beginRR, beginReq, "http://cerebro.test/auth/oauth/default/callback", "/#/overview")
 	require.NoError(t, err)
 	parsedAuthURL, err := url.Parse(authURL)
 	require.NoError(t, err)
 	assert.Equal(t, providerURL+"/authorize", parsedAuthURL.Scheme+"://"+parsedAuthURL.Host+parsedAuthURL.Path)
 	require.NotEmpty(t, parsedAuthURL.Query().Get("state"))
 
-	callbackReq := requestWithCookies(beginRR, http.MethodGet, "http://cerebro.test/auth/oauth/callback?code=test-code&state="+url.QueryEscape(parsedAuthURL.Query().Get("state")))
+	callbackReq := requestWithCookies(beginRR, http.MethodGet, "http://cerebro.test/auth/oauth/default/callback?code=test-code&state="+url.QueryEscape(parsedAuthURL.Query().Get("state")))
 	callbackRR := httptest.NewRecorder()
-	redirect, err := mod.CompleteOAuthLogin(callbackRR, callbackReq, "http://cerebro.test/auth/oauth/callback")
+	redirect, err := mod.CompleteOAuthLogin(config.DefaultAuthProviderID, callbackRR, callbackReq, "http://cerebro.test/auth/oauth/default/callback")
 	require.NoError(t, err)
 	assert.Equal(t, "/#/overview", redirect)
 
@@ -75,20 +78,23 @@ func TestOAuthLoginWithMockProvider(t *testing.T) {
 	identity, ok := mod.SessionIdentity(sessionReq)
 	require.True(t, ok)
 	assert.Equal(t, "alice", identity.Username)
-	assert.Equal(t, []string{"cerebro-admins", "operators"}, identity.Groups)
+	assert.Equal(t, []string{"cerebro-viewers", "operators", "cerebro-admins"}, identity.Groups)
 	assert.Equal(t, "oauth", identity.Provider)
+	assert.Equal(t, config.DefaultAuthProviderID, identity.ProviderID)
 }
 
 func TestOAuthLoginRejectsInvalidState(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			OAuth: config.OAuthAuth{
-				Enabled:      true,
-				AuthURL:      "https://auth.example.org/authorize",
-				TokenURL:     "https://auth.example.org/token",
-				UserInfoURL:  "https://auth.example.org/userinfo",
-				ClientID:     "client",
-				ClientSecret: "secret",
+			OAuth: map[string]config.OAuthAuth{
+				config.DefaultAuthProviderID: {
+					Enabled:      true,
+					AuthURL:      "https://auth.example.org/authorize",
+					TokenURL:     "https://auth.example.org/token",
+					UserInfoURL:  "https://auth.example.org/userinfo",
+					ClientID:     "client",
+					ClientSecret: "secret",
+				},
 			},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
@@ -97,12 +103,12 @@ func TestOAuthLoginRejectsInvalidState(t *testing.T) {
 
 	beginReq := httptest.NewRequest(http.MethodGet, "http://cerebro.test/auth/oauth/login", nil)
 	beginRR := httptest.NewRecorder()
-	_, err = mod.BeginOAuthLogin(beginRR, beginReq, "http://cerebro.test/auth/oauth/callback", "/")
+	_, err = mod.BeginOAuthLogin(config.DefaultAuthProviderID, beginRR, beginReq, "http://cerebro.test/auth/oauth/default/callback", "/")
 	require.NoError(t, err)
 
 	callbackReq := requestWithCookies(beginRR, http.MethodGet, "http://cerebro.test/auth/oauth/callback?code=test-code&state=wrong")
 	callbackRR := httptest.NewRecorder()
-	_, err = mod.CompleteOAuthLogin(callbackRR, callbackReq, "http://cerebro.test/auth/oauth/callback")
+	_, err = mod.CompleteOAuthLogin(config.DefaultAuthProviderID, callbackRR, callbackReq, "http://cerebro.test/auth/oauth/default/callback")
 
 	assert.ErrorIs(t, err, ErrInvalidCredentials)
 }
@@ -125,13 +131,15 @@ func TestOAuthUserInfoRequiresUsername(t *testing.T) {
 
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			OAuth: config.OAuthAuth{
-				Enabled:      true,
-				AuthURL:      provider.URL + "/authorize",
-				TokenURL:     provider.URL + "/token",
-				UserInfoURL:  provider.URL + "/userinfo",
-				ClientID:     "client",
-				ClientSecret: "secret",
+			OAuth: map[string]config.OAuthAuth{
+				config.DefaultAuthProviderID: {
+					Enabled:      true,
+					AuthURL:      provider.URL + "/authorize",
+					TokenURL:     provider.URL + "/token",
+					UserInfoURL:  provider.URL + "/userinfo",
+					ClientID:     "client",
+					ClientSecret: "secret",
+				},
 			},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
@@ -140,14 +148,14 @@ func TestOAuthUserInfoRequiresUsername(t *testing.T) {
 
 	beginReq := httptest.NewRequest(http.MethodGet, "http://cerebro.test/auth/oauth/login", nil)
 	beginRR := httptest.NewRecorder()
-	authURL, err := mod.BeginOAuthLogin(beginRR, beginReq, "http://cerebro.test/auth/oauth/callback", "/")
+	authURL, err := mod.BeginOAuthLogin(config.DefaultAuthProviderID, beginRR, beginReq, "http://cerebro.test/auth/oauth/default/callback", "/")
 	require.NoError(t, err)
 	parsedAuthURL, err := url.Parse(authURL)
 	require.NoError(t, err)
 
-	callbackReq := requestWithCookies(beginRR, http.MethodGet, "http://cerebro.test/auth/oauth/callback?code=test-code&state="+url.QueryEscape(parsedAuthURL.Query().Get("state")))
+	callbackReq := requestWithCookies(beginRR, http.MethodGet, "http://cerebro.test/auth/oauth/default/callback?code=test-code&state="+url.QueryEscape(parsedAuthURL.Query().Get("state")))
 	callbackRR := httptest.NewRecorder()
-	_, err = mod.CompleteOAuthLogin(callbackRR, callbackReq, "http://cerebro.test/auth/oauth/callback")
+	_, err = mod.CompleteOAuthLogin(config.DefaultAuthProviderID, callbackRR, callbackReq, "http://cerebro.test/auth/oauth/default/callback")
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "username claim")

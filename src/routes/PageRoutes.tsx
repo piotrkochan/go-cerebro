@@ -82,8 +82,8 @@ export function NodesRoute() {
 }
 
 export function RestRoute() {
-  const { connection } = usePageContext();
-  return <RestPage connection={connection} />;
+  const { connection, notify } = usePageContext();
+  return <RestPage connection={connection} notify={notify} />;
 }
 
 export function AliasesRoute() {

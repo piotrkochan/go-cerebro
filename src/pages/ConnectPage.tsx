@@ -26,6 +26,7 @@ export function ConnectPage({
   onConnected: (host: string, hostName: string) => void;
 }) {
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
+  const [allowAdHocHosts, setAllowAdHocHosts] = useState(false);
   const [hosts, setHosts] = useState<HostRef[]>([]);
   const [connecting, setConnecting] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -56,9 +57,15 @@ export function ConnectPage({
       }
       try {
         const result = await connectHosts<true>({ throwOnError: true });
-        if (!ignore) setHosts(result.data.items ?? []);
+        if (!ignore) {
+          setAllowAdHocHosts(result.data.allow_ad_hoc_hosts === true);
+          setHosts(result.data.items ?? []);
+        }
       } catch {
-        if (!ignore) setHosts([]);
+        if (!ignore) {
+          setAllowAdHocHosts(false);
+          setHosts([]);
+        }
       }
     }
     void load();
@@ -137,35 +144,37 @@ export function ConnectPage({
             </tbody>
           </table>
         ) : null}
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void connectForm.handleSubmit();
-          }}
-        >
-          <div className="form-group">
-            <label htmlFor="host">Node address</label>
-            <connectForm.Field name="host">
-              {(field) => (
-                <input
-                  id="host"
-                  className="form-control form-control-sm"
-                  placeholder="e.g.: http://localhost:9200"
-                  type="text"
-                  value={field.state.value}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                />
+        {allowAdHocHosts ? (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void connectForm.handleSubmit();
+            }}
+          >
+            <div className="form-group">
+              <label htmlFor="host">Node address</label>
+              <connectForm.Field name="host">
+                {(field) => (
+                  <input
+                    id="host"
+                    className="form-control form-control-sm"
+                    placeholder="e.g.: http://localhost:9200"
+                    type="text"
+                    value={field.state.value}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                )}
+              </connectForm.Field>
+            </div>
+            <connectForm.Subscribe selector={(state) => state.values.host}>
+              {(hostValue) => (
+                <Button className="pull-right" disabled={!hostValue} icon="plug" type="submit" variant="success">
+                  Connect
+                </Button>
               )}
-            </connectForm.Field>
-          </div>
-          <connectForm.Subscribe selector={(state) => state.values.host}>
-            {(hostValue) => (
-              <Button className="pull-right" disabled={!hostValue} icon="plug" type="submit" variant="success">
-                Connect
-              </Button>
-            )}
-          </connectForm.Subscribe>
-        </form>
+            </connectForm.Subscribe>
+          </form>
+        ) : null}
       </div>
     </>
   );

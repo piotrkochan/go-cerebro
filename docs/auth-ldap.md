@@ -14,6 +14,7 @@ auth:
     user_template: "uid=%s,%s"
     bind_dn: "cn=readonly,dc=example,dc=org"
     bind_pw: "${LDAP_BIND_PWD}"
+    default_groups: ["cerebro-viewers"]
     required_groups: ["cerebro-admins"]
     group_search:
       base_dn: "ou=groups,dc=example,dc=org"
@@ -38,6 +39,8 @@ When `group_search` is configured, Cerebro exposes both:
 - the short group name from `group_search.name_attr`
 
 Both can be bound in RBAC:
+
+`default_groups` are added to every user from this provider after LDAP authentication succeeds.
 
 ```yaml
 rbac:

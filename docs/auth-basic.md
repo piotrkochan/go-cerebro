@@ -7,6 +7,7 @@ The frontend never receives Elasticsearch credentials.
 auth:
   basic:
     enabled: true
+    default_groups: ["cerebro-viewers"]
     users:
       - username: "${CEREBRO_ADMIN_USER}"
         password: "${CEREBRO_ADMIN_PASSWORD}"
@@ -19,6 +20,7 @@ server:
   secret: "${APPLICATION_SECRET}"
 ```
 
+`default_groups` are added to every user from this provider. Per-user `groups` are added too.
 Groups are optional. Use them with RBAC bindings:
 
 ```yaml

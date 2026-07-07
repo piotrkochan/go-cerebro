@@ -23,6 +23,7 @@ type LDAPService struct {
 	bindDN         string
 	bindPW         string
 	requiredGroups []string
+	defaultGroups  []string
 	tlsConfig      *tls.Config
 }
 
@@ -49,6 +50,7 @@ func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
 		bindDN:         s.BindDN,
 		bindPW:         s.BindPW,
 		requiredGroups: append([]string(nil), s.RequiredGroups...),
+		defaultGroups:  mergeGroups(s.DefaultGroups),
 		tlsConfig:      tlsConfig,
 	}
 	if s.GroupSearch != nil && s.GroupSearch.UserAttr != "" {
@@ -88,7 +90,7 @@ func (l *LDAPService) Authenticate(username, password string) (Identity, error) 
 	if len(l.requiredGroups) > 0 && !hasAnyGroup(groups, l.requiredGroups) {
 		return Identity{}, ErrInvalidCredentials
 	}
-	return Identity{Username: username, Groups: groups, Provider: "ldap"}, nil
+	return Identity{Username: username, Groups: mergeGroups(l.defaultGroups, groups), Provider: "ldap"}, nil
 }
 
 func (l *LDAPService) dial() (*ldap.Conn, error) {

@@ -41,8 +41,9 @@ func TestNewBasicServiceRequiresCredentials(t *testing.T) {
 
 func TestBasicServiceAuthenticate(t *testing.T) {
 	service, err := NewBasicService(config.BasicAuth{
+		DefaultGroups: []string{"cerebro-viewers", "shared"},
 		Users: []config.BasicAuthUser{
-			{Username: "admin", Password: "admin123", Groups: []string{"cerebro-admins"}},
+			{Username: "admin", Password: "admin123", Groups: []string{"cerebro-admins", "shared"}},
 			{Username: "viewer", Password: "viewer123", Groups: []string{"cerebro-viewers"}},
 		},
 	})
@@ -51,12 +52,12 @@ func TestBasicServiceAuthenticate(t *testing.T) {
 	identity, err := service.Authenticate("admin", "admin123")
 	require.NoError(t, err)
 	assert.Equal(t, "admin", identity.Username)
-	assert.Equal(t, []string{"cerebro-admins"}, identity.Groups)
+	assert.Equal(t, []string{"cerebro-viewers", "shared", "cerebro-admins"}, identity.Groups)
 
 	identity, err = service.Authenticate("viewer", "viewer123")
 	require.NoError(t, err)
 	assert.Equal(t, "viewer", identity.Username)
-	assert.Equal(t, []string{"cerebro-viewers"}, identity.Groups)
+	assert.Equal(t, []string{"cerebro-viewers", "shared"}, identity.Groups)
 }
 
 func TestBasicServiceAuthenticateRejectsInvalidCredentials(t *testing.T) {

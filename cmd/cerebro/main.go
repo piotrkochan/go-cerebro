@@ -171,17 +171,20 @@ func runOpenAPI(args []string) {
 
 func enabledAuthProviders(cfg config.Auth) string {
 	providers := []string{}
-	if cfg.Basic.Enabled {
-		providers = append(providers, "basic")
+	if n := cfg.EnabledBasicCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("basic(%d)", n))
 	}
-	if cfg.LDAP.Enabled {
-		providers = append(providers, "ldap")
+	if n := cfg.EnabledLDAPCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("ldap(%d)", n))
 	}
-	if cfg.Proxy.Enabled {
-		providers = append(providers, "proxy")
+	if n := cfg.EnabledProxyCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("proxy(%d)", n))
 	}
-	if cfg.EntraID.Enabled {
-		providers = append(providers, "entra_id")
+	if n := cfg.EnabledEntraIDCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("entra_id(%d)", n))
+	}
+	if n := cfg.EnabledOAuthCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("oauth(%d)", n))
 	}
 	if len(providers) == 0 {
 		return "disabled"

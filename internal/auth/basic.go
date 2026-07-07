@@ -46,7 +46,7 @@ func NewBasicService(s config.BasicAuth) (*BasicService, error) {
 			username:     username,
 			usernameHash: sha256.Sum256([]byte(username)),
 			passwordHash: passwordHash,
-			groups:       append([]string(nil), user.Groups...),
+			groups:       mergeGroups(s.DefaultGroups, user.Groups),
 		})
 	}
 	return &BasicService{users: users}, nil

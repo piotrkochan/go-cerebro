@@ -32,7 +32,7 @@ import {
 import { sessionActions, sessionStore } from '../stores/sessionStore';
 
 type AppSearch = {
-  error?: 'invalid';
+  error?: 'external' | 'invalid';
   host?: string;
   index?: string;
   kind?: 'index' | 'component' | 'legacy';
@@ -42,7 +42,7 @@ type AppSearch = {
 };
 
 const validateSearch = (search: Record<string, unknown>): AppSearch => ({
-  error: search.error === 'invalid' ? search.error : undefined,
+  error: search.error === 'external' || search.error === 'invalid' ? search.error : undefined,
   host: typeof search.host === 'string' ? search.host : undefined,
   index: typeof search.index === 'string' ? search.index : undefined,
   kind: search.kind === 'index' || search.kind === 'component' || search.kind === 'legacy' ? search.kind : undefined,

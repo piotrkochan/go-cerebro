@@ -15,6 +15,7 @@ import (
 const (
 	DefaultMaxResponseBytes = int64(25 << 20)
 	DefaultMaxRequestBytes  = int64(5 << 20)
+	DefaultAuthProviderID   = "default"
 )
 
 type ESAuth struct {
@@ -50,9 +51,12 @@ type BasicAuthUser struct {
 }
 
 type BasicAuth struct {
-	Enabled bool            `yaml:"enabled"`
-	Users   []BasicAuthUser `yaml:"users,omitempty"`
+	Enabled       bool            `yaml:"enabled"`
+	DefaultGroups []string        `yaml:"default_groups,omitempty"`
+	Users         []BasicAuthUser `yaml:"users,omitempty"`
 }
+
+func (a BasicAuth) enabled() bool { return a.Enabled }
 
 type LDAPAuth struct {
 	Enabled        bool         `yaml:"enabled"`
@@ -64,19 +68,27 @@ type LDAPAuth struct {
 	BindPW         string       `yaml:"bind_pw"`
 	InsecureLDAP   bool         `yaml:"insecure_ldap"`
 	GroupSearch    *GroupSearch `yaml:"group_search,omitempty"`
+	DefaultGroups  []string     `yaml:"default_groups,omitempty"`
 	RequiredGroups []string     `yaml:"required_groups,omitempty"`
 }
+
+func (a LDAPAuth) enabled() bool { return a.Enabled }
 
 type ProxyAuth struct {
 	Enabled        bool     `yaml:"enabled"`
 	UserHeader     string   `yaml:"user_header"`
 	GroupsHeader   string   `yaml:"groups_header"`
 	GroupSeparator string   `yaml:"group_separator"`
+	DefaultGroups  []string `yaml:"default_groups,omitempty"`
+	LogoutURL      string   `yaml:"logout_url"`
 	TrustedProxies []string `yaml:"trusted_proxies"`
 }
 
+func (a ProxyAuth) enabled() bool { return a.Enabled }
+
 type EntraIDAuth struct {
 	Enabled       bool     `yaml:"enabled"`
+	Name          string   `yaml:"name"`
 	TenantID      string   `yaml:"tenant_id"`
 	IssuerURL     string   `yaml:"issuer_url"`
 	ClientID      string   `yaml:"client_id"`
@@ -85,7 +97,10 @@ type EntraIDAuth struct {
 	Scopes        []string `yaml:"scopes,omitempty"`
 	UsernameClaim string   `yaml:"username_claim"`
 	GroupsClaim   string   `yaml:"groups_claim"`
+	DefaultGroups []string `yaml:"default_groups,omitempty"`
 }
+
+func (a EntraIDAuth) enabled() bool { return a.Enabled }
 
 type OAuthAuth struct {
 	Enabled       bool     `yaml:"enabled"`
@@ -100,15 +115,68 @@ type OAuthAuth struct {
 	Scopes        []string `yaml:"scopes,omitempty"`
 	UsernameClaim string   `yaml:"username_claim"`
 	GroupsClaim   string   `yaml:"groups_claim"`
+	DefaultGroups []string `yaml:"default_groups,omitempty"`
 }
 
+func (a OAuthAuth) enabled() bool { return a.Enabled }
+
 type Auth struct {
-	Basic   BasicAuth   `yaml:"basic,omitempty"`
-	LDAP    LDAPAuth    `yaml:"ldap,omitempty"`
-	Proxy   ProxyAuth   `yaml:"proxy,omitempty"`
-	EntraID EntraIDAuth `yaml:"entra_id,omitempty"`
-	OAuth   OAuthAuth   `yaml:"oauth,omitempty"`
-	Session AuthSession `yaml:"session,omitempty"`
+	Basic   map[string]BasicAuth   `yaml:"basic,omitempty"`
+	LDAP    map[string]LDAPAuth    `yaml:"ldap,omitempty"`
+	Proxy   map[string]ProxyAuth   `yaml:"proxy,omitempty"`
+	EntraID map[string]EntraIDAuth `yaml:"entra_id,omitempty"`
+	OAuth   map[string]OAuthAuth   `yaml:"oauth,omitempty"`
+	Session AuthSession            `yaml:"session,omitempty"`
+}
+
+func (a Auth) EnabledBasicCount() int {
+	return enabledAuthProviderCount(a.Basic)
+}
+
+func (a Auth) EnabledLDAPCount() int {
+	return enabledAuthProviderCount(a.LDAP)
+}
+
+func (a Auth) EnabledProxyCount() int {
+	return enabledAuthProviderCount(a.Proxy)
+}
+
+func (a Auth) EnabledEntraIDCount() int {
+	return enabledAuthProviderCount(a.EntraID)
+}
+
+func (a Auth) EnabledOAuthCount() int {
+	return enabledAuthProviderCount(a.OAuth)
+}
+
+func (a *Auth) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind != yaml.MappingNode {
+		return fmt.Errorf("auth must be a mapping")
+	}
+
+	for i := 0; i+1 < len(value.Content); i += 2 {
+		key := value.Content[i].Value
+		node := value.Content[i+1]
+		var err error
+		switch key {
+		case "basic":
+			a.Basic, err = decodeAuthProviderMap[BasicAuth](node, basicAuthFields, "basic")
+		case "ldap":
+			a.LDAP, err = decodeAuthProviderMap[LDAPAuth](node, ldapAuthFields, "ldap")
+		case "proxy":
+			a.Proxy, err = decodeAuthProviderMap[ProxyAuth](node, proxyAuthFields, "proxy")
+		case "entra_id":
+			a.EntraID, err = decodeAuthProviderMap[EntraIDAuth](node, entraIDAuthFields, "entra_id")
+		case "oauth":
+			a.OAuth, err = decodeAuthProviderMap[OAuthAuth](node, oauthAuthFields, "oauth")
+		case "session":
+			err = node.Decode(&a.Session)
+		}
+		if err != nil {
+			return fmt.Errorf("auth.%s: %w", key, err)
+		}
+	}
+	return nil
 }
 
 type AuthSession struct {
@@ -322,8 +390,11 @@ func (c *Config) normalize() {
 		c.RBAC.Bindings[i].Subject = strings.TrimSpace(c.RBAC.Bindings[i].Subject)
 		c.RBAC.Bindings[i].Role = strings.TrimSpace(c.RBAC.Bindings[i].Role)
 	}
-	for i := range c.Auth.Basic.Users {
-		c.Auth.Basic.Users[i].Username = strings.TrimSpace(c.Auth.Basic.Users[i].Username)
+	for providerID, provider := range c.Auth.Basic {
+		for i := range provider.Users {
+			provider.Users[i].Username = strings.TrimSpace(provider.Users[i].Username)
+		}
+		c.Auth.Basic[providerID] = provider
 	}
 	if c.Data.Path == "" {
 		c.Data.Path = "./cerebro.db"
@@ -413,7 +484,7 @@ func (c *Config) validate() error {
 	if err := c.validateHostIDs(); err != nil {
 		return err
 	}
-	if c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled || c.Auth.EntraID.Enabled || c.Auth.OAuth.Enabled {
+	if c.authEnabled() {
 		if isDefaultSecret(c.Server.Secret) {
 			return fmt.Errorf("server.secret must be set to a strong non-default value when authentication is enabled")
 		}
@@ -427,124 +498,304 @@ func (c *Config) validate() error {
 	if c.Auth.Session.IdleTimeoutSeconds < 0 {
 		return fmt.Errorf("auth.session.idle_timeout_seconds must be greater than or equal to zero")
 	}
-	if c.Auth.Basic.Enabled {
-		if len(c.Auth.Basic.Users) == 0 {
-			return fmt.Errorf("auth.basic.users must contain at least one user when auth.basic.enabled is true")
-		}
-		usernames := map[string]bool{}
-		for i, user := range c.Auth.Basic.Users {
-			username := strings.TrimSpace(user.Username)
-			if username == "" {
-				return fmt.Errorf("auth.basic.users[%d].username is required when auth.basic.enabled is true", i)
-			}
-			if user.Password == "" {
-				return fmt.Errorf("auth.basic.users[%d].password is required when auth.basic.enabled is true", i)
-			}
-			if usernames[username] {
-				return fmt.Errorf("auth.basic.users[%d].username %q is duplicated", i, username)
-			}
-			usernames[username] = true
+	if err := validateAuthProviderIDs("auth.basic", c.Auth.Basic); err != nil {
+		return err
+	}
+	if err := validateAuthProviderIDs("auth.ldap", c.Auth.LDAP); err != nil {
+		return err
+	}
+	if err := validateAuthProviderIDs("auth.proxy", c.Auth.Proxy); err != nil {
+		return err
+	}
+	if err := validateAuthProviderIDs("auth.entra_id", c.Auth.EntraID); err != nil {
+		return err
+	}
+	if err := validateAuthProviderIDs("auth.oauth", c.Auth.OAuth); err != nil {
+		return err
+	}
+	if err := c.validateUniqueAuthProviderIDs(); err != nil {
+		return err
+	}
+	for providerID, provider := range c.Auth.Basic {
+		if err := validateBasicAuthProvider("auth.basic."+providerID, provider); err != nil {
+			return err
 		}
 	}
-	if c.Auth.LDAP.Enabled {
-		if strings.TrimSpace(c.Auth.LDAP.URL) == "" {
-			return fmt.Errorf("auth.ldap.url is required when auth.ldap.enabled is true")
-		}
-		if strings.TrimSpace(c.Auth.LDAP.BaseDN) == "" {
-			return fmt.Errorf("auth.ldap.base_dn is required when auth.ldap.enabled is true")
-		}
-		if strings.TrimSpace(c.Auth.LDAP.UserTemplate) == "" {
-			return fmt.Errorf("auth.ldap.user_template is required when auth.ldap.enabled is true")
+	for providerID, provider := range c.Auth.LDAP {
+		if err := validateLDAPAuthProvider("auth.ldap."+providerID, provider); err != nil {
+			return err
 		}
 	}
-	if c.Auth.Proxy.Enabled {
-		if strings.TrimSpace(c.Auth.Proxy.UserHeader) == "" {
-			return fmt.Errorf("auth.proxy.user_header is required when auth.proxy.enabled is true")
-		}
-		if len(c.Auth.Proxy.TrustedProxies) == 0 {
-			return fmt.Errorf("auth.proxy.trusted_proxies is required when auth.proxy.enabled is true")
-		}
-		for i, trustedProxy := range c.Auth.Proxy.TrustedProxies {
-			if _, err := parseTrustedProxy(trustedProxy); err != nil {
-				return fmt.Errorf("auth.proxy.trusted_proxies[%d]: %w", i, err)
-			}
+	for providerID, provider := range c.Auth.Proxy {
+		if err := validateProxyAuthProvider("auth.proxy."+providerID, provider); err != nil {
+			return err
 		}
 	}
-	if c.Auth.EntraID.Enabled {
-		if strings.TrimSpace(c.Auth.EntraID.TenantID) == "" && strings.TrimSpace(c.Auth.EntraID.IssuerURL) == "" {
-			return fmt.Errorf("auth.entra_id.tenant_id is required when auth.entra_id.enabled is true")
-		}
-		if strings.Contains(c.Auth.EntraID.TenantID, "/") {
-			return fmt.Errorf("auth.entra_id.tenant_id must not contain slashes")
-		}
-		if c.Auth.EntraID.IssuerURL != "" {
-			if err := validateOIDCIssuerURL(c.Auth.EntraID.IssuerURL); err != nil {
-				return fmt.Errorf("auth.entra_id.issuer_url: %w", err)
-			}
-		}
-		if strings.TrimSpace(c.Auth.EntraID.ClientID) == "" {
-			return fmt.Errorf("auth.entra_id.client_id is required when auth.entra_id.enabled is true")
-		}
-		if c.Auth.EntraID.ClientSecret == "" {
-			return fmt.Errorf("auth.entra_id.client_secret is required when auth.entra_id.enabled is true")
-		}
-		if c.Auth.EntraID.RedirectURL != "" {
-			u, err := url.Parse(strings.TrimSpace(c.Auth.EntraID.RedirectURL))
-			if err != nil || u.Scheme == "" || u.Host == "" {
-				return fmt.Errorf("auth.entra_id.redirect_url must be an absolute URL")
-			}
+	for providerID, provider := range c.Auth.EntraID {
+		if err := validateEntraIDAuthProvider("auth.entra_id."+providerID, provider); err != nil {
+			return err
 		}
 	}
-	if c.Auth.OAuth.Enabled {
-		if strings.TrimSpace(c.Auth.OAuth.IssuerURL) == "" {
-			if strings.TrimSpace(c.Auth.OAuth.AuthURL) == "" {
-				return fmt.Errorf("auth.oauth.auth_url is required when auth.oauth.issuer_url is not set")
-			}
-			if strings.TrimSpace(c.Auth.OAuth.TokenURL) == "" {
-				return fmt.Errorf("auth.oauth.token_url is required when auth.oauth.issuer_url is not set")
-			}
-			if strings.TrimSpace(c.Auth.OAuth.UserInfoURL) == "" {
-				return fmt.Errorf("auth.oauth.userinfo_url is required when auth.oauth.issuer_url is not set")
-			}
-		}
-		if c.Auth.OAuth.IssuerURL != "" {
-			if err := validateOIDCIssuerURL(c.Auth.OAuth.IssuerURL); err != nil {
-				return fmt.Errorf("auth.oauth.issuer_url: %w", err)
-			}
-		}
-		if c.Auth.OAuth.AuthURL != "" {
-			if err := validateOAuthEndpointURL(c.Auth.OAuth.AuthURL); err != nil {
-				return fmt.Errorf("auth.oauth.auth_url: %w", err)
-			}
-		}
-		if c.Auth.OAuth.TokenURL != "" {
-			if err := validateOAuthEndpointURL(c.Auth.OAuth.TokenURL); err != nil {
-				return fmt.Errorf("auth.oauth.token_url: %w", err)
-			}
-		}
-		if c.Auth.OAuth.UserInfoURL != "" {
-			if err := validateOAuthEndpointURL(c.Auth.OAuth.UserInfoURL); err != nil {
-				return fmt.Errorf("auth.oauth.userinfo_url: %w", err)
-			}
-		}
-		if strings.TrimSpace(c.Auth.OAuth.ClientID) == "" {
-			return fmt.Errorf("auth.oauth.client_id is required when auth.oauth.enabled is true")
-		}
-		if c.Auth.OAuth.ClientSecret == "" {
-			return fmt.Errorf("auth.oauth.client_secret is required when auth.oauth.enabled is true")
-		}
-		if c.Auth.OAuth.RedirectURL != "" {
-			u, err := url.Parse(strings.TrimSpace(c.Auth.OAuth.RedirectURL))
-			if err != nil || u.Scheme == "" || u.Host == "" {
-				return fmt.Errorf("auth.oauth.redirect_url must be an absolute URL")
-			}
+	for providerID, provider := range c.Auth.OAuth {
+		if err := validateOAuthAuthProvider("auth.oauth."+providerID, provider); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 func (c *Config) authEnabled() bool {
-	return c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled || c.Auth.EntraID.Enabled || c.Auth.OAuth.Enabled
+	return anyEnabled(c.Auth.Basic) || anyEnabled(c.Auth.LDAP) || anyEnabled(c.Auth.Proxy) || anyEnabled(c.Auth.EntraID) || anyEnabled(c.Auth.OAuth)
+}
+
+func (c *Config) validateUniqueAuthProviderIDs() error {
+	seen := map[string]string{}
+	if err := collectAuthProviderIDs(seen, "auth.basic", c.Auth.Basic); err != nil {
+		return err
+	}
+	if err := collectAuthProviderIDs(seen, "auth.ldap", c.Auth.LDAP); err != nil {
+		return err
+	}
+	if err := collectAuthProviderIDs(seen, "auth.proxy", c.Auth.Proxy); err != nil {
+		return err
+	}
+	if err := collectAuthProviderIDs(seen, "auth.entra_id", c.Auth.EntraID); err != nil {
+		return err
+	}
+	if err := collectAuthProviderIDs(seen, "auth.oauth", c.Auth.OAuth); err != nil {
+		return err
+	}
+	return nil
+}
+
+type enabledAuthProvider interface {
+	enabled() bool
+}
+
+func enabledAuthProviderCount[T enabledAuthProvider](providers map[string]T) int {
+	n := 0
+	for _, provider := range providers {
+		if provider.enabled() {
+			n++
+		}
+	}
+	return n
+}
+
+func anyEnabled[T enabledAuthProvider](providers map[string]T) bool {
+	for _, provider := range providers {
+		if provider.enabled() {
+			return true
+		}
+	}
+	return false
+}
+
+func validateAuthProviderIDs[T any](prefix string, providers map[string]T) error {
+	for providerID := range providers {
+		if !validAuthProviderID(providerID) {
+			return fmt.Errorf("%s provider id %q is invalid: use lowercase letters, digits, single hyphens and single underscores", prefix, providerID)
+		}
+	}
+	return nil
+}
+
+func collectAuthProviderIDs[T enabledAuthProvider](seen map[string]string, prefix string, providers map[string]T) error {
+	for providerID, provider := range providers {
+		if !provider.enabled() {
+			continue
+		}
+		if previous, ok := seen[providerID]; ok {
+			return fmt.Errorf("auth provider id %q is duplicated between %s and %s", providerID, previous, prefix)
+		}
+		seen[providerID] = prefix
+	}
+	return nil
+}
+
+func validateBasicAuthProvider(prefix string, provider BasicAuth) error {
+	if !provider.Enabled {
+		return nil
+	}
+	if len(provider.Users) == 0 {
+		return fmt.Errorf("%s.users must contain at least one user when %s.enabled is true", prefix, prefix)
+	}
+	usernames := map[string]bool{}
+	for i, user := range provider.Users {
+		username := strings.TrimSpace(user.Username)
+		if username == "" {
+			return fmt.Errorf("%s.users[%d].username is required when %s.enabled is true", prefix, i, prefix)
+		}
+		if user.Password == "" {
+			return fmt.Errorf("%s.users[%d].password is required when %s.enabled is true", prefix, i, prefix)
+		}
+		if usernames[username] {
+			return fmt.Errorf("%s.users[%d].username %q is duplicated", prefix, i, username)
+		}
+		usernames[username] = true
+	}
+	return nil
+}
+
+func validateLDAPAuthProvider(prefix string, provider LDAPAuth) error {
+	if !provider.Enabled {
+		return nil
+	}
+	if strings.TrimSpace(provider.URL) == "" {
+		return fmt.Errorf("%s.url is required when %s.enabled is true", prefix, prefix)
+	}
+	if strings.TrimSpace(provider.BaseDN) == "" {
+		return fmt.Errorf("%s.base_dn is required when %s.enabled is true", prefix, prefix)
+	}
+	if strings.TrimSpace(provider.UserTemplate) == "" {
+		return fmt.Errorf("%s.user_template is required when %s.enabled is true", prefix, prefix)
+	}
+	return nil
+}
+
+func validateProxyAuthProvider(prefix string, provider ProxyAuth) error {
+	if !provider.Enabled {
+		return nil
+	}
+	if strings.TrimSpace(provider.UserHeader) == "" {
+		return fmt.Errorf("%s.user_header is required when %s.enabled is true", prefix, prefix)
+	}
+	if len(provider.TrustedProxies) == 0 {
+		return fmt.Errorf("%s.trusted_proxies is required when %s.enabled is true", prefix, prefix)
+	}
+	for i, trustedProxy := range provider.TrustedProxies {
+		if _, err := parseTrustedProxy(trustedProxy); err != nil {
+			return fmt.Errorf("%s.trusted_proxies[%d]: %w", prefix, i, err)
+		}
+	}
+	if provider.LogoutURL != "" {
+		if err := validateLogoutURL(provider.LogoutURL); err != nil {
+			return fmt.Errorf("%s.logout_url: %w", prefix, err)
+		}
+	}
+	return nil
+}
+
+func validateEntraIDAuthProvider(prefix string, provider EntraIDAuth) error {
+	if !provider.Enabled {
+		return nil
+	}
+	if strings.TrimSpace(provider.TenantID) == "" && strings.TrimSpace(provider.IssuerURL) == "" {
+		return fmt.Errorf("%s.tenant_id is required when %s.enabled is true", prefix, prefix)
+	}
+	if strings.Contains(provider.TenantID, "/") {
+		return fmt.Errorf("%s.tenant_id must not contain slashes", prefix)
+	}
+	if provider.IssuerURL != "" {
+		if err := validateOIDCIssuerURL(provider.IssuerURL); err != nil {
+			return fmt.Errorf("%s.issuer_url: %w", prefix, err)
+		}
+	}
+	if strings.TrimSpace(provider.ClientID) == "" {
+		return fmt.Errorf("%s.client_id is required when %s.enabled is true", prefix, prefix)
+	}
+	if provider.ClientSecret == "" {
+		return fmt.Errorf("%s.client_secret is required when %s.enabled is true", prefix, prefix)
+	}
+	if provider.RedirectURL != "" {
+		u, err := url.Parse(strings.TrimSpace(provider.RedirectURL))
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			return fmt.Errorf("%s.redirect_url must be an absolute URL", prefix)
+		}
+	}
+	return nil
+}
+
+func validateOAuthAuthProvider(prefix string, provider OAuthAuth) error {
+	if !provider.Enabled {
+		return nil
+	}
+	if strings.TrimSpace(provider.IssuerURL) == "" {
+		if strings.TrimSpace(provider.AuthURL) == "" {
+			return fmt.Errorf("%s.auth_url is required when %s.issuer_url is not set", prefix, prefix)
+		}
+		if strings.TrimSpace(provider.TokenURL) == "" {
+			return fmt.Errorf("%s.token_url is required when %s.issuer_url is not set", prefix, prefix)
+		}
+		if strings.TrimSpace(provider.UserInfoURL) == "" {
+			return fmt.Errorf("%s.userinfo_url is required when %s.issuer_url is not set", prefix, prefix)
+		}
+	}
+	if provider.IssuerURL != "" {
+		if err := validateOIDCIssuerURL(provider.IssuerURL); err != nil {
+			return fmt.Errorf("%s.issuer_url: %w", prefix, err)
+		}
+	}
+	if provider.AuthURL != "" {
+		if err := validateOAuthEndpointURL(provider.AuthURL); err != nil {
+			return fmt.Errorf("%s.auth_url: %w", prefix, err)
+		}
+	}
+	if provider.TokenURL != "" {
+		if err := validateOAuthEndpointURL(provider.TokenURL); err != nil {
+			return fmt.Errorf("%s.token_url: %w", prefix, err)
+		}
+	}
+	if provider.UserInfoURL != "" {
+		if err := validateOAuthEndpointURL(provider.UserInfoURL); err != nil {
+			return fmt.Errorf("%s.userinfo_url: %w", prefix, err)
+		}
+	}
+	if strings.TrimSpace(provider.ClientID) == "" {
+		return fmt.Errorf("%s.client_id is required when %s.enabled is true", prefix, prefix)
+	}
+	if provider.ClientSecret == "" {
+		return fmt.Errorf("%s.client_secret is required when %s.enabled is true", prefix, prefix)
+	}
+	if provider.RedirectURL != "" {
+		u, err := url.Parse(strings.TrimSpace(provider.RedirectURL))
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			return fmt.Errorf("%s.redirect_url must be an absolute URL", prefix)
+		}
+	}
+	return nil
+}
+
+var (
+	basicAuthFields   = boolSet("enabled", "default_groups", "users")
+	ldapAuthFields    = boolSet("enabled", "url", "ca_cert_file", "base_dn", "user_template", "bind_dn", "bind_pw", "insecure_ldap", "group_search", "default_groups", "required_groups")
+	proxyAuthFields   = boolSet("enabled", "user_header", "groups_header", "group_separator", "default_groups", "logout_url", "trusted_proxies")
+	entraIDAuthFields = boolSet("enabled", "name", "tenant_id", "issuer_url", "client_id", "client_secret", "redirect_url", "scopes", "username_claim", "groups_claim", "default_groups")
+	oauthAuthFields   = boolSet("enabled", "name", "issuer_url", "auth_url", "token_url", "userinfo_url", "client_id", "client_secret", "redirect_url", "scopes", "username_claim", "groups_claim", "default_groups")
+)
+
+func decodeAuthProviderMap[T any](node *yaml.Node, providerFields map[string]bool, inlineProviderID string) (map[string]T, error) {
+	if node.Kind != yaml.MappingNode {
+		return nil, fmt.Errorf("must be a mapping")
+	}
+	inlineFields, providerKeys := authProviderNodeShape(node, providerFields)
+	if inlineFields && providerKeys {
+		return nil, fmt.Errorf("mixes inline provider settings and named providers")
+	}
+	if inlineFields {
+		var provider T
+		if err := node.Decode(&provider); err != nil {
+			return nil, err
+		}
+		return map[string]T{inlineProviderID: provider}, nil
+	}
+
+	var providers map[string]T
+	if err := node.Decode(&providers); err != nil {
+		return nil, err
+	}
+	return providers, nil
+}
+
+func authProviderNodeShape(node *yaml.Node, providerFields map[string]bool) (inlineFields bool, providerKeys bool) {
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		if providerFields[node.Content[i].Value] {
+			inlineFields = true
+		} else {
+			providerKeys = true
+		}
+	}
+	return inlineFields, providerKeys
 }
 
 func validateRBACPolicy(p RBACPolicy) error {
@@ -577,6 +828,33 @@ func validatePublicURL(raw string) error {
 	}
 	if u.RawQuery != "" || u.Fragment != "" {
 		return fmt.Errorf("must not contain query or fragment")
+	}
+	return nil
+}
+
+func validateLogoutURL(raw string) error {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return nil
+	}
+	if strings.Contains(value, `\`) {
+		return fmt.Errorf("must not contain backslashes")
+	}
+	if strings.HasPrefix(value, "/") {
+		if strings.HasPrefix(value, "//") {
+			return fmt.Errorf("must be a same-origin path or an absolute http or https URL")
+		}
+		return nil
+	}
+	u, err := url.Parse(value)
+	if err != nil {
+		return err
+	}
+	if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return fmt.Errorf("must be a same-origin path or an absolute http or https URL")
+	}
+	if u.User != nil {
+		return fmt.Errorf("must not contain credentials")
 	}
 	return nil
 }
@@ -754,6 +1032,28 @@ func validHostID(id string) bool {
 			continue
 		}
 		lastHyphen = false
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func validAuthProviderID(id string) bool {
+	if id == "" || strings.ContainsAny(id[:1], "-_") || strings.ContainsAny(id[len(id)-1:], "-_") {
+		return false
+	}
+	lastSeparator := false
+	for _, r := range id {
+		if r == '-' || r == '_' {
+			if lastSeparator {
+				return false
+			}
+			lastSeparator = true
+			continue
+		}
+		lastSeparator = false
 		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
 			continue
 		}

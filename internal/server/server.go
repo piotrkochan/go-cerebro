@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -49,8 +50,9 @@ func New(opts Options) *Server {
 	r.Use(maxRequestBody(opts.Cfg.Server.MaxRequestBytes))
 	r.Use(middleware.Compress(5))
 	r.Use(injectHTTPRequest)
+	authorizer := rbac.New(opts.Cfg.RBAC)
 	// Auth gate for API endpoints: requires a session cookie when auth is enabled.
-	r.Use(apiAuthGate(opts.Auth, opts.Cfg.Server, rbac.New(opts.Cfg.RBAC), opts.Cfg.Logging.AuthLogEnabled))
+	r.Use(apiAuthGate(opts.Auth, opts.Cfg.Server, authorizer, opts.Cfg.Logging.AuthLogEnabled))
 
 	cfg := huma.DefaultConfig("Cerebro", "0.0.0")
 	cfg.OpenAPI.Info.Description = "Cerebro — Elasticsearch cluster management UI."
@@ -61,6 +63,7 @@ func New(opts Options) *Server {
 		Client:  opts.Client,
 		History: opts.History,
 		Auth:    opts.Auth,
+		RBAC:    authorizer,
 	}
 
 	clusterAPI := huma.NewGroup(humaAPI, "/clusters/{cluster}")
@@ -243,14 +246,14 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 			}
 			if authorizer.Enabled() && !authMod.Enabled() {
 				auditAccess(r, "authentication_required", auth.Identity{}, "failure", "rbac requires authentication", authLogEnabled)
-				http.Error(w, "authentication required", http.StatusUnauthorized)
+				writeProblem(w, r, serverCfg, http.StatusUnauthorized, "authentication required")
 				return
 			}
 			if authMod.Enabled() {
 				identity, ok := authMod.SessionIdentity(r)
 				if !ok {
 					auditAccess(r, "authentication_required", auth.Identity{}, "failure", "missing or expired session", authLogEnabled)
-					http.Error(w, "authentication required", http.StatusUnauthorized)
+					writeProblem(w, r, serverCfg, http.StatusUnauthorized, "authentication required")
 					return
 				}
 				r = r.WithContext(auth.WithIdentity(r.Context(), identity))
@@ -258,12 +261,12 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 			if serverCfg.CSRFEnabled {
 				if !validRequestOrigin(serverCfg, r) {
 					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid request origin", authLogEnabled)
-					http.Error(w, "invalid request origin", http.StatusForbidden)
+					writeProblem(w, r, serverCfg, http.StatusForbidden, "invalid request origin")
 					return
 				}
 				if !authMod.ValidCSRF(r) {
 					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid csrf token", authLogEnabled)
-					http.Error(w, "invalid csrf token", http.StatusForbidden)
+					writeProblem(w, r, serverCfg, http.StatusForbidden, "invalid csrf token")
 					return
 				}
 			}
@@ -272,7 +275,7 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 				rbacRequest := rbac.Classify(r.Method, r.URL.Path)
 				if !authorizer.Allow(subject, auth.GroupsFrom(r.Context()), rbacRequest) {
 					auditAccess(r, "rbac_denied", auth.IdentityFrom(r.Context()), "failure", fmt.Sprintf("%s:%s:%s", rbacRequest.Resource, rbacRequest.Action, rbacRequest.Object), authLogEnabled)
-					http.Error(w, "authorization denied", http.StatusForbidden)
+					writeProblem(w, r, serverCfg, http.StatusForbidden, "Permission denied.")
 					return
 				}
 			}
@@ -280,6 +283,33 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+type problemResponse struct {
+	Schema string `json:"$schema,omitempty"`
+	Status int    `json:"status"`
+	Title  string `json:"title"`
+	Detail string `json:"detail"`
+}
+
+func writeProblem(w http.ResponseWriter, r *http.Request, serverCfg config.Server, status int, detail string) {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"describedBy\"", schemaURL(serverCfg, r, "ErrorModel")))
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(problemResponse{
+		Schema: schemaURL(serverCfg, r, "ErrorModel"),
+		Status: status,
+		Title:  http.StatusText(status),
+		Detail: detail,
+	})
+}
+
+func schemaURL(serverCfg config.Server, r *http.Request, name string) string {
+	basePath := strings.TrimRight(serverCfg.BasePath, "/")
+	if basePath == "/" {
+		basePath = ""
+	}
+	return requestOrigin(serverCfg, r) + basePath + "/schemas/" + name + ".json"
 }
 
 func auditAccess(r *http.Request, event string, identity auth.Identity, outcome, reason string, enabled bool) {
@@ -291,6 +321,7 @@ func auditAccess(r *http.Request, event string, identity auth.Identity, outcome,
 		"outcome", outcome,
 		"user", identity.Username,
 		"provider", identity.Provider,
+		"provider_id", identity.ProviderID,
 		"method", r.Method,
 		"path", r.URL.Path,
 		"remote_addr", r.RemoteAddr,

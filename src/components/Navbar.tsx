@@ -1,4 +1,4 @@
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { useStore } from '@tanstack/react-store';
 
@@ -38,7 +38,6 @@ export function Navbar({
   status: string;
 }) {
   const auth = useStore(authStore);
-  const navigate = useNavigate();
   const [healthOpen, setHealthOpen] = useState(false);
   const [fixConfirm, setFixConfirm] = useState<ClusterHealthFix | null>(null);
   useEffect(() => {
@@ -65,7 +64,6 @@ export function Navbar({
     alertsActions.clear();
     await logout();
     sessionActions.disconnect();
-    void navigate({ to: '/login' });
   }
 
   if (!connected) return null;

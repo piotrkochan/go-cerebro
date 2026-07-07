@@ -14,7 +14,9 @@ import (
 func TestAPIMiddleware_ReturnsUnauthorizedWithoutSession(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+			Basic: map[string]config.BasicAuth{
+				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+			},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
 	})
@@ -39,7 +41,9 @@ func TestNewEntraIDProviderRequiresSettings(t *testing.T) {
 func TestNewModuleEnablesEntraID(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			EntraID: config.EntraIDAuth{Enabled: true, TenantID: "example.onmicrosoft.com", ClientID: "client", ClientSecret: "secret"},
+			EntraID: map[string]config.EntraIDAuth{
+				config.DefaultAuthProviderID: {Enabled: true, TenantID: "example.onmicrosoft.com", ClientID: "client", ClientSecret: "secret"},
+			},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
 	})
@@ -58,13 +62,15 @@ func TestNewOAuthProviderRequiresSettings(t *testing.T) {
 func TestNewModuleEnablesOAuth(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			OAuth: config.OAuthAuth{
-				Enabled:      true,
-				AuthURL:      "https://auth.example.org/authorize",
-				TokenURL:     "https://auth.example.org/token",
-				UserInfoURL:  "https://auth.example.org/userinfo",
-				ClientID:     "client",
-				ClientSecret: "secret",
+			OAuth: map[string]config.OAuthAuth{
+				config.DefaultAuthProviderID: {
+					Enabled:      true,
+					AuthURL:      "https://auth.example.org/authorize",
+					TokenURL:     "https://auth.example.org/token",
+					UserInfoURL:  "https://auth.example.org/userinfo",
+					ClientID:     "client",
+					ClientSecret: "secret",
+				},
 			},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
@@ -252,7 +258,9 @@ func testModule(t *testing.T) *Module {
 	t.Helper()
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			Basic: config.BasicAuth{Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+			Basic: map[string]config.BasicAuth{
+				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+			},
 		},
 		Server: config.Server{BasePath: "/", Secret: "test-secret"},
 	})

@@ -12,6 +12,11 @@ type ConnectIn struct {
 	Body HostBody
 }
 
+type ConnectHostsResponse struct {
+	Items           []config.HostRef `json:"items" doc:"Configured Elasticsearch hosts."`
+	AllowAdHocHosts bool             `json:"allow_ad_hoc_hosts" doc:"Whether users may enter an arbitrary Elasticsearch URL."`
+}
+
 func (d *Deps) RegisterConnect(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "connect-hosts",
@@ -20,8 +25,12 @@ func (d *Deps) RegisterConnect(api huma.API) {
 		Summary:     "List configured hosts",
 		Description: "Returns the names of the Elasticsearch hosts configured in Cerebro.",
 		Tags:        []string{"connect"},
-	}, func(ctx context.Context, _ *struct{}) (*Output[List[config.HostRef]], error) {
-		return okList(200, d.Cfg.HostRefs())
+	}, func(ctx context.Context, _ *struct{}) (*Output[ConnectHostsResponse], error) {
+		refs := d.Cfg.HostRefs()
+		if refs == nil {
+			refs = []config.HostRef{}
+		}
+		return ok(200, ConnectHostsResponse{Items: refs, AllowAdHocHosts: d.Cfg.ES.AllowAdHocHosts})
 	})
 
 	huma.Register(api, huma.Operation{

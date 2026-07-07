@@ -16,6 +16,7 @@ type AuthState = {
   loaded: boolean;
   permissions: AuthPermission[];
   provider: string;
+  providerId: string;
   providers: {
     entraid: boolean;
     oauth: boolean;
@@ -33,6 +34,7 @@ const defaultState = (): AuthState => ({
   loaded: false,
   permissions: [],
   provider: '',
+  providerId: '',
   providers: {
     entraid: false,
     oauth: false,
@@ -61,6 +63,7 @@ export const authActions = {
       loaded: true,
       permissions: permissions(status.permissions),
       provider: text(status.provider),
+      providerId: text(status.provider_id),
       providers: {
         entraid: status.providers?.entraid === true,
         oauth: status.providers?.oauth === true,

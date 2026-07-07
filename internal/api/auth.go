@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/lmenezes/cerebro/internal/auth"
 	"github.com/lmenezes/cerebro/internal/config"
 )
@@ -19,16 +21,41 @@ import (
 func (d *Deps) RegisterAuth(api huma.API, mux interface {
 	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
 }) {
-	// We register login/logout directly on chi (mux) instead of via Huma — they need flexible
-	// content-type handling (form vs JSON) and cookie writing on the http.ResponseWriter.
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-logout",
+		Method:      http.MethodPost,
+		Path:        "/auth/logout",
+		Summary:     "Log out",
+		Description: "Clears the current Cerebro session and returns the URL the frontend should navigate to.",
+		Tags:        []string{"auth"},
+	}, func(ctx context.Context, _ *struct{}) (*LogoutOutput, error) {
+		return d.logout(ctx)
+	})
+
+	// Browser login/callback flows stay on chi because they need flexible content-type handling
+	// and redirects that are not part of the JSON API surface.
 	mux.HandleFunc("GET /auth/status", d.handleAuthStatus)
 	mux.HandleFunc("GET /auth/me", d.handleAuthMe)
 	mux.HandleFunc("POST /auth/login", d.handleLogin)
 	mux.HandleFunc("GET /auth/entraid/login", d.handleEntraIDLogin)
 	mux.HandleFunc("GET /auth/entraid/callback", d.handleEntraIDCallback)
+	mux.HandleFunc("GET /auth/entraid/{provider}/login", d.handleEntraIDLogin)
+	mux.HandleFunc("GET /auth/entraid/{provider}/callback", d.handleEntraIDCallback)
 	mux.HandleFunc("GET /auth/oauth/login", d.handleOAuthLogin)
 	mux.HandleFunc("GET /auth/oauth/callback", d.handleOAuthCallback)
-	mux.HandleFunc("POST /auth/logout", d.handleLogout)
+	mux.HandleFunc("GET /auth/oauth/{provider}/login", d.handleOAuthLogin)
+	mux.HandleFunc("GET /auth/oauth/{provider}/callback", d.handleOAuthCallback)
+}
+
+type LogoutResponse struct {
+	Schema      string `json:"$schema,omitempty" doc:"JSON schema URL for this response."`
+	RedirectURL string `json:"redirect_url" doc:"URL the frontend should navigate to after logout."`
+}
+
+type LogoutOutput struct {
+	Status    int
+	SetCookie []string       `header:"Set-Cookie" hidden:"true"`
+	Body      LogoutResponse `json:"body"`
 }
 
 func (d *Deps) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
@@ -62,11 +89,13 @@ func (d *Deps) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
 		"provider_names": map[string]string{
 			"oauth": d.Auth.OAuthName(),
 		},
-		"groups":      identity.Groups,
-		"permissions": authPermissions(d.Cfg.RBAC, identity),
-		"provider":    identity.Provider,
-		"roles":       authRoles(d.Cfg.RBAC, identity),
-		"user":        identity.Username,
+		"external_providers": d.Auth.ExternalLoginProviders(),
+		"groups":             identity.Groups,
+		"permissions":        authPermissions(d.Cfg.RBAC, identity),
+		"provider":           identity.Provider,
+		"provider_id":        identity.ProviderID,
+		"roles":              authRoles(d.Cfg.RBAC, identity),
+		"user":               identity.Username,
 	})
 }
 
@@ -87,40 +116,43 @@ func (d *Deps) handleAuthMe(w http.ResponseWriter, r *http.Request) {
 		"groups":        identity.Groups,
 		"permissions":   authPermissions(d.Cfg.RBAC, identity),
 		"provider":      identity.Provider,
+		"provider_id":   identity.ProviderID,
 		"roles":         authRoles(d.Cfg.RBAC, identity),
 		"user":          identity.Username,
 	})
 }
 
 func (d *Deps) handleEntraIDLogin(w http.ResponseWriter, r *http.Request) {
-	callbackURL := d.entraIDCallbackURL(r)
+	providerID := d.externalProviderID(r, "entra_id")
+	callbackURL := d.entraIDCallbackURL(r, providerID)
 	returnPath := r.URL.Query().Get("redirect")
 	if returnPath == "" {
 		returnPath = "/"
 	}
-	authURL, err := d.Auth.BeginEntraIDLogin(w, r, callbackURL, returnPath)
+	authURL, err := d.Auth.BeginEntraIDLogin(providerID, w, r, callbackURL, returnPath)
 	if err != nil {
 		d.auditAuth(r, "entraid_login_start_failed", auth.Identity{}, "failure", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	d.auditAuth(r, "entraid_login_started", auth.Identity{Provider: "entra_id"}, "success", "")
+	d.auditAuth(r, "entraid_login_started", auth.Identity{Provider: "entra_id", ProviderID: providerID}, "success", "")
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
 func (d *Deps) handleEntraIDCallback(w http.ResponseWriter, r *http.Request) {
+	providerID := d.externalProviderID(r, "entra_id")
 	if authErr := r.URL.Query().Get("error"); authErr != "" {
-		d.auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id"}, "failure", authErr)
-		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
+		d.auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id", ProviderID: providerID}, "failure", authErr)
+		http.Redirect(w, r, basePathFor(d, "/#/login?error=external"), http.StatusSeeOther)
 		return
 	}
-	redirect, err := d.Auth.CompleteEntraIDLogin(w, r, d.entraIDCallbackURL(r))
+	redirect, err := d.Auth.CompleteEntraIDLogin(providerID, w, r, d.entraIDCallbackURL(r, providerID))
 	if err != nil {
-		d.auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id"}, "failure", err.Error())
-		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
+		d.auditAuth(r, "entraid_login_failed", auth.Identity{Provider: "entra_id", ProviderID: providerID}, "failure", err.Error())
+		http.Redirect(w, r, basePathFor(d, "/#/login?error=external"), http.StatusSeeOther)
 		return
 	}
-	d.auditAuth(r, "entraid_login_succeeded", auth.Identity{Provider: "entra_id"}, "success", "")
+	d.auditAuth(r, "entraid_login_succeeded", auth.Identity{Provider: "entra_id", ProviderID: providerID}, "success", "")
 	if redirect == "" {
 		redirect = basePathFor(d, "/")
 	}
@@ -175,45 +207,61 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *Deps) handleOAuthLogin(w http.ResponseWriter, r *http.Request) {
-	callbackURL := d.oauthCallbackURL(r)
+	providerID := d.externalProviderID(r, "oauth")
+	callbackURL := d.oauthCallbackURL(r, providerID)
 	returnPath := r.URL.Query().Get("redirect")
 	if returnPath == "" {
 		returnPath = "/"
 	}
-	authURL, err := d.Auth.BeginOAuthLogin(w, r, callbackURL, returnPath)
+	authURL, err := d.Auth.BeginOAuthLogin(providerID, w, r, callbackURL, returnPath)
 	if err != nil {
 		d.auditAuth(r, "oauth_login_start_failed", auth.Identity{}, "failure", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	d.auditAuth(r, "oauth_login_started", auth.Identity{Provider: "oauth"}, "success", "")
+	d.auditAuth(r, "oauth_login_started", auth.Identity{Provider: "oauth", ProviderID: providerID}, "success", "")
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
 func (d *Deps) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
+	providerID := d.externalProviderID(r, "oauth")
 	if authErr := r.URL.Query().Get("error"); authErr != "" {
-		d.auditAuth(r, "oauth_login_failed", auth.Identity{Provider: "oauth"}, "failure", authErr)
-		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
+		d.auditAuth(r, "oauth_login_failed", auth.Identity{Provider: "oauth", ProviderID: providerID}, "failure", authErr)
+		http.Redirect(w, r, basePathFor(d, "/#/login?error=external"), http.StatusSeeOther)
 		return
 	}
-	redirect, err := d.Auth.CompleteOAuthLogin(w, r, d.oauthCallbackURL(r))
+	redirect, err := d.Auth.CompleteOAuthLogin(providerID, w, r, d.oauthCallbackURL(r, providerID))
 	if err != nil {
-		d.auditAuth(r, "oauth_login_failed", auth.Identity{Provider: "oauth"}, "failure", err.Error())
-		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
+		d.auditAuth(r, "oauth_login_failed", auth.Identity{Provider: "oauth", ProviderID: providerID}, "failure", err.Error())
+		http.Redirect(w, r, basePathFor(d, "/#/login?error=external"), http.StatusSeeOther)
 		return
 	}
-	d.auditAuth(r, "oauth_login_succeeded", auth.Identity{Provider: "oauth"}, "success", "")
+	d.auditAuth(r, "oauth_login_succeeded", auth.Identity{Provider: "oauth", ProviderID: providerID}, "success", "")
 	if redirect == "" {
 		redirect = basePathFor(d, "/")
 	}
 	http.Redirect(w, r, redirect, http.StatusSeeOther) // #nosec G710 -- redirect is same-origin absolute path from auth.CompleteOAuthLogin.
 }
 
-func (d *Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
+func (d *Deps) logout(ctx context.Context) (*LogoutOutput, error) {
+	r := httpRequest(ctx)
+	if r == nil {
+		return nil, huma.Error500InternalServerError("request context missing")
+	}
 	identity, _ := d.Auth.SessionIdentity(r)
-	_ = d.Auth.ClearSession(w, r)
+	setCookies, err := d.Auth.ClearSessionCookies(r)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
+	}
 	d.auditAuth(r, "logout", identity, "success", "")
-	http.Redirect(w, r, basePathFor(d, "/#/login"), http.StatusSeeOther)
+	return &LogoutOutput{
+		Status:    http.StatusOK,
+		SetCookie: setCookies,
+		Body: LogoutResponse{
+			Schema:      apiSchemaURL(d.Cfg.Server, r, "LogoutResponse"),
+			RedirectURL: d.Auth.LogoutRedirectURL(identity, basePathFor(d, "/#/login")),
+		},
+	}, nil
 }
 
 func (d *Deps) auditAuth(r *http.Request, event string, identity auth.Identity, outcome, reason string) {
@@ -225,6 +273,7 @@ func (d *Deps) auditAuth(r *http.Request, event string, identity auth.Identity, 
 		"outcome", outcome,
 		"user", identity.Username,
 		"provider", identity.Provider,
+		"provider_id", identity.ProviderID,
 		"remote_addr", r.RemoteAddr,
 	}
 	if reason != "" {
@@ -328,18 +377,44 @@ func basePathFor(d *Deps, suffix string) string {
 	return prefix + suffix
 }
 
-func (d *Deps) entraIDCallbackURL(r *http.Request) string {
-	if configured := d.Auth.EntraIDRedirectURL(); configured != "" {
-		return configured
+func apiSchemaURL(serverCfg config.Server, r *http.Request, name string) string {
+	basePath := strings.TrimRight(serverCfg.BasePath, "/")
+	if basePath == "/" {
+		basePath = ""
 	}
-	return requestOrigin(d.Cfg.Server, r) + basePathFor(d, "/auth/entraid/callback")
+	return requestOrigin(serverCfg, r) + basePath + "/schemas/" + name + ".json"
 }
 
-func (d *Deps) oauthCallbackURL(r *http.Request) string {
-	if configured := d.Auth.OAuthRedirectURL(); configured != "" {
+func (d *Deps) entraIDCallbackURL(r *http.Request, providerID string) string {
+	if configured := d.Auth.EntraIDRedirectURL(providerID); configured != "" {
 		return configured
 	}
-	return requestOrigin(d.Cfg.Server, r) + basePathFor(d, "/auth/oauth/callback")
+	if providerID == "" {
+		return requestOrigin(d.Cfg.Server, r) + basePathFor(d, "/auth/entraid/callback")
+	}
+	return requestOrigin(d.Cfg.Server, r) + basePathFor(d, "/auth/entraid/"+providerID+"/callback")
+}
+
+func (d *Deps) oauthCallbackURL(r *http.Request, providerID string) string {
+	if configured := d.Auth.OAuthRedirectURL(providerID); configured != "" {
+		return configured
+	}
+	if providerID == "" {
+		return requestOrigin(d.Cfg.Server, r) + basePathFor(d, "/auth/oauth/callback")
+	}
+	return requestOrigin(d.Cfg.Server, r) + basePathFor(d, "/auth/oauth/"+providerID+"/callback")
+}
+
+func (d *Deps) externalProviderID(r *http.Request, kind string) string {
+	if providerID := chi.URLParam(r, "provider"); providerID != "" {
+		return providerID
+	}
+	for _, provider := range d.Auth.ExternalLoginProviders() {
+		if provider.Kind == kind {
+			return provider.ID
+		}
+	}
+	return ""
 }
 
 func requestOrigin(serverCfg config.Server, r *http.Request) string {

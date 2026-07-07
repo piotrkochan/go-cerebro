@@ -16,6 +16,8 @@ hosts:
     headers_whitelist: ["x-proxy-user", "x-proxy-roles", "X-Forwarded-For"]
 
 # Application authentication. Enable one or more providers.
+# A single provider can use the short form below. Multiple providers of the same
+# type use named maps, for example auth.basic.local_admins.enabled.
 auth:
   session:
     # 0 disables a limit.
@@ -74,7 +76,7 @@ auth:
     client_secret: "${ENTRA_ID_CLIENT_SECRET}"
     # Optional. If empty, Cerebro derives it from the incoming request.
     # Register the exact URL in Entra ID app registration redirect URIs.
-    # redirect_url: "https://cerebro.example.org/auth/entraid/callback"
+    # redirect_url: "https://cerebro.example.org/auth/entraid/entra_id/callback"
     username_claim: "preferred_username"
     groups_claim: "groups"
     scopes: ["openid", "profile", "email"]
@@ -92,7 +94,7 @@ auth:
     client_id: "${OAUTH_CLIENT_ID}"
     client_secret: "${OAUTH_CLIENT_SECRET}"
     # Optional. If empty, Cerebro derives it from the incoming request.
-    # redirect_url: "https://cerebro.example.org/auth/oauth/callback"
+    # redirect_url: "https://cerebro.example.org/auth/oauth/oauth/callback"
     username_claim: "preferred_username"
     groups_claim: "groups"
     scopes: ["openid", "profile", "email"]
@@ -154,10 +156,10 @@ rbac:
   # Optional backend authorization. Authentication identifies the user; RBAC decides
   # which API resources/actions that user can call.
   enabled: false
-  default_role: "role:viewer"
   bindings:
     - {subject: "admin", role: "role:admin"}
     - {subject: "group:cerebro-admins", role: "role:admin"}
+    - {subject: "group:cerebro-viewers", role: "role:viewer"}
   policies:
     # Cerebro-feature policy shape: subject + resource + action + object + effect.
     # Policies are evaluated by Casbin. Wildcards use shell-style matching.

@@ -14,6 +14,7 @@ func TestProxyAuthenticatorIdentity(t *testing.T) {
 		UserHeader:     "X-Forwarded-User",
 		GroupsHeader:   "X-Forwarded-Groups",
 		GroupSeparator: ",",
+		DefaultGroups:  []string{"cerebro-viewers", "developers"},
 		TrustedProxies: []string{"127.0.0.1/32"},
 	})
 	require.NoError(t, err)
@@ -27,7 +28,7 @@ func TestProxyAuthenticatorIdentity(t *testing.T) {
 
 	require.True(t, ok)
 	assert.Equal(t, "alice@example.com", identity.Username)
-	assert.Equal(t, []string{"cerebro-admins", "developers"}, identity.Groups)
+	assert.Equal(t, []string{"cerebro-viewers", "developers", "cerebro-admins"}, identity.Groups)
 }
 
 func TestProxyAuthenticatorUsesOAuthProxyFallbackHeaders(t *testing.T) {
@@ -45,6 +46,24 @@ func TestProxyAuthenticatorUsesOAuthProxyFallbackHeaders(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "alice", identity.Username)
 	assert.Equal(t, "proxy", identity.Provider)
+	assert.Empty(t, identity.ProviderID)
+}
+
+func TestNamedProxyAuthenticatorReportsProviderID(t *testing.T) {
+	proxy, err := NewNamedProxyAuthenticator("github", config.ProxyAuth{
+		UserHeader:     "X-Forwarded-User",
+		TrustedProxies: []string{"127.0.0.1/32"},
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest("GET", "http://example.test/auth/status", nil)
+	req.RemoteAddr = "127.0.0.1:12345"
+	req.Header.Set("X-Forwarded-User", "alice")
+
+	identity, ok := proxy.Identity(req)
+
+	require.True(t, ok)
+	assert.Equal(t, "proxy", identity.Provider)
+	assert.Equal(t, "github", identity.ProviderID)
 }
 
 func TestProxyAuthenticatorRejectsUntrustedRemote(t *testing.T) {

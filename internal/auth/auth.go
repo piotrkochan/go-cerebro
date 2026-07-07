@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ const (
 	SessionUserKey        = "username"
 	SessionGroupsKey      = "groups"
 	SessionProviderKey    = "provider"
+	SessionProviderIDKey  = "provider_id"
 	SessionCSRFKey        = "csrf"
 	SessionIssuedAtKey    = "issued_at"
 	SessionLastSeenKey    = "last_seen"
@@ -36,12 +38,36 @@ type Service interface {
 }
 
 type Identity struct {
-	Username string
-	Groups   []string
-	Provider string
+	Username   string
+	Groups     []string
+	Provider   string
+	ProviderID string
+}
+
+type LoginProvider struct {
+	ID        string `json:"id"`
+	Kind      string `json:"kind"`
+	LoginPath string `json:"login_path"`
+	Name      string `json:"name"`
 }
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
+
+type namedService struct {
+	provider   string
+	providerID string
+	service    Service
+}
+
+func (s namedService) Authenticate(username, password string) (Identity, error) {
+	identity, err := s.service.Authenticate(username, password)
+	if err != nil {
+		return Identity{}, err
+	}
+	identity.Provider = s.provider
+	identity.ProviderID = s.providerID
+	return identity, nil
+}
 
 type ctxIdentityKey struct{}
 
@@ -72,8 +98,8 @@ func IdentityFrom(ctx context.Context) Identity {
 
 type Module struct {
 	enabled       bool
-	entraID       *EntraIDProvider
-	oauth         *OAuthProvider
+	entraID       map[string]*EntraIDProvider
+	oauth         map[string]*OAuthProvider
 	proxies       []*ProxyAuthenticator
 	services      []Service
 	store         *sessions.CookieStore
@@ -96,46 +122,68 @@ func NewModule(cfg *config.Config) (*Module, error) {
 	}
 
 	m := &Module{
+		entraID:       map[string]*EntraIDProvider{},
+		oauth:         map[string]*OAuthProvider{},
 		store:         store,
 		sessionMaxAge: secondsDuration(cfg.Auth.Session.MaxLifetimeSeconds),
 		sessionIdle:   secondsDuration(cfg.Auth.Session.IdleTimeoutSeconds),
 	}
-	if cfg.Auth.Basic.Enabled {
-		svc, err := NewBasicService(cfg.Auth.Basic)
+	for _, providerID := range providerIDs(cfg.Auth.Basic) {
+		settings := cfg.Auth.Basic[providerID]
+		if !settings.Enabled {
+			continue
+		}
+		svc, err := NewBasicService(settings)
 		if err != nil {
 			return nil, err
 		}
-		m.services = append(m.services, svc)
+		m.services = append(m.services, namedService{provider: "basic", providerID: providerID, service: svc})
 	}
-	if cfg.Auth.LDAP.Enabled {
-		svc, err := NewLDAPService(cfg.Auth.LDAP)
+	for _, providerID := range providerIDs(cfg.Auth.LDAP) {
+		settings := cfg.Auth.LDAP[providerID]
+		if !settings.Enabled {
+			continue
+		}
+		svc, err := NewLDAPService(settings)
 		if err != nil {
 			return nil, err
 		}
-		m.services = append(m.services, svc)
+		m.services = append(m.services, namedService{provider: "ldap", providerID: providerID, service: svc})
 	}
-	if cfg.Auth.Proxy.Enabled {
-		proxy, err := NewProxyAuthenticator(cfg.Auth.Proxy)
+	for _, providerID := range providerIDs(cfg.Auth.Proxy) {
+		settings := cfg.Auth.Proxy[providerID]
+		if !settings.Enabled {
+			continue
+		}
+		proxy, err := NewNamedProxyAuthenticator(providerID, settings)
 		if err != nil {
 			return nil, err
 		}
 		m.proxies = append(m.proxies, proxy)
 	}
-	if cfg.Auth.EntraID.Enabled {
-		provider, err := NewEntraIDProvider(cfg.Auth.EntraID)
+	for _, providerID := range providerIDs(cfg.Auth.EntraID) {
+		settings := cfg.Auth.EntraID[providerID]
+		if !settings.Enabled {
+			continue
+		}
+		provider, err := NewEntraIDProvider(settings)
 		if err != nil {
 			return nil, err
 		}
-		m.entraID = provider
+		m.entraID[providerID] = provider
 	}
-	if cfg.Auth.OAuth.Enabled {
-		provider, err := NewOAuthProvider(cfg.Auth.OAuth)
+	for _, providerID := range providerIDs(cfg.Auth.OAuth) {
+		settings := cfg.Auth.OAuth[providerID]
+		if !settings.Enabled {
+			continue
+		}
+		provider, err := NewOAuthProvider(settings)
 		if err != nil {
 			return nil, err
 		}
-		m.oauth = provider
+		m.oauth[providerID] = provider
 	}
-	m.enabled = len(m.services) > 0 || len(m.proxies) > 0 || m.entraID != nil || m.oauth != nil
+	m.enabled = len(m.services) > 0 || len(m.proxies) > 0 || len(m.entraID) > 0 || len(m.oauth) > 0
 	return m, nil
 }
 
@@ -143,29 +191,68 @@ func (m *Module) Enabled() bool { return m.enabled }
 
 func (m *Module) PasswordLoginEnabled() bool { return len(m.services) > 0 }
 
-func (m *Module) EntraIDEnabled() bool { return m.entraID != nil }
+func (m *Module) EntraIDEnabled() bool { return len(m.entraID) > 0 }
 
-func (m *Module) OAuthEnabled() bool { return m.oauth != nil }
+func (m *Module) OAuthEnabled() bool { return len(m.oauth) > 0 }
 
 func (m *Module) OAuthName() string {
-	if m.oauth == nil {
+	provider, ok := firstProvider(m.oauth)
+	if !ok {
 		return ""
 	}
-	return m.oauth.Name()
+	return provider.Name()
 }
 
-func (m *Module) EntraIDRedirectURL() string {
-	if m.entraID == nil {
-		return ""
+func (m *Module) ExternalLoginProviders() []LoginProvider {
+	providers := make([]LoginProvider, 0, len(m.entraID)+len(m.oauth))
+	for _, providerID := range sortedMapKeys(m.entraID) {
+		provider := m.entraID[providerID]
+		providers = append(providers, LoginProvider{
+			ID:        providerID,
+			Kind:      "entra_id",
+			LoginPath: "/auth/entraid/" + providerID + "/login",
+			Name:      provider.Name(),
+		})
 	}
-	return m.entraID.ConfiguredRedirectURL()
+	for _, providerID := range sortedMapKeys(m.oauth) {
+		provider := m.oauth[providerID]
+		providers = append(providers, LoginProvider{
+			ID:        providerID,
+			Kind:      "oauth",
+			LoginPath: "/auth/oauth/" + providerID + "/login",
+			Name:      provider.Name(),
+		})
+	}
+	return providers
 }
 
-func (m *Module) OAuthRedirectURL() string {
-	if m.oauth == nil {
+func (m *Module) EntraIDRedirectURL(providerID string) string {
+	provider, ok := m.entraID[providerID]
+	if !ok {
 		return ""
 	}
-	return m.oauth.ConfiguredRedirectURL()
+	return provider.ConfiguredRedirectURL()
+}
+
+func (m *Module) OAuthRedirectURL(providerID string) string {
+	provider, ok := m.oauth[providerID]
+	if !ok {
+		return ""
+	}
+	return provider.ConfiguredRedirectURL()
+}
+
+func (m *Module) LogoutRedirectURL(identity Identity, fallback string) string {
+	if identity.Provider == "proxy" {
+		for _, proxy := range m.proxies {
+			if proxy.ProviderID() == identity.ProviderID {
+				if logoutURL := proxy.LogoutURL(); logoutURL != "" {
+					return logoutURL
+				}
+			}
+		}
+	}
+	return fallback
 }
 
 func (m *Module) Store() *sessions.CookieStore { return m.store }
@@ -213,7 +300,8 @@ func (m *Module) SessionIdentity(r *http.Request) (Identity, bool) {
 		return Identity{}, false
 	}
 	provider, _ := sess.Values[SessionProviderKey].(string)
-	return Identity{Username: s, Groups: sessionGroups(sess.Values[SessionGroupsKey]), Provider: provider}, true
+	providerID, _ := sess.Values[SessionProviderIDKey].(string)
+	return Identity{Username: s, Groups: sessionGroups(sess.Values[SessionGroupsKey]), Provider: provider, ProviderID: providerID}, true
 }
 
 func (m *Module) SetSessionUser(w http.ResponseWriter, r *http.Request, username string) error {
@@ -226,6 +314,7 @@ func (m *Module) SetSessionIdentity(w http.ResponseWriter, r *http.Request, iden
 	sess.Values[SessionUserKey] = identity.Username
 	sess.Values[SessionGroupsKey] = identity.Groups
 	sess.Values[SessionProviderKey] = identity.Provider
+	sess.Values[SessionProviderIDKey] = identity.ProviderID
 	now := time.Now().Unix()
 	sess.Values[SessionIssuedAtKey] = now
 	sess.Values[SessionLastSeenKey] = now
@@ -253,8 +342,9 @@ func (m *Module) TouchSession(w http.ResponseWriter, r *http.Request) error {
 	return sess.Save(r, w)
 }
 
-func (m *Module) BeginEntraIDLogin(w http.ResponseWriter, r *http.Request, callbackURL, returnPath string) (string, error) {
-	if m.entraID == nil {
+func (m *Module) BeginEntraIDLogin(providerID string, w http.ResponseWriter, r *http.Request, callbackURL, returnPath string) (string, error) {
+	provider, ok := m.entraID[providerID]
+	if !ok {
 		return "", errors.New("entra id authentication not enabled")
 	}
 	state, err := newCSRFToken()
@@ -266,21 +356,22 @@ func (m *Module) BeginEntraIDLogin(w http.ResponseWriter, r *http.Request, callb
 		return "", err
 	}
 	sess, _ := m.store.Get(r, SessionName)
-	sess.Values[SessionEntraStateKey] = state
-	sess.Values[SessionEntraNonceKey] = nonce
+	sess.Values[sessionFlowKey(SessionEntraStateKey, providerID)] = state
+	sess.Values[sessionFlowKey(SessionEntraNonceKey, providerID)] = nonce
 	if safe := safeRedirect(returnPath); safe != "" {
-		sess.Values[SessionEntraReturnKey] = safe
+		sess.Values[sessionFlowKey(SessionEntraReturnKey, providerID)] = safe
 	} else {
-		delete(sess.Values, SessionEntraReturnKey)
+		delete(sess.Values, sessionFlowKey(SessionEntraReturnKey, providerID))
 	}
 	if err := sess.Save(r, w); err != nil {
 		return "", err
 	}
-	return m.entraID.AuthCodeURL(r.Context(), callbackURL, state, nonce)
+	return provider.AuthCodeURL(r.Context(), callbackURL, state, nonce)
 }
 
-func (m *Module) CompleteEntraIDLogin(w http.ResponseWriter, r *http.Request, callbackURL string) (string, error) {
-	if m.entraID == nil {
+func (m *Module) CompleteEntraIDLogin(providerID string, w http.ResponseWriter, r *http.Request, callbackURL string) (string, error) {
+	provider, ok := m.entraID[providerID]
+	if !ok {
 		return "", errors.New("entra id authentication not enabled")
 	}
 	code := strings.TrimSpace(r.URL.Query().Get("code"))
@@ -291,23 +382,26 @@ func (m *Module) CompleteEntraIDLogin(w http.ResponseWriter, r *http.Request, ca
 	if err != nil {
 		return "", err
 	}
-	state, ok := sess.Values[SessionEntraStateKey].(string)
+	state, ok := sess.Values[sessionFlowKey(SessionEntraStateKey, providerID)].(string)
 	if !ok || state == "" || !subtleConstantTimeEqual(r.URL.Query().Get("state"), state) {
 		return "", ErrInvalidCredentials
 	}
-	nonce, ok := sess.Values[SessionEntraNonceKey].(string)
+	nonce, ok := sess.Values[sessionFlowKey(SessionEntraNonceKey, providerID)].(string)
 	if !ok || nonce == "" {
 		return "", ErrInvalidCredentials
 	}
-	returnPath, _ := sess.Values[SessionEntraReturnKey].(string)
-	identity, err := m.entraID.Exchange(r.Context(), callbackURL, code, nonce)
+	returnPath, _ := sess.Values[sessionFlowKey(SessionEntraReturnKey, providerID)].(string)
+	identity, err := provider.Exchange(r.Context(), callbackURL, code, nonce)
 	if err != nil {
 		return "", err
 	}
+	identity.Provider = "entra_id"
+	identity.ProviderID = providerID
 	resetSession(sess)
 	sess.Values[SessionUserKey] = identity.Username
 	sess.Values[SessionGroupsKey] = identity.Groups
 	sess.Values[SessionProviderKey] = identity.Provider
+	sess.Values[SessionProviderIDKey] = identity.ProviderID
 	now := time.Now().Unix()
 	sess.Values[SessionIssuedAtKey] = now
 	sess.Values[SessionLastSeenKey] = now
@@ -316,9 +410,9 @@ func (m *Module) CompleteEntraIDLogin(w http.ResponseWriter, r *http.Request, ca
 		return "", err
 	}
 	sess.Values[SessionCSRFKey] = token
-	delete(sess.Values, SessionEntraStateKey)
-	delete(sess.Values, SessionEntraNonceKey)
-	delete(sess.Values, SessionEntraReturnKey)
+	delete(sess.Values, sessionFlowKey(SessionEntraStateKey, providerID))
+	delete(sess.Values, sessionFlowKey(SessionEntraNonceKey, providerID))
+	delete(sess.Values, sessionFlowKey(SessionEntraReturnKey, providerID))
 	delete(sess.Values, RedirectURL)
 	if err := sess.Save(r, w); err != nil {
 		return "", err
@@ -326,8 +420,9 @@ func (m *Module) CompleteEntraIDLogin(w http.ResponseWriter, r *http.Request, ca
 	return safeRedirect(returnPath), nil
 }
 
-func (m *Module) BeginOAuthLogin(w http.ResponseWriter, r *http.Request, callbackURL, returnPath string) (string, error) {
-	if m.oauth == nil {
+func (m *Module) BeginOAuthLogin(providerID string, w http.ResponseWriter, r *http.Request, callbackURL, returnPath string) (string, error) {
+	provider, ok := m.oauth[providerID]
+	if !ok {
 		return "", errors.New("oauth authentication not enabled")
 	}
 	state, err := newCSRFToken()
@@ -339,21 +434,22 @@ func (m *Module) BeginOAuthLogin(w http.ResponseWriter, r *http.Request, callbac
 		return "", err
 	}
 	sess, _ := m.store.Get(r, SessionName)
-	sess.Values[SessionOAuthStateKey] = state
-	sess.Values[SessionOAuthNonceKey] = nonce
+	sess.Values[sessionFlowKey(SessionOAuthStateKey, providerID)] = state
+	sess.Values[sessionFlowKey(SessionOAuthNonceKey, providerID)] = nonce
 	if safe := safeRedirect(returnPath); safe != "" {
-		sess.Values[SessionOAuthReturnKey] = safe
+		sess.Values[sessionFlowKey(SessionOAuthReturnKey, providerID)] = safe
 	} else {
-		delete(sess.Values, SessionOAuthReturnKey)
+		delete(sess.Values, sessionFlowKey(SessionOAuthReturnKey, providerID))
 	}
 	if err := sess.Save(r, w); err != nil {
 		return "", err
 	}
-	return m.oauth.AuthCodeURL(r.Context(), callbackURL, state, nonce)
+	return provider.AuthCodeURL(r.Context(), callbackURL, state, nonce)
 }
 
-func (m *Module) CompleteOAuthLogin(w http.ResponseWriter, r *http.Request, callbackURL string) (string, error) {
-	if m.oauth == nil {
+func (m *Module) CompleteOAuthLogin(providerID string, w http.ResponseWriter, r *http.Request, callbackURL string) (string, error) {
+	provider, ok := m.oauth[providerID]
+	if !ok {
 		return "", errors.New("oauth authentication not enabled")
 	}
 	code := strings.TrimSpace(r.URL.Query().Get("code"))
@@ -364,23 +460,26 @@ func (m *Module) CompleteOAuthLogin(w http.ResponseWriter, r *http.Request, call
 	if err != nil {
 		return "", err
 	}
-	state, ok := sess.Values[SessionOAuthStateKey].(string)
+	state, ok := sess.Values[sessionFlowKey(SessionOAuthStateKey, providerID)].(string)
 	if !ok || state == "" || !subtleConstantTimeEqual(r.URL.Query().Get("state"), state) {
 		return "", ErrInvalidCredentials
 	}
-	nonce, ok := sess.Values[SessionOAuthNonceKey].(string)
+	nonce, ok := sess.Values[sessionFlowKey(SessionOAuthNonceKey, providerID)].(string)
 	if !ok || nonce == "" {
 		return "", ErrInvalidCredentials
 	}
-	returnPath, _ := sess.Values[SessionOAuthReturnKey].(string)
-	identity, err := m.oauth.Exchange(r.Context(), callbackURL, code, nonce)
+	returnPath, _ := sess.Values[sessionFlowKey(SessionOAuthReturnKey, providerID)].(string)
+	identity, err := provider.Exchange(r.Context(), callbackURL, code, nonce)
 	if err != nil {
 		return "", err
 	}
+	identity.Provider = "oauth"
+	identity.ProviderID = providerID
 	resetSession(sess)
 	sess.Values[SessionUserKey] = identity.Username
 	sess.Values[SessionGroupsKey] = identity.Groups
 	sess.Values[SessionProviderKey] = identity.Provider
+	sess.Values[SessionProviderIDKey] = identity.ProviderID
 	now := time.Now().Unix()
 	sess.Values[SessionIssuedAtKey] = now
 	sess.Values[SessionLastSeenKey] = now
@@ -389,9 +488,9 @@ func (m *Module) CompleteOAuthLogin(w http.ResponseWriter, r *http.Request, call
 		return "", err
 	}
 	sess.Values[SessionCSRFKey] = token
-	delete(sess.Values, SessionOAuthStateKey)
-	delete(sess.Values, SessionOAuthNonceKey)
-	delete(sess.Values, SessionOAuthReturnKey)
+	delete(sess.Values, sessionFlowKey(SessionOAuthStateKey, providerID))
+	delete(sess.Values, sessionFlowKey(SessionOAuthNonceKey, providerID))
+	delete(sess.Values, sessionFlowKey(SessionOAuthReturnKey, providerID))
 	delete(sess.Values, RedirectURL)
 	if err := sess.Save(r, w); err != nil {
 		return "", err
@@ -441,6 +540,14 @@ func (m *Module) ClearSession(w http.ResponseWriter, r *http.Request) error {
 		delete(sess.Values, k)
 	}
 	return sess.Save(r, w)
+}
+
+func (m *Module) ClearSessionCookies(r *http.Request) ([]string, error) {
+	w := &headerOnlyResponseWriter{header: http.Header{}}
+	if err := m.ClearSession(w, r); err != nil {
+		return nil, err
+	}
+	return w.header.Values("Set-Cookie"), nil
 }
 
 func (m *Module) SetRedirect(w http.ResponseWriter, r *http.Request, uri string) error {
@@ -559,11 +666,50 @@ func resetSession(sess *sessions.Session) {
 	}
 }
 
+type headerOnlyResponseWriter struct {
+	header http.Header
+}
+
+func (w *headerOnlyResponseWriter) Header() http.Header {
+	return w.header
+}
+
+func (w *headerOnlyResponseWriter) Write([]byte) (int, error) {
+	return 0, nil
+}
+
+func (w *headerOnlyResponseWriter) WriteHeader(int) {}
+
 func secondsDuration(seconds int) time.Duration {
 	if seconds <= 0 {
 		return 0
 	}
 	return time.Duration(seconds) * time.Second
+}
+
+func providerIDs[T any](providers map[string]T) []string {
+	return sortedMapKeys(providers)
+}
+
+func sortedMapKeys[T any](values map[string]T) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func firstProvider[T any](providers map[string]*T) (*T, bool) {
+	keys := sortedMapKeys(providers)
+	if len(keys) == 0 {
+		return nil, false
+	}
+	return providers[keys[0]], true
+}
+
+func sessionFlowKey(base, providerID string) string {
+	return base + ":" + providerID
 }
 
 func newCSRFToken() (string, error) {

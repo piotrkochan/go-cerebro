@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -18,6 +19,8 @@ type Request struct {
 	Object   string
 	System   bool
 }
+
+const AdHocClusterID = "adhoc"
 
 type Authorizer struct {
 	enabled     bool
@@ -163,6 +166,9 @@ func classify(method, requestPath string) Request {
 	if len(segments) == 0 || segments[0] == "" {
 		return Request{Resource: "app", Action: action, Object: object}
 	}
+	if segments[0] == "auth" && len(segments) == 2 && segments[1] == "logout" {
+		return Request{Resource: "auth", Action: "logout", Object: object, System: true}
+	}
 	if segments[0] == "connect" {
 		return Request{Resource: "ui", Action: action, Object: object, System: true}
 	}
@@ -170,7 +176,7 @@ func classify(method, requestPath string) Request {
 		return Request{Resource: segments[0], Action: action, Object: object}
 	}
 
-	cluster := segments[1]
+	cluster := ClusterObject(segments[1])
 	rest := segments[2:]
 	object = cluster
 	switch rest[0] {
@@ -227,6 +233,28 @@ func classify(method, requestPath string) Request {
 	default:
 		return Request{Resource: rest[0], Action: action, Object: object}
 	}
+}
+
+func ClusterObject(raw string) string {
+	if object, ok := AdHocObject(raw); ok {
+		return object
+	}
+	return raw
+}
+
+func AdHocObject(raw string) (string, bool) {
+	value, err := url.PathUnescape(strings.TrimSpace(raw))
+	if err != nil {
+		value = strings.TrimSpace(raw)
+	}
+	u, err := url.Parse(value)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return "", false
+	}
+	if u.User != nil || strings.Trim(u.Path, "/") != "" || u.RawQuery != "" || u.Fragment != "" {
+		return "", false
+	}
+	return AdHocClusterID + "/" + strings.ToLower(u.Scheme+"-"+u.Host), true
 }
 
 func classifyClusterResource(method, cluster string, rest []string) Request {

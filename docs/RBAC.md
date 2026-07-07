@@ -26,11 +26,11 @@ hosts:
 
 rbac:
   enabled: true
-  default_role: "role:viewer"
 
   bindings:
     - {subject: "admin", role: "role:admin"}
     - {subject: "group:cerebro-admins", role: "role:admin"}
+    - {subject: "group:cerebro-viewers", role: "role:viewer"}
 
   policies:
     - {subject: "role:admin", resource: "*", action: "*", object: "*", effect: "allow"}
@@ -39,8 +39,8 @@ rbac:
     - {subject: "role:viewer", resource: "rest", action: "execute", object: "*", effect: "deny"}
 ```
 
-This example gives every authenticated user read-only access to the `prod` cluster through
-`default_role`, gives admins full access, and blocks REST-console execution for viewers.
+This example gives admins full access, gives `cerebro-viewers` read-only access to the `prod`
+cluster, and blocks REST-console execution for viewers.
 
 ## Policy Model
 
@@ -150,7 +150,8 @@ Object patterns:
 | `prod/*/*` | Two-level resource objects, for example `prod/repository/snapshot`. |
 | `prod/index-*` | Index-like objects in `prod` whose name starts with `index-`. |
 
-Use both `prod` and `prod/*` when a role should read a whole cluster and most resource pages:
+Ad-hoc URLs are matched as `adhoc/<scheme>-<host>`. Use both `prod` and `prod/*` when
+a role should read a whole cluster and most resource pages:
 
 ```yaml
 policies:
@@ -203,7 +204,8 @@ Only resources listed below are supported.
 ```yaml
 rbac:
   enabled: true
-  default_role: "role:viewer"
+  bindings:
+    - {subject: "group:cerebro-viewers", role: "role:viewer"}
   policies:
     - {subject: "role:viewer", resource: "*", action: "read", object: "prod", effect: "allow"}
     - {subject: "role:viewer", resource: "*", action: "read", object: "prod/*", effect: "allow"}

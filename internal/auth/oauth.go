@@ -32,6 +32,7 @@ type OAuthProvider struct {
 	scopes        []string
 	usernameClaim string
 	groupsClaim   string
+	defaultGroups []string
 
 	mu       sync.Mutex
 	provider *oidc.Provider
@@ -78,6 +79,7 @@ func NewOAuthProvider(settings config.OAuthAuth) (*OAuthProvider, error) {
 		scopes:        scopes,
 		usernameClaim: usernameClaim,
 		groupsClaim:   groupsClaim,
+		defaultGroups: mergeGroups(settings.DefaultGroups),
 	}, nil
 }
 
@@ -129,7 +131,7 @@ func (p *OAuthProvider) Exchange(ctx context.Context, redirectURL, code, nonce s
 	}
 	return Identity{
 		Username: username,
-		Groups:   claimStringSlice(claims[p.groupsClaim]),
+		Groups:   mergeGroups(p.defaultGroups, claimStringSlice(claims[p.groupsClaim])),
 		Provider: "oauth",
 	}, nil
 }

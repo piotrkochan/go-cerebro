@@ -13,6 +13,8 @@ auth:
     user_header: "X-Forwarded-User"
     groups_header: "X-Forwarded-Groups"
     group_separator: ","
+    default_groups: ["cerebro-viewers"]
+    logout_url: "/oauth2/sign_out?rd=/oauth2/sign_in"
     trusted_proxies:
       - "10.0.0.10/32"
 
@@ -40,7 +42,11 @@ auth:
 
 ## RBAC Groups
 
-`groups_header` can contain multiple groups separated by `group_separator`.
+`default_groups` are added to every user from this provider. `groups_header` can contain multiple
+additional groups separated by `group_separator`.
+
+`logout_url` is optional. When set, `/auth/logout` returns this URL to JSON clients so the frontend
+can complete sign-out at the trusted proxy without knowing which auth provider was used.
 
 ```http
 X-Forwarded-User: alice@example.org

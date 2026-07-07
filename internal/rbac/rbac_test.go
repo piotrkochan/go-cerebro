@@ -86,6 +86,24 @@ func TestAuthorizer_UsesGroupBindings(t *testing.T) {
 	assert.False(t, authorizer.Allow("bob", []string{"cerebro-viewers"}, Request{Resource: "indices", Action: "delete", Object: "prod/logs"}))
 }
 
+func TestAuthorizer_AdminDoesNotInheritViewerDeny(t *testing.T) {
+	authorizer := New(config.RBAC{
+		Enabled: true,
+		Bindings: []config.RBACBinding{
+			{Subject: "group:cerebro-admins", Role: "role:admin"},
+			{Subject: "group:cerebro-viewers", Role: "role:viewer"},
+		},
+		Policies: []config.RBACPolicy{
+			{Subject: "role:admin", Resource: "*", Action: "*", Object: "*", Effect: "allow"},
+			{Subject: "role:viewer", Resource: "*", Action: "read", Object: "*", Effect: "allow"},
+			{Subject: "role:viewer", Resource: "rest", Action: "execute", Object: "*", Effect: "deny"},
+		},
+	})
+
+	assert.True(t, authorizer.Allow("admin", []string{"cerebro-admins"}, Request{Resource: "rest", Action: "execute", Object: "local-cluster"}))
+	assert.False(t, authorizer.Allow("viewer", []string{"cerebro-viewers"}, Request{Resource: "rest", Action: "execute", Object: "local-cluster"}))
+}
+
 func TestAuthorizer_AllowsSystemSupportRequests(t *testing.T) {
 	authorizer := New(config.RBAC{
 		Enabled:  true,
@@ -93,6 +111,52 @@ func TestAuthorizer_AllowsSystemSupportRequests(t *testing.T) {
 	})
 
 	assert.True(t, authorizer.Allow("alice", nil, Request{Resource: "ui", Action: "read", Object: "prod", System: true}))
+}
+
+func TestClassify_LogoutIsSystemRequest(t *testing.T) {
+	req := Classify(http.MethodPost, "/auth/logout")
+
+	assert.True(t, req.System)
+	assert.Equal(t, "auth", req.Resource)
+	assert.Equal(t, "logout", req.Action)
+}
+
+func TestAdHocClusterUsesMetaObjectNamespace(t *testing.T) {
+	object, ok := AdHocObject("http://adhoc-node.example.org:9200")
+
+	require.True(t, ok)
+	assert.Equal(t, "adhoc/http-adhoc-node.example.org:9200", object)
+
+	req := Classify(http.MethodGet, "/clusters/http%3A%2F%2Fadhoc-node.example.org%3A9200/overview")
+	assert.Equal(t, "overview", req.Resource)
+	assert.Equal(t, "read", req.Action)
+	assert.Equal(t, "adhoc/http-adhoc-node.example.org:9200", req.Object)
+}
+
+func TestAdHocClusterRejectsURLPartsBeyondHost(t *testing.T) {
+	for _, raw := range []string{
+		"http://adhoc-node.example.org:9200/path",
+		"http://adhoc-node.example.org:9200?pretty=true",
+		"http://adhoc-node.example.org:9200#fragment",
+		"http://user:pass@adhoc-node.example.org:9200",
+	} {
+		_, ok := AdHocObject(raw)
+		assert.False(t, ok, raw)
+	}
+}
+
+func TestAdHocClusterDoesNotMatchConfiguredClusterPatterns(t *testing.T) {
+	authorizer := New(config.RBAC{
+		Enabled: true,
+		Policies: []config.RBACPolicy{
+			{Subject: "alice", Resource: "*", Action: "read", Object: "prod-*", Effect: "allow"},
+			{Subject: "alice", Resource: "*", Action: "read", Object: "prod-*/*", Effect: "allow"},
+		},
+	})
+
+	assert.False(t, authorizer.Allow("alice", nil, Request{Resource: "overview", Action: "read", Object: "adhoc/http-prod-node.example.org:9200"}))
+	assert.True(t, authorizer.Allow("alice", nil, Request{Resource: "overview", Action: "read", Object: "prod-node-example-org"}))
+	assert.True(t, authorizer.Allow("alice", nil, Request{Resource: "indices", Action: "read", Object: "prod-node-example-org/logs"}))
 }
 
 func TestAuthorizer_SupportsClusterScopedObjects(t *testing.T) {

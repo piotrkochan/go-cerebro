@@ -14,9 +14,10 @@ auth:
     issuer_url: "https://dex.example.org"
     client_id: "${OAUTH_CLIENT_ID}"
     client_secret: "${OAUTH_CLIENT_SECRET}"
-    redirect_url: "https://cerebro.example.org/auth/oauth/callback"
+    redirect_url: "https://cerebro.example.org/auth/oauth/oauth/callback"
     username_claim: "preferred_username"
     groups_claim: "groups"
+    default_groups: ["cerebro-viewers"]
     scopes: ["openid", "profile", "email"]
 
 server:
@@ -38,7 +39,7 @@ auth:
     userinfo_url: "https://api.github.com/user"
     client_id: "${OAUTH_CLIENT_ID}"
     client_secret: "${OAUTH_CLIENT_SECRET}"
-    redirect_url: "https://cerebro.example.org/auth/oauth/callback"
+    redirect_url: "https://cerebro.example.org/auth/oauth/oauth/callback"
     username_claim: "login"
     groups_claim: "teams"
     scopes: ["read:user"]
@@ -46,7 +47,8 @@ auth:
 
 ## RBAC Groups
 
-Cerebro reads groups from `auth.oauth.groups_claim`. Bind them in RBAC as `group:<value>`:
+Cerebro adds `auth.oauth.default_groups` and reads additional groups from `auth.oauth.groups_claim`.
+Bind them in RBAC as `group:<value>`:
 
 ```yaml
 rbac:
@@ -61,5 +63,5 @@ rbac:
 
 - Keep `client_secret` only in backend config or secret management.
 - Use HTTPS provider endpoints. HTTP is accepted only for localhost/loopback tests.
-- Register exactly `https://cerebro.example.org/auth/oauth/callback` or your configured `redirect_url`.
+- Register the exact provider callback URL, for example `https://cerebro.example.org/auth/oauth/github/callback`, or your configured `redirect_url`.
 - Prefer OIDC over plain OAuth2 when possible.
