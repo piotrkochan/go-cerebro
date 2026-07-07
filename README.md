@@ -17,6 +17,8 @@ Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmene
 - data explorer for browsing, searching, inserting and editing index documents
 - data streams and ILM management
 - AWS OpenSearch SigV4 support with dedicated compatibility tests
+- LDAPS, trusted proxy, Entra ID and generic OIDC authentication
+- advanced RBAC
 
 AI assistance was used during the refactor. Despite careful review, there may still be rough edges, so please keep that in mind while evaluating or using this version.
 

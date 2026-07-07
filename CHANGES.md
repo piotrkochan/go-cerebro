@@ -5,7 +5,6 @@
 ### Breaking Changes
 - Replaced the old `auth.type` + `auth.settings` configuration format with provider-specific sections: `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id` and `auth.oauth`.
 - Basic auth users now live under `auth.basic.users`; LDAP settings now live under `auth.ldap`; trusted proxy, Microsoft Entra ID and generic OAuth/OIDC are separate provider sections.
-- Auth providers can be configured as short-form single providers or as named provider maps. Named provider IDs must be unique across enabled providers.
 
 ### Security
 - Added configurable YAML RBAC policies backed by Casbin for backend API authorization.
@@ -19,6 +18,7 @@
 - Added generic OAuth/OIDC authentication provider support.
 - Added direct Microsoft Entra ID authentication through OIDC authorization-code flow.
 - Reworked authentication config into independent `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id` and `auth.oauth` provider sections.
+- Added short-form single auth providers and named provider maps.
 - Added support for multiple named auth providers with globally unique provider IDs.
 - Returned both auth provider type and provider ID in auth status/profile responses.
 
