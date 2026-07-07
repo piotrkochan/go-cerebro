@@ -79,6 +79,24 @@ auth:
     groups_claim: "groups"
     scopes: ["openid", "profile", "email"]
 
+  oauth:
+    enabled: false
+    # Displayed on the login button, for example "GitHub", "Dex" or "Keycloak".
+    name: "OAuth"
+    # OIDC discovery mode. Prefer this for OIDC providers.
+    issuer_url: "${OAUTH_ISSUER_URL}"
+    # Generic OAuth2 mode. Used only when issuer_url is empty.
+    # auth_url: "https://provider.example.org/oauth/authorize"
+    # token_url: "https://provider.example.org/oauth/token"
+    # userinfo_url: "https://provider.example.org/oauth/userinfo"
+    client_id: "${OAUTH_CLIENT_ID}"
+    client_secret: "${OAUTH_CLIENT_SECRET}"
+    # Optional. If empty, Cerebro derives it from the incoming request.
+    # redirect_url: "https://cerebro.example.org/auth/oauth/callback"
+    username_claim: "preferred_username"
+    groups_claim: "groups"
+    scopes: ["openid", "profile", "email"]
+
 server:
   port: 9000
   base_path: "/"

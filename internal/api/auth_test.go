@@ -80,6 +80,35 @@ func TestHandleAuthMeRequiresSession(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
+func TestHandleAuthStatusReportsOAuthProvider(t *testing.T) {
+	authMod, err := auth.NewModule(&config.Config{
+		Auth: config.Auth{
+			OAuth: config.OAuthAuth{
+				Enabled:      true,
+				Name:         "GitHub",
+				AuthURL:      "https://github.com/login/oauth/authorize",
+				TokenURL:     "https://github.com/login/oauth/access_token",
+				UserInfoURL:  "https://api.github.com/user",
+				ClientID:     "client",
+				ClientSecret: "secret",
+			},
+		},
+		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+	})
+	require.NoError(t, err)
+	deps := &Deps{Auth: authMod, Cfg: &config.Config{}}
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/auth/status", nil)
+	rr := httptest.NewRecorder()
+
+	deps.handleAuthStatus(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
+	assert.Equal(t, map[string]any{"entraid": false, "oauth": true, "password": false}, got["providers"])
+	assert.Equal(t, map[string]any{"oauth": "GitHub"}, got["provider_names"])
+}
+
 func TestAuthRolesAndPermissionsUseSamePrincipalsAsRBAC(t *testing.T) {
 	rbac := config.RBAC{
 		Enabled: true,

@@ -136,6 +136,8 @@ func TestShouldGate_LeavesEntraIDRedirectFlowPublic(t *testing.T) {
 	}{
 		{name: "login", path: "/auth/entraid/login"},
 		{name: "callback", path: "/auth/entraid/callback?code=test-code&state=test-state"},
+		{name: "oauth login", path: "/auth/oauth/login"},
+		{name: "oauth callback", path: "/auth/oauth/callback?code=test-code&state=test-state"},
 	}
 
 	for _, tt := range tests {

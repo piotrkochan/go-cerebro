@@ -50,6 +50,33 @@ func TestNewModuleEnablesEntraID(t *testing.T) {
 	assert.False(t, mod.PasswordLoginEnabled())
 }
 
+func TestNewOAuthProviderRequiresSettings(t *testing.T) {
+	_, err := NewOAuthProvider(config.OAuthAuth{ClientID: "client", ClientSecret: "secret"})
+	assert.EqualError(t, err, "oauth auth requires issuer_url or auth_url, token_url and userinfo_url")
+}
+
+func TestNewModuleEnablesOAuth(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth: config.Auth{
+			OAuth: config.OAuthAuth{
+				Enabled:      true,
+				AuthURL:      "https://auth.example.org/authorize",
+				TokenURL:     "https://auth.example.org/token",
+				UserInfoURL:  "https://auth.example.org/userinfo",
+				ClientID:     "client",
+				ClientSecret: "secret",
+			},
+		},
+		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+	})
+	require.NoError(t, err)
+
+	assert.True(t, mod.Enabled())
+	assert.True(t, mod.OAuthEnabled())
+	assert.Equal(t, "OAuth", mod.OAuthName())
+	assert.False(t, mod.PasswordLoginEnabled())
+}
+
 func TestEntraIDClaimHelpers(t *testing.T) {
 	claims := map[string]any{
 		"preferred_username": "alice@example.org",

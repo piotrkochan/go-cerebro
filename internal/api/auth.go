@@ -26,6 +26,8 @@ func (d *Deps) RegisterAuth(api huma.API, mux interface {
 	mux.HandleFunc("POST /auth/login", d.handleLogin)
 	mux.HandleFunc("GET /auth/entraid/login", d.handleEntraIDLogin)
 	mux.HandleFunc("GET /auth/entraid/callback", d.handleEntraIDCallback)
+	mux.HandleFunc("GET /auth/oauth/login", d.handleOAuthLogin)
+	mux.HandleFunc("GET /auth/oauth/callback", d.handleOAuthCallback)
 	mux.HandleFunc("POST /auth/logout", d.handleLogout)
 }
 
@@ -54,7 +56,11 @@ func (d *Deps) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
 		"enabled":       d.Auth.Enabled(),
 		"providers": map[string]bool{
 			"entraid":  d.Auth.EntraIDEnabled(),
+			"oauth":    d.Auth.OAuthEnabled(),
 			"password": d.Auth.PasswordLoginEnabled(),
+		},
+		"provider_names": map[string]string{
+			"oauth": d.Auth.OAuthName(),
 		},
 		"groups":      identity.Groups,
 		"permissions": authPermissions(d.Cfg.RBAC, identity),
@@ -166,6 +172,41 @@ func (d *Deps) handleLogin(w http.ResponseWriter, r *http.Request) {
 		redirect = basePathFor(d, "/")
 	}
 	http.Redirect(w, r, redirect, http.StatusSeeOther) // #nosec G710 -- redirect comes from auth.ConsumeRedirect, which accepts only same-origin absolute paths.
+}
+
+func (d *Deps) handleOAuthLogin(w http.ResponseWriter, r *http.Request) {
+	callbackURL := d.oauthCallbackURL(r)
+	returnPath := r.URL.Query().Get("redirect")
+	if returnPath == "" {
+		returnPath = "/"
+	}
+	authURL, err := d.Auth.BeginOAuthLogin(w, r, callbackURL, returnPath)
+	if err != nil {
+		d.auditAuth(r, "oauth_login_start_failed", auth.Identity{}, "failure", err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	d.auditAuth(r, "oauth_login_started", auth.Identity{Provider: "oauth"}, "success", "")
+	http.Redirect(w, r, authURL, http.StatusFound)
+}
+
+func (d *Deps) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
+	if authErr := r.URL.Query().Get("error"); authErr != "" {
+		d.auditAuth(r, "oauth_login_failed", auth.Identity{Provider: "oauth"}, "failure", authErr)
+		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
+		return
+	}
+	redirect, err := d.Auth.CompleteOAuthLogin(w, r, d.oauthCallbackURL(r))
+	if err != nil {
+		d.auditAuth(r, "oauth_login_failed", auth.Identity{Provider: "oauth"}, "failure", err.Error())
+		http.Redirect(w, r, basePathFor(d, "/#/login?error=invalid"), http.StatusSeeOther)
+		return
+	}
+	d.auditAuth(r, "oauth_login_succeeded", auth.Identity{Provider: "oauth"}, "success", "")
+	if redirect == "" {
+		redirect = basePathFor(d, "/")
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther) // #nosec G710 -- redirect is same-origin absolute path from auth.CompleteOAuthLogin.
 }
 
 func (d *Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -292,6 +333,13 @@ func (d *Deps) entraIDCallbackURL(r *http.Request) string {
 		return configured
 	}
 	return requestOrigin(d.Cfg.Server, r) + basePathFor(d, "/auth/entraid/callback")
+}
+
+func (d *Deps) oauthCallbackURL(r *http.Request) string {
+	if configured := d.Auth.OAuthRedirectURL(); configured != "" {
+		return configured
+	}
+	return requestOrigin(d.Cfg.Server, r) + basePathFor(d, "/auth/oauth/callback")
 }
 
 func requestOrigin(serverCfg config.Server, r *http.Request) string {

@@ -10,7 +10,12 @@ export type AuthStatus = {
   provider?: string;
   providers?: {
     entraid?: boolean;
+    oauth?: boolean;
+    oauth_name?: string;
     password?: boolean;
+  };
+  provider_names?: {
+    oauth?: string;
   };
   roles?: string[];
   user?: string;

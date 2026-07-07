@@ -87,11 +87,27 @@ type EntraIDAuth struct {
 	GroupsClaim   string   `yaml:"groups_claim"`
 }
 
+type OAuthAuth struct {
+	Enabled       bool     `yaml:"enabled"`
+	Name          string   `yaml:"name"`
+	IssuerURL     string   `yaml:"issuer_url"`
+	AuthURL       string   `yaml:"auth_url"`
+	TokenURL      string   `yaml:"token_url"`
+	UserInfoURL   string   `yaml:"userinfo_url"`
+	ClientID      string   `yaml:"client_id"`
+	ClientSecret  string   `yaml:"client_secret"`
+	RedirectURL   string   `yaml:"redirect_url"`
+	Scopes        []string `yaml:"scopes,omitempty"`
+	UsernameClaim string   `yaml:"username_claim"`
+	GroupsClaim   string   `yaml:"groups_claim"`
+}
+
 type Auth struct {
 	Basic   BasicAuth   `yaml:"basic,omitempty"`
 	LDAP    LDAPAuth    `yaml:"ldap,omitempty"`
 	Proxy   ProxyAuth   `yaml:"proxy,omitempty"`
 	EntraID EntraIDAuth `yaml:"entra_id,omitempty"`
+	OAuth   OAuthAuth   `yaml:"oauth,omitempty"`
 	Session AuthSession `yaml:"session,omitempty"`
 }
 
@@ -397,7 +413,7 @@ func (c *Config) validate() error {
 	if err := c.validateHostIDs(); err != nil {
 		return err
 	}
-	if c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled || c.Auth.EntraID.Enabled {
+	if c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled || c.Auth.EntraID.Enabled || c.Auth.OAuth.Enabled {
 		if isDefaultSecret(c.Server.Secret) {
 			return fmt.Errorf("server.secret must be set to a strong non-default value when authentication is enabled")
 		}
@@ -479,11 +495,56 @@ func (c *Config) validate() error {
 			}
 		}
 	}
+	if c.Auth.OAuth.Enabled {
+		if strings.TrimSpace(c.Auth.OAuth.IssuerURL) == "" {
+			if strings.TrimSpace(c.Auth.OAuth.AuthURL) == "" {
+				return fmt.Errorf("auth.oauth.auth_url is required when auth.oauth.issuer_url is not set")
+			}
+			if strings.TrimSpace(c.Auth.OAuth.TokenURL) == "" {
+				return fmt.Errorf("auth.oauth.token_url is required when auth.oauth.issuer_url is not set")
+			}
+			if strings.TrimSpace(c.Auth.OAuth.UserInfoURL) == "" {
+				return fmt.Errorf("auth.oauth.userinfo_url is required when auth.oauth.issuer_url is not set")
+			}
+		}
+		if c.Auth.OAuth.IssuerURL != "" {
+			if err := validateOIDCIssuerURL(c.Auth.OAuth.IssuerURL); err != nil {
+				return fmt.Errorf("auth.oauth.issuer_url: %w", err)
+			}
+		}
+		if c.Auth.OAuth.AuthURL != "" {
+			if err := validateOAuthEndpointURL(c.Auth.OAuth.AuthURL); err != nil {
+				return fmt.Errorf("auth.oauth.auth_url: %w", err)
+			}
+		}
+		if c.Auth.OAuth.TokenURL != "" {
+			if err := validateOAuthEndpointURL(c.Auth.OAuth.TokenURL); err != nil {
+				return fmt.Errorf("auth.oauth.token_url: %w", err)
+			}
+		}
+		if c.Auth.OAuth.UserInfoURL != "" {
+			if err := validateOAuthEndpointURL(c.Auth.OAuth.UserInfoURL); err != nil {
+				return fmt.Errorf("auth.oauth.userinfo_url: %w", err)
+			}
+		}
+		if strings.TrimSpace(c.Auth.OAuth.ClientID) == "" {
+			return fmt.Errorf("auth.oauth.client_id is required when auth.oauth.enabled is true")
+		}
+		if c.Auth.OAuth.ClientSecret == "" {
+			return fmt.Errorf("auth.oauth.client_secret is required when auth.oauth.enabled is true")
+		}
+		if c.Auth.OAuth.RedirectURL != "" {
+			u, err := url.Parse(strings.TrimSpace(c.Auth.OAuth.RedirectURL))
+			if err != nil || u.Scheme == "" || u.Host == "" {
+				return fmt.Errorf("auth.oauth.redirect_url must be an absolute URL")
+			}
+		}
+	}
 	return nil
 }
 
 func (c *Config) authEnabled() bool {
-	return c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled || c.Auth.EntraID.Enabled
+	return c.Auth.Basic.Enabled || c.Auth.LDAP.Enabled || c.Auth.Proxy.Enabled || c.Auth.EntraID.Enabled || c.Auth.OAuth.Enabled
 }
 
 func validateRBACPolicy(p RBACPolicy) error {
@@ -532,6 +593,26 @@ func validateOIDCIssuerURL(raw string) error {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil {
 		return err
+	}
+	if u.Scheme == "https" && u.Host != "" {
+		return nil
+	}
+	if u.Scheme == "http" && isLoopbackHost(u.Hostname()) {
+		return nil
+	}
+	return fmt.Errorf("must be an https URL, or http on localhost/loopback for tests")
+}
+
+func validateOAuthEndpointURL(raw string) error {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return err
+	}
+	if u.User != nil {
+		return fmt.Errorf("must not contain credentials")
+	}
+	if u.RawQuery != "" || u.Fragment != "" {
+		return fmt.Errorf("must not contain query or fragment")
 	}
 	if u.Scheme == "https" && u.Host != "" {
 		return nil

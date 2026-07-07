@@ -25,6 +25,9 @@ const (
 	SessionEntraStateKey  = "entra_state"
 	SessionEntraNonceKey  = "entra_nonce"
 	SessionEntraReturnKey = "entra_return"
+	SessionOAuthStateKey  = "oauth_state"
+	SessionOAuthNonceKey  = "oauth_nonce"
+	SessionOAuthReturnKey = "oauth_return"
 	RedirectURL           = "redirect"
 )
 
@@ -70,6 +73,7 @@ func IdentityFrom(ctx context.Context) Identity {
 type Module struct {
 	enabled       bool
 	entraID       *EntraIDProvider
+	oauth         *OAuthProvider
 	proxies       []*ProxyAuthenticator
 	services      []Service
 	store         *sessions.CookieStore
@@ -124,7 +128,14 @@ func NewModule(cfg *config.Config) (*Module, error) {
 		}
 		m.entraID = provider
 	}
-	m.enabled = len(m.services) > 0 || len(m.proxies) > 0 || m.entraID != nil
+	if cfg.Auth.OAuth.Enabled {
+		provider, err := NewOAuthProvider(cfg.Auth.OAuth)
+		if err != nil {
+			return nil, err
+		}
+		m.oauth = provider
+	}
+	m.enabled = len(m.services) > 0 || len(m.proxies) > 0 || m.entraID != nil || m.oauth != nil
 	return m, nil
 }
 
@@ -134,11 +145,27 @@ func (m *Module) PasswordLoginEnabled() bool { return len(m.services) > 0 }
 
 func (m *Module) EntraIDEnabled() bool { return m.entraID != nil }
 
+func (m *Module) OAuthEnabled() bool { return m.oauth != nil }
+
+func (m *Module) OAuthName() string {
+	if m.oauth == nil {
+		return ""
+	}
+	return m.oauth.Name()
+}
+
 func (m *Module) EntraIDRedirectURL() string {
 	if m.entraID == nil {
 		return ""
 	}
 	return m.entraID.ConfiguredRedirectURL()
+}
+
+func (m *Module) OAuthRedirectURL() string {
+	if m.oauth == nil {
+		return ""
+	}
+	return m.oauth.ConfiguredRedirectURL()
 }
 
 func (m *Module) Store() *sessions.CookieStore { return m.store }
@@ -292,6 +319,79 @@ func (m *Module) CompleteEntraIDLogin(w http.ResponseWriter, r *http.Request, ca
 	delete(sess.Values, SessionEntraStateKey)
 	delete(sess.Values, SessionEntraNonceKey)
 	delete(sess.Values, SessionEntraReturnKey)
+	delete(sess.Values, RedirectURL)
+	if err := sess.Save(r, w); err != nil {
+		return "", err
+	}
+	return safeRedirect(returnPath), nil
+}
+
+func (m *Module) BeginOAuthLogin(w http.ResponseWriter, r *http.Request, callbackURL, returnPath string) (string, error) {
+	if m.oauth == nil {
+		return "", errors.New("oauth authentication not enabled")
+	}
+	state, err := newCSRFToken()
+	if err != nil {
+		return "", err
+	}
+	nonce, err := newCSRFToken()
+	if err != nil {
+		return "", err
+	}
+	sess, _ := m.store.Get(r, SessionName)
+	sess.Values[SessionOAuthStateKey] = state
+	sess.Values[SessionOAuthNonceKey] = nonce
+	if safe := safeRedirect(returnPath); safe != "" {
+		sess.Values[SessionOAuthReturnKey] = safe
+	} else {
+		delete(sess.Values, SessionOAuthReturnKey)
+	}
+	if err := sess.Save(r, w); err != nil {
+		return "", err
+	}
+	return m.oauth.AuthCodeURL(r.Context(), callbackURL, state, nonce)
+}
+
+func (m *Module) CompleteOAuthLogin(w http.ResponseWriter, r *http.Request, callbackURL string) (string, error) {
+	if m.oauth == nil {
+		return "", errors.New("oauth authentication not enabled")
+	}
+	code := strings.TrimSpace(r.URL.Query().Get("code"))
+	if code == "" {
+		return "", ErrInvalidCredentials
+	}
+	sess, err := m.store.Get(r, SessionName)
+	if err != nil {
+		return "", err
+	}
+	state, ok := sess.Values[SessionOAuthStateKey].(string)
+	if !ok || state == "" || !subtleConstantTimeEqual(r.URL.Query().Get("state"), state) {
+		return "", ErrInvalidCredentials
+	}
+	nonce, ok := sess.Values[SessionOAuthNonceKey].(string)
+	if !ok || nonce == "" {
+		return "", ErrInvalidCredentials
+	}
+	returnPath, _ := sess.Values[SessionOAuthReturnKey].(string)
+	identity, err := m.oauth.Exchange(r.Context(), callbackURL, code, nonce)
+	if err != nil {
+		return "", err
+	}
+	resetSession(sess)
+	sess.Values[SessionUserKey] = identity.Username
+	sess.Values[SessionGroupsKey] = identity.Groups
+	sess.Values[SessionProviderKey] = identity.Provider
+	now := time.Now().Unix()
+	sess.Values[SessionIssuedAtKey] = now
+	sess.Values[SessionLastSeenKey] = now
+	token, err := newCSRFToken()
+	if err != nil {
+		return "", err
+	}
+	sess.Values[SessionCSRFKey] = token
+	delete(sess.Values, SessionOAuthStateKey)
+	delete(sess.Values, SessionOAuthNonceKey)
+	delete(sess.Values, SessionOAuthReturnKey)
 	delete(sess.Values, RedirectURL)
 	if err := sess.Save(r, w); err != nil {
 		return "", err

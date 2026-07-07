@@ -15,6 +15,8 @@ export function LoginPage() {
   const loading = authStatus === undefined;
   const passwordLogin = !loading && authStatus?.providers?.password !== false;
   const entraIDLogin = authStatus?.providers?.entraid === true;
+  const oauthLogin = authStatus?.providers?.oauth === true;
+  const oauthName = authStatus?.provider_names?.oauth || authStatus?.providers?.oauth_name || 'OAuth';
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +70,13 @@ export function LoginPage() {
           <div className={passwordLogin ? 'mt-[50px]' : ''}>
             <a className="btn btn-success w-full" href={apiURL('/auth/entraid/login')}>
               <Icon name="lock" /> Sign in with Microsoft Entra ID
+            </a>
+          </div>
+        ) : null}
+        {oauthLogin ? (
+          <div className={passwordLogin || entraIDLogin ? 'mt-[10px]' : ''}>
+            <a className="btn btn-success w-full" href={apiURL('/auth/oauth/login')}>
+              <Icon name="lock" /> Sign in with {oauthName}
             </a>
           </div>
         ) : null}

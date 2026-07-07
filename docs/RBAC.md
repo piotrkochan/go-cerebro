@@ -120,6 +120,8 @@ Proxy auth groups come from `auth.proxy.groups_header`, split by `auth.proxy.gro
 Microsoft Entra ID groups come from the configured `auth.entra_id.groups_claim`. Some tenants emit
 group object IDs instead of names; in that case bind the object ID as `group:<id>` or use app roles.
 
+Generic OAuth/OIDC groups come from the configured `auth.oauth.groups_claim`.
+
 ## Cluster IDs And Objects
 
 Every configured cluster should have a stable `id`:

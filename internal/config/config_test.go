@@ -342,6 +342,60 @@ server:
 	assert.Equal(t, "roles", cfg.Auth.EntraID.GroupsClaim)
 }
 
+func TestLoad_OAuthAuthConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  oauth:
+    enabled: true
+    name: "GitHub"
+    auth_url: "https://github.com/login/oauth/authorize"
+    token_url: "https://github.com/login/oauth/access_token"
+    userinfo_url: "https://api.github.com/user"
+    client_id: "client-id"
+    client_secret: "client-secret"
+    redirect_url: "https://cerebro.example.org/auth/oauth/callback"
+    username_claim: "login"
+    groups_claim: "teams"
+    scopes: ["read:user"]
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.True(t, cfg.Auth.OAuth.Enabled)
+	assert.Equal(t, "GitHub", cfg.Auth.OAuth.Name)
+	assert.Equal(t, "https://github.com/login/oauth/authorize", cfg.Auth.OAuth.AuthURL)
+	assert.Equal(t, "login", cfg.Auth.OAuth.UsernameClaim)
+	assert.Equal(t, []string{"read:user"}, cfg.Auth.OAuth.Scopes)
+}
+
+func TestLoad_OAuthOIDCConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  oauth:
+    enabled: true
+    name: "Dex"
+    issuer_url: "https://dex.example.org"
+    client_id: "client-id"
+    client_secret: "client-secret"
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	cfg, err := Load(path)
+	require.NoError(t, err)
+
+	assert.True(t, cfg.Auth.OAuth.Enabled)
+	assert.Equal(t, "Dex", cfg.Auth.OAuth.Name)
+	assert.Equal(t, "https://dex.example.org", cfg.Auth.OAuth.IssuerURL)
+}
+
 func TestLoad_LDAPRequiredGroupsConfig(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")
@@ -361,6 +415,47 @@ server:
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"cerebro-admins"}, cfg.Auth.LDAP.RequiredGroups)
+}
+
+func TestLoad_RejectsIncompleteOAuthAuth(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  oauth:
+    enabled: true
+    auth_url: "https://auth.example.org/authorize"
+    token_url: "https://auth.example.org/token"
+    client_id: "client-id"
+    client_secret: "client-secret"
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "auth.oauth.userinfo_url")
+}
+
+func TestLoad_RejectsInsecureOAuthEndpoint(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  oauth:
+    enabled: true
+    auth_url: "http://auth.example.org/authorize"
+    token_url: "https://auth.example.org/token"
+    userinfo_url: "https://auth.example.org/userinfo"
+    client_id: "client-id"
+    client_secret: "client-secret"
+server:
+  secret: "test-secret"
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "auth.oauth.auth_url")
 }
 
 func TestLoad_RejectsIncompleteEntraIDAuth(t *testing.T) {

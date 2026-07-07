@@ -108,7 +108,7 @@ Important sections:
 
 - `hosts`: known Elasticsearch clusters. Optional `hosts[].id` becomes the stable cluster slug used in URLs and RBAC; use lowercase letters, digits and hyphens. If omitted, the slug is generated from `hosts[].name`. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
 - `hosts[].headers_whitelist`: request headers that Cerebro may forward to Elasticsearch, useful behind an authenticating proxy.
-- `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id`: optional authentication providers. Enable at least one outside local development.
+- `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id`, `auth.oauth`: optional authentication providers. Enable at least one outside local development.
 - `auth.session`: optional cookie lifetime, max session lifetime and idle timeout settings.
 - `rbac`: optional YAML authorization policies for users and groups.
 - `server.base_path`: URL path prefix when Cerebro is mounted below `/`.
@@ -241,6 +241,7 @@ Go Cerebro targets Elasticsearch and OpenSearch clusters through the official El
 
 - [Basic auth](./docs/auth-basic.md)
 - [Microsoft Entra ID](./docs/auth-entra-id.md)
+- [Generic OAuth / OIDC](./docs/auth-oauth.md)
 - [LDAP](./docs/auth-ldap.md)
 - [Trusted proxy / oauth2-proxy](./docs/auth-proxy.md)
 - [RBAC](./docs/RBAC.md)
@@ -276,7 +277,7 @@ docker compose down
 docker compose up --build
 ```
 
-More configuration examples are in [examples](./examples), including basic auth, LDAP and Elasticsearch mutual TLS.
+More configuration examples are in [examples](./examples), including basic auth, LDAP, OAuth/OIDC and Elasticsearch mutual TLS.
 
 ## Security Notes
 

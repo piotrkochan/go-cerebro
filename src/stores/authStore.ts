@@ -18,6 +18,8 @@ type AuthState = {
   provider: string;
   providers: {
     entraid: boolean;
+    oauth: boolean;
+    oauthName: string;
     password: boolean;
   };
   roles: string[];
@@ -33,6 +35,8 @@ const defaultState = (): AuthState => ({
   provider: '',
   providers: {
     entraid: false,
+    oauth: false,
+    oauthName: '',
     password: false,
   },
   roles: [],
@@ -59,6 +63,8 @@ export const authActions = {
       provider: text(status.provider),
       providers: {
         entraid: status.providers?.entraid === true,
+        oauth: status.providers?.oauth === true,
+        oauthName: text(status.provider_names?.oauth || status.providers?.oauth_name),
         password: status.providers?.password === true,
       },
       roles: list(status.roles),
