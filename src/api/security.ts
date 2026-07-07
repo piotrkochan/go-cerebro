@@ -26,11 +26,16 @@ let authStatusPromise: Promise<AuthStatus | null> | null = null;
 const AUTH_STATUS_CACHE_MS = 1000;
 
 export function configureAPIClientSecurity() {
+  client.setConfig({ baseUrl: apiBasePath() });
   client.interceptors.request.use(async (request) => {
     if (!csrfToken) await ensureCSRFToken();
     if (csrfToken) request.headers.set('X-Cerebro-CSRF', csrfToken);
     return request;
   });
+}
+
+export function apiURL(path: string): string {
+  return `${apiBasePath()}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
 export function setCSRFToken(token: unknown) {
@@ -67,7 +72,7 @@ export async function loadAuthStatus(): Promise<AuthStatus | null> {
 }
 
 export async function loadAuthMe(): Promise<AuthStatus> {
-  const response = await fetch('/auth/me', { headers: { Accept: 'application/json' } });
+  const response = await fetch(apiURL('/auth/me'), { headers: { Accept: 'application/json' } });
   if (!response.ok) {
     throw new Error(response.status === 401 ? 'authentication required' : 'unable to load profile');
   }
@@ -79,9 +84,12 @@ export async function loadAuthMe(): Promise<AuthStatus> {
 export async function logout(): Promise<void> {
   const proxyLogout = authStore.state.provider === 'proxy';
   try {
-    await fetch('/auth/logout', {
+    if (!csrfToken) await ensureCSRFToken();
+    const headers = new Headers({ Accept: 'application/json' });
+    if (csrfToken) headers.set('X-Cerebro-CSRF', csrfToken);
+    await fetch(apiURL('/auth/logout'), {
       credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
+      headers,
       method: 'POST',
     });
   } finally {
@@ -104,7 +112,7 @@ async function ensureCSRFToken(): Promise<AuthStatus | null> {
 
 async function fetchAuthStatus(): Promise<AuthStatus | null> {
   try {
-    const response = await fetch('/auth/status', { headers: { Accept: 'application/json' } });
+    const response = await fetch(apiURL('/auth/status'), { headers: { Accept: 'application/json' } });
     if (!response.ok) {
       authActions.setStatus(null);
       return null;
@@ -114,4 +122,10 @@ async function fetchAuthStatus(): Promise<AuthStatus | null> {
     authActions.setStatus(null);
     return null;
   }
+}
+
+function apiBasePath(): string {
+  const pathname = window.location.pathname;
+  if (!pathname || pathname === '/') return '';
+  return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
 }

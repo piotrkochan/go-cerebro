@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
+import { useNavigate } from '@tanstack/react-router';
 
 import { connect, connectHosts, type HostRef } from '../api/client';
 import { loadAuthStatus, logout } from '../api/security';
@@ -28,6 +29,7 @@ export function ConnectPage({
   const [hosts, setHosts] = useState<HostRef[]>([]);
   const [connecting, setConnecting] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const navigate = useNavigate();
   const connectForm = useForm({
     defaultValues: connectFormDefaults(currentHost),
     onSubmit: async ({ value }) => {
@@ -37,17 +39,21 @@ export function ConnectPage({
 
   useEffect(() => {
     let ignore = false;
-    async function syncAuthStatus() {
-      const data = await loadAuthStatus();
-      if (!ignore && data) {
-        setAuthStatus({
-          authenticated: data.authenticated === true,
-          enabled: data.enabled === true,
-          user: typeof data.user === 'string' ? data.user : '',
-        });
-      }
-    }
     async function load() {
+      const data = await loadAuthStatus();
+      if (ignore) return;
+      const nextAuthStatus = data
+        ? {
+            authenticated: data.authenticated === true,
+            enabled: data.enabled === true,
+            user: typeof data.user === 'string' ? data.user : '',
+          }
+        : { authenticated: false, enabled: false, user: '' };
+      setAuthStatus(nextAuthStatus);
+      if (nextAuthStatus.enabled && !nextAuthStatus.authenticated) {
+        void navigate({ to: '/login' });
+        return;
+      }
       try {
         const result = await connectHosts<true>({ throwOnError: true });
         if (!ignore) setHosts(result.data.items ?? []);
@@ -55,12 +61,11 @@ export function ConnectPage({
         if (!ignore) setHosts([]);
       }
     }
-    void syncAuthStatus();
     void load();
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     connectForm.setFieldValue('host', currentHost);

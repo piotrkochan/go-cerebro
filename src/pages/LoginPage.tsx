@@ -1,7 +1,7 @@
 import { useSearch } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
-import { loadAuthStatus, type AuthStatus } from '../api/security';
+import { apiURL, loadAuthStatus, type AuthStatus } from '../api/security';
 import { CerebroLogo } from '../components/CerebroLogo';
 import { Icon } from '../components/Icon';
 import { authActions } from '../stores/authStore';
@@ -50,7 +50,7 @@ export function LoginPage() {
           </div>
         ) : null}
         {passwordLogin ? (
-          <form action="/auth/login" className="form-signin" method="POST">
+          <form action={apiURL('/auth/login')} className="form-signin" method="POST">
             <div className="form-group">
               <label className="sr-only" htmlFor="inputUser">User</label>
               <input autoFocus required className="form-control form-control-sm" id="inputUser" name="user" placeholder="User" type="text" />
@@ -66,7 +66,7 @@ export function LoginPage() {
         ) : null}
         {entraIDLogin ? (
           <div className={passwordLogin ? 'mt-[50px]' : ''}>
-            <a className="btn btn-success w-full" href="/auth/entraid/login">
+            <a className="btn btn-success w-full" href={apiURL('/auth/entraid/login')}>
               <Icon name="lock" /> Sign in with Microsoft Entra ID
             </a>
           </div>
