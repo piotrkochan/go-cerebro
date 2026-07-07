@@ -18,7 +18,7 @@ func TestAPIMiddleware_ReturnsUnauthorizedWithoutSession(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	handler := mod.APIMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +45,7 @@ func TestNewModuleEnablesEntraID(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, TenantID: "example.onmicrosoft.com", ClientID: "client", ClientSecret: "secret"},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 
@@ -73,7 +73,7 @@ func TestNewModuleEnablesOAuth(t *testing.T) {
 				},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 
@@ -127,7 +127,7 @@ func TestSessionUserCSRFAndClearSession(t *testing.T) {
 func TestSessionIdentityExpiresByMaxLifetime(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth:   config.Auth{Session: config.AuthSession{MaxLifetimeSeconds: 60}},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
@@ -149,7 +149,7 @@ func TestSessionIdentityExpiresByMaxLifetime(t *testing.T) {
 func TestSessionIdentityExpiresByIdleTimeout(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth:   config.Auth{Session: config.AuthSession{IdleTimeoutSeconds: 60}},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
@@ -171,7 +171,7 @@ func TestSessionIdentityExpiresByIdleTimeout(t *testing.T) {
 func TestTouchSessionRefreshesIdleTimestamp(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth:   config.Auth{Session: config.AuthSession{IdleTimeoutSeconds: 3600}},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
@@ -262,7 +262,7 @@ func testModule(t *testing.T) *Module {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	return mod

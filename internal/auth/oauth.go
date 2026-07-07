@@ -39,6 +39,8 @@ type OAuthProvider struct {
 	verifier *oidc.IDTokenVerifier
 }
 
+var _ ExternalLoginProvider = (*OAuthProvider)(nil)
+
 func NewOAuthProvider(settings config.OAuthAuth) (*OAuthProvider, error) {
 	name := strings.TrimSpace(settings.Name)
 	if name == "" {

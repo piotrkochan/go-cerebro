@@ -27,6 +27,8 @@ type LDAPService struct {
 	tlsConfig      *tls.Config
 }
 
+var _ PasswordAuthenticator = (*LDAPService)(nil)
+
 func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
 	if s.URL == "" || s.UserTemplate == "" || s.BaseDN == "" {
 		return nil, errors.New("ldap auth requires url, user_template and base_dn")

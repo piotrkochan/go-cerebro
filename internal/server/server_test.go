@@ -124,6 +124,12 @@ func TestShouldGate_LeavesAuthStatusPublic(t *testing.T) {
 	assert.False(t, shouldGate(req))
 }
 
+func TestShouldGate_ProtectsAuthMe(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/auth/me", nil)
+
+	assert.True(t, shouldGate(req))
+}
+
 func TestShouldGate_ProtectsLogout(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "http://example.test/auth/logout", nil)
 
@@ -196,7 +202,7 @@ func TestRequestOriginUsesForwardedHeadersFromTrustedRemote(t *testing.T) {
 
 func TestAPIAuthGate_RequiresCSRFWhenAuthDisabled(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
-		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +219,7 @@ func TestAPIAuthGate_RequiresCSRFWhenAuthDisabled(t *testing.T) {
 
 func TestAPIAuthGate_RBACRequiresAuthenticationProvider(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
-		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	authorizer := rbac.New(config.RBAC{
@@ -235,7 +241,7 @@ func TestAPIAuthGate_RBACRequiresAuthenticationProvider(t *testing.T) {
 
 func TestAPIAuthGate_AllowsValidCSRFWhenAuthDisabled(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
-		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	tokenReq := httptest.NewRequest(http.MethodGet, "http://example.test/auth/status", nil)
@@ -266,7 +272,7 @@ func TestAPIAuthGate_LogoutRequiresCSRF(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 			},
 		},
-		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -293,7 +299,7 @@ func TestAPIAuthGate_LogoutBypassesRBAC(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "viewer", Password: "secret"}}},
 			},
 		},
-		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	authorizer := rbac.New(config.RBAC{
@@ -324,7 +330,7 @@ func TestAPIAuthGate_LogoutBypassesRBAC(t *testing.T) {
 
 func TestAPIAuthGate_RejectsCrossSiteFetchMetadata(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
-		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	tokenReq := httptest.NewRequest(http.MethodGet, "http://example.test/auth/status", nil)
@@ -355,7 +361,7 @@ func TestAPIAuthGate_AuthenticatesBeforeCSRF(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 			},
 		},
-		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -370,6 +376,114 @@ func TestAPIAuthGate_AuthenticatesBeforeCSRF(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
+func TestAPIAuthGate_AuthMeSkipsCSRFToken(t *testing.T) {
+	authMod, err := auth.NewModule(&config.Config{
+		Auth: config.Auth{
+			Basic: map[string]config.BasicAuth{
+				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+			},
+		},
+		Server: config.Server{BasePath: "/"},
+	})
+	require.NoError(t, err)
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	loginReq := httptest.NewRequest(http.MethodPost, "http://example.test/auth/login", nil)
+	loginRR := httptest.NewRecorder()
+	require.NoError(t, authMod.SetSessionUser(loginRR, loginReq, "admin"))
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/auth/me", nil)
+	for _, cookie := range loginRR.Result().Cookies() {
+		req.AddCookie(cookie)
+	}
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNoContent, rr.Code)
+}
+
+func TestAPIAuthGate_ConnectHostsSkipsCSRFToken(t *testing.T) {
+	authMod, err := auth.NewModule(&config.Config{
+		Auth: config.Auth{
+			Basic: map[string]config.BasicAuth{
+				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+			},
+		},
+		Server: config.Server{BasePath: "/"},
+	})
+	require.NoError(t, err)
+	handler := apiAuthGate(authMod, config.Server{CSRFEnabled: true}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	loginReq := httptest.NewRequest(http.MethodPost, "http://example.test/auth/login", nil)
+	loginRR := httptest.NewRecorder()
+	require.NoError(t, authMod.SetSessionUser(loginRR, loginReq, "admin"))
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/connect/hosts", nil)
+	for _, cookie := range loginRR.Result().Cookies() {
+		req.AddCookie(cookie)
+	}
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNoContent, rr.Code)
+}
+
+func TestAPIAuthGate_ConnectRequiresSessionWhenAuthEnabled(t *testing.T) {
+	authMod, err := auth.NewModule(&config.Config{
+		Auth: config.Auth{
+			Basic: map[string]config.BasicAuth{
+				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+			},
+		},
+		Server: config.Server{BasePath: "/"},
+	})
+	require.NoError(t, err)
+	handler := apiAuthGate(authMod, config.Server{}, rbac.New(config.RBAC{}), true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "http://example.test/connect", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
+func TestAPIAuthGate_ConnectBypassesRBACAfterAuthentication(t *testing.T) {
+	authMod, err := auth.NewModule(&config.Config{
+		Auth: config.Auth{
+			Basic: map[string]config.BasicAuth{
+				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "viewer", Password: "secret"}}},
+			},
+		},
+		Server: config.Server{BasePath: "/"},
+	})
+	require.NoError(t, err)
+	authorizer := rbac.New(config.RBAC{
+		Enabled: true,
+		Policies: []config.RBACPolicy{
+			{Subject: "viewer", Resource: "overview", Action: "read", Object: "local-cluster", Effect: "allow"},
+		},
+	})
+	handler := apiAuthGate(authMod, config.Server{}, authorizer, true)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	loginReq := httptest.NewRequest(http.MethodPost, "http://example.test/auth/login", nil)
+	loginRR := httptest.NewRecorder()
+	require.NoError(t, authMod.SetSessionUser(loginRR, loginReq, "viewer"))
+
+	req := httptest.NewRequest(http.MethodPost, "http://example.test/connect", nil)
+	for _, cookie := range loginRR.Result().Cookies() {
+		req.AddCookie(cookie)
+	}
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNoContent, rr.Code)
+}
+
 func TestAPIAuthGate_EnforcesRBAC(t *testing.T) {
 	authMod, err := auth.NewModule(&config.Config{
 		Auth: config.Auth{
@@ -377,7 +491,7 @@ func TestAPIAuthGate_EnforcesRBAC(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "alice", Password: "secret"}}},
 			},
 		},
-		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	authorizer := rbac.New(config.RBAC{
@@ -428,7 +542,7 @@ func TestAPIAuthGate_EnforcesRBACIndexObjectsAndActions(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "alice", Password: "secret"}}},
 			},
 		},
-		Server: config.Server{Secret: "test-secret", BasePath: "/"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 

@@ -20,7 +20,7 @@ func TestHandleAuthMeReturnsIdentity(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	deps := &Deps{
@@ -75,7 +75,7 @@ func TestHandleAuthMeRequiresSession(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	deps := &Deps{Auth: authMod}
@@ -99,7 +99,7 @@ func TestHandleLogoutReturnsProviderRedirectForJSONClients(t *testing.T) {
 				},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	deps := &Deps{Auth: authMod, Cfg: &config.Config{Server: config.Server{BasePath: "/"}}}
@@ -123,7 +123,7 @@ func TestLogoutClearsSessionAndReturnsLoginRedirect(t *testing.T) {
 				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	deps := &Deps{Auth: authMod, Cfg: &config.Config{Server: config.Server{BasePath: "/"}}}
@@ -160,7 +160,7 @@ func TestHandleAuthStatusReportsOAuthProvider(t *testing.T) {
 				},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	deps := &Deps{Auth: authMod, Cfg: &config.Config{}}

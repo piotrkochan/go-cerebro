@@ -145,6 +145,24 @@ server:
 	assert.Contains(t, err.Error(), `auth provider id "local" is duplicated`)
 }
 
+func TestLoad_RejectsDuplicateDisabledAuthProviderIDs(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  basic:
+    local:
+      enabled: false
+  proxy:
+    local:
+      enabled: false
+`), 0o600))
+
+	_, err := Load(path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `auth provider id "local" is duplicated`)
+}
+
 func TestLoad_AllowsMultipleInlineAuthProviders(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")

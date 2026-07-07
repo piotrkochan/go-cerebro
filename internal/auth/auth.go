@@ -33,10 +33,6 @@ const (
 	RedirectURL           = "redirect"
 )
 
-type Service interface {
-	Authenticate(username, password string) (Identity, error)
-}
-
 type Identity struct {
 	Username   string
 	Groups     []string
@@ -53,13 +49,30 @@ type LoginProvider struct {
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
-type namedService struct {
-	provider   string
-	providerID string
-	service    Service
+type PasswordAuthenticator interface {
+	Authenticate(username, password string) (Identity, error)
 }
 
-func (s namedService) Authenticate(username, password string) (Identity, error) {
+type RequestAuthenticator interface {
+	Identity(r *http.Request) (Identity, bool)
+	LogoutURL() string
+	ProviderID() string
+}
+
+type ExternalLoginProvider interface {
+	Name() string
+	ConfiguredRedirectURL() string
+	AuthCodeURL(ctx context.Context, redirectURL, state, nonce string) (string, error)
+	Exchange(ctx context.Context, redirectURL, code, nonce string) (Identity, error)
+}
+
+type namedPasswordAuthenticator struct {
+	provider   string
+	providerID string
+	service    PasswordAuthenticator
+}
+
+func (s namedPasswordAuthenticator) Authenticate(username, password string) (Identity, error) {
 	identity, err := s.service.Authenticate(username, password)
 	if err != nil {
 		return Identity{}, err
@@ -98,17 +111,21 @@ func IdentityFrom(ctx context.Context) Identity {
 
 type Module struct {
 	enabled       bool
-	entraID       map[string]*EntraIDProvider
-	oauth         map[string]*OAuthProvider
-	proxies       []*ProxyAuthenticator
-	services      []Service
+	entraID       map[string]ExternalLoginProvider
+	oauth         map[string]ExternalLoginProvider
+	proxies       []RequestAuthenticator
+	services      []PasswordAuthenticator
 	store         *sessions.CookieStore
 	sessionMaxAge time.Duration
 	sessionIdle   time.Duration
 }
 
 func NewModule(cfg *config.Config) (*Module, error) {
-	store := sessions.NewCookieStore([]byte(cfg.Server.Secret))
+	sessionSecret := cfg.Server.Secret
+	if sessionSecret == "" {
+		sessionSecret = "change-me"
+	}
+	store := sessions.NewCookieStore([]byte(sessionSecret))
 	cookieMaxAge := cfg.Auth.Session.CookieMaxAgeSeconds
 	store.Options = &sessions.Options{
 		Path:     strings.TrimRight(cfg.Server.BasePath, "/") + "/",
@@ -122,8 +139,8 @@ func NewModule(cfg *config.Config) (*Module, error) {
 	}
 
 	m := &Module{
-		entraID:       map[string]*EntraIDProvider{},
-		oauth:         map[string]*OAuthProvider{},
+		entraID:       map[string]ExternalLoginProvider{},
+		oauth:         map[string]ExternalLoginProvider{},
 		store:         store,
 		sessionMaxAge: secondsDuration(cfg.Auth.Session.MaxLifetimeSeconds),
 		sessionIdle:   secondsDuration(cfg.Auth.Session.IdleTimeoutSeconds),
@@ -137,7 +154,7 @@ func NewModule(cfg *config.Config) (*Module, error) {
 		if err != nil {
 			return nil, err
 		}
-		m.services = append(m.services, namedService{provider: "basic", providerID: providerID, service: svc})
+		m.services = append(m.services, namedPasswordAuthenticator{provider: "basic", providerID: providerID, service: svc})
 	}
 	for _, providerID := range providerIDs(cfg.Auth.LDAP) {
 		settings := cfg.Auth.LDAP[providerID]
@@ -148,7 +165,7 @@ func NewModule(cfg *config.Config) (*Module, error) {
 		if err != nil {
 			return nil, err
 		}
-		m.services = append(m.services, namedService{provider: "ldap", providerID: providerID, service: svc})
+		m.services = append(m.services, namedPasswordAuthenticator{provider: "ldap", providerID: providerID, service: svc})
 	}
 	for _, providerID := range providerIDs(cfg.Auth.Proxy) {
 		settings := cfg.Auth.Proxy[providerID]
@@ -196,11 +213,11 @@ func (m *Module) EntraIDEnabled() bool { return len(m.entraID) > 0 }
 func (m *Module) OAuthEnabled() bool { return len(m.oauth) > 0 }
 
 func (m *Module) OAuthName() string {
-	provider, ok := firstProvider(m.oauth)
-	if !ok {
+	keys := sortedMapKeys(m.oauth)
+	if len(keys) == 0 {
 		return ""
 	}
-	return provider.Name()
+	return m.oauth[keys[0]].Name()
 }
 
 func (m *Module) ExternalLoginProviders() []LoginProvider {
@@ -310,11 +327,19 @@ func (m *Module) SetSessionUser(w http.ResponseWriter, r *http.Request, username
 
 func (m *Module) SetSessionIdentity(w http.ResponseWriter, r *http.Request, identity Identity) error {
 	sess, _ := m.store.Get(r, SessionName)
+	return m.saveSessionIdentity(w, r, sess, identity)
+}
+
+func (m *Module) saveSessionIdentity(w http.ResponseWriter, r *http.Request, sess *sessions.Session, identity Identity) error {
+	redirect, _ := sess.Values[RedirectURL].(string)
 	resetSession(sess)
 	sess.Values[SessionUserKey] = identity.Username
 	sess.Values[SessionGroupsKey] = identity.Groups
 	sess.Values[SessionProviderKey] = identity.Provider
 	sess.Values[SessionProviderIDKey] = identity.ProviderID
+	if safe := safeRedirect(redirect); safe != "" {
+		sess.Values[RedirectURL] = safe
+	}
 	now := time.Now().Unix()
 	sess.Values[SessionIssuedAtKey] = now
 	sess.Values[SessionLastSeenKey] = now
@@ -323,7 +348,6 @@ func (m *Module) SetSessionIdentity(w http.ResponseWriter, r *http.Request, iden
 		return err
 	}
 	sess.Values[SessionCSRFKey] = token
-	delete(sess.Values, RedirectURL)
 	return sess.Save(r, w)
 }
 
@@ -397,24 +421,7 @@ func (m *Module) CompleteEntraIDLogin(providerID string, w http.ResponseWriter, 
 	}
 	identity.Provider = "entra_id"
 	identity.ProviderID = providerID
-	resetSession(sess)
-	sess.Values[SessionUserKey] = identity.Username
-	sess.Values[SessionGroupsKey] = identity.Groups
-	sess.Values[SessionProviderKey] = identity.Provider
-	sess.Values[SessionProviderIDKey] = identity.ProviderID
-	now := time.Now().Unix()
-	sess.Values[SessionIssuedAtKey] = now
-	sess.Values[SessionLastSeenKey] = now
-	token, err := newCSRFToken()
-	if err != nil {
-		return "", err
-	}
-	sess.Values[SessionCSRFKey] = token
-	delete(sess.Values, sessionFlowKey(SessionEntraStateKey, providerID))
-	delete(sess.Values, sessionFlowKey(SessionEntraNonceKey, providerID))
-	delete(sess.Values, sessionFlowKey(SessionEntraReturnKey, providerID))
-	delete(sess.Values, RedirectURL)
-	if err := sess.Save(r, w); err != nil {
+	if err := m.saveSessionIdentity(w, r, sess, identity); err != nil {
 		return "", err
 	}
 	return safeRedirect(returnPath), nil
@@ -475,24 +482,7 @@ func (m *Module) CompleteOAuthLogin(providerID string, w http.ResponseWriter, r 
 	}
 	identity.Provider = "oauth"
 	identity.ProviderID = providerID
-	resetSession(sess)
-	sess.Values[SessionUserKey] = identity.Username
-	sess.Values[SessionGroupsKey] = identity.Groups
-	sess.Values[SessionProviderKey] = identity.Provider
-	sess.Values[SessionProviderIDKey] = identity.ProviderID
-	now := time.Now().Unix()
-	sess.Values[SessionIssuedAtKey] = now
-	sess.Values[SessionLastSeenKey] = now
-	token, err := newCSRFToken()
-	if err != nil {
-		return "", err
-	}
-	sess.Values[SessionCSRFKey] = token
-	delete(sess.Values, sessionFlowKey(SessionOAuthStateKey, providerID))
-	delete(sess.Values, sessionFlowKey(SessionOAuthNonceKey, providerID))
-	delete(sess.Values, sessionFlowKey(SessionOAuthReturnKey, providerID))
-	delete(sess.Values, RedirectURL)
-	if err := sess.Save(r, w); err != nil {
+	if err := m.saveSessionIdentity(w, r, sess, identity); err != nil {
 		return "", err
 	}
 	return safeRedirect(returnPath), nil
@@ -698,14 +688,6 @@ func sortedMapKeys[T any](values map[string]T) []string {
 	}
 	sort.Strings(keys)
 	return keys
-}
-
-func firstProvider[T any](providers map[string]*T) (*T, bool) {
-	keys := sortedMapKeys(providers)
-	if len(keys) == 0 {
-		return nil, false
-	}
-	return providers[keys[0]], true
 }
 
 func sessionFlowKey(base, providerID string) string {

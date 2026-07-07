@@ -93,8 +93,8 @@ services:
     ports:
       - "${OAUTH2_PROXY_PORT:-9001}:4180"
     environment:
-      OAUTH2_PROXY_CLIENT_ID: "${GITHUB_CLIENT_ID:?set GITHUB_CLIENT_ID from your GitHub OAuth App}"
-      OAUTH2_PROXY_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET:?set GITHUB_CLIENT_SECRET from your GitHub OAuth App}"
+      OAUTH2_PROXY_CLIENT_ID: "${GITHUB_CLIENT_ID:-dev-missing-client-id}"
+      OAUTH2_PROXY_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET:-dev-missing-client-secret}"
       OAUTH2_PROXY_COOKIE_SECRET: "${OAUTH2_PROXY_COOKIE_SECRET:-dev-cookie-secret-32-bytes-ok!!!}"
     depends_on:
       - frontend

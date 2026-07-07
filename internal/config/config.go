@@ -600,11 +600,8 @@ func validateAuthProviderIDs[T any](prefix string, providers map[string]T) error
 	return nil
 }
 
-func collectAuthProviderIDs[T enabledAuthProvider](seen map[string]string, prefix string, providers map[string]T) error {
-	for providerID, provider := range providers {
-		if !provider.enabled() {
-			continue
-		}
+func collectAuthProviderIDs[T any](seen map[string]string, prefix string, providers map[string]T) error {
+	for providerID := range providers {
 		if previous, ok := seen[providerID]; ok {
 			return fmt.Errorf("auth provider id %q is duplicated between %s and %s", providerID, previous, prefix)
 		}

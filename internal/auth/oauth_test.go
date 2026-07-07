@@ -55,7 +55,7 @@ func TestOAuthLoginWithMockProvider(t *testing.T) {
 				},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 
@@ -97,7 +97,7 @@ func TestOAuthLoginRejectsInvalidState(t *testing.T) {
 				},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 
@@ -142,7 +142,7 @@ func TestOAuthUserInfoRequiresUsername(t *testing.T) {
 				},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 

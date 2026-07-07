@@ -36,6 +36,8 @@ type EntraIDProvider struct {
 	verifier *oidc.IDTokenVerifier
 }
 
+var _ ExternalLoginProvider = (*EntraIDProvider)(nil)
+
 func NewEntraIDProvider(settings config.EntraIDAuth) (*EntraIDProvider, error) {
 	name := strings.TrimSpace(settings.Name)
 	if name == "" {

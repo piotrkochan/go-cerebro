@@ -264,7 +264,7 @@ func apiAuthGate(authMod *auth.Module, serverCfg config.Server, authorizer *rbac
 					writeProblem(w, r, serverCfg, http.StatusForbidden, "invalid request origin")
 					return
 				}
-				if !authMod.ValidCSRF(r) {
+				if requiresCSRFToken(r) && !authMod.ValidCSRF(r) {
 					auditAccess(r, "csrf_rejected", auth.IdentityFrom(r.Context()), "failure", "invalid csrf token", authLogEnabled)
 					writeProblem(w, r, serverCfg, http.StatusForbidden, "invalid csrf token")
 					return
@@ -393,13 +393,21 @@ func shouldGate(r *http.Request) bool {
 	}
 	switch r.Method {
 	case http.MethodGet:
-		// The only authenticated GET is /connect/hosts. Every other GET (HTML partials, statics,
-		// /openapi.json) must remain publicly readable so the React frontend can boot.
-		return r.URL.Path == "/connect/hosts"
+		// Only API GETs that expose authenticated application data are gated here. Other GETs
+		// (React shell, static assets, /openapi.json, login/callback routes) must remain public
+		// so the frontend and external login flows can boot.
+		return r.URL.Path == "/connect/hosts" || r.URL.Path == "/auth/me"
 	case http.MethodPost:
 		return isAPI(r.URL.Path)
 	}
 	return false
+}
+
+func requiresCSRFToken(r *http.Request) bool {
+	if r.Method == http.MethodGet {
+		return r.URL.Path != "/auth/me" && r.URL.Path != "/connect/hosts"
+	}
+	return true
 }
 
 func mountBasePath(basePath string, app chi.Router) chi.Router {

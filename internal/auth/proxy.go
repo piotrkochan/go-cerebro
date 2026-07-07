@@ -19,6 +19,8 @@ type ProxyAuthenticator struct {
 	trustedNets    []*net.IPNet
 }
 
+var _ RequestAuthenticator = (*ProxyAuthenticator)(nil)
+
 func NewProxyAuthenticator(settings config.ProxyAuth) (*ProxyAuthenticator, error) {
 	return NewNamedProxyAuthenticator("", settings)
 }

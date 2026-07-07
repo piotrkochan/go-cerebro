@@ -14,6 +14,8 @@ type BasicService struct {
 	users []basicUser
 }
 
+var _ PasswordAuthenticator = (*BasicService)(nil)
+
 var basicBcryptCost = bcrypt.DefaultCost
 
 type basicUser struct {

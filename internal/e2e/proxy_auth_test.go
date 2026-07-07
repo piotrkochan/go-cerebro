@@ -29,7 +29,7 @@ func TestProxyAuthThroughTrustedReverseProxy(t *testing.T) {
 				},
 			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 
