@@ -19,4 +19,4 @@ Open `http://localhost:9000` and log in with:
 - username: `test`
 - password: `test`
 
-The active Cerebro configuration is [application.yaml](./application.yaml). This example intentionally sets `insecure_ldap: true` because the test container uses plain `ldap://`. Production LDAP should use `ldaps://` or `auth.settings.ca_cert_file`.
+The active Cerebro configuration is [application.yaml](./application.yaml). This example intentionally sets `insecure_ldap: true` because the test container uses plain `ldap://`. Production LDAP should use `ldaps://` or `auth.ldap.ca_cert_file`.

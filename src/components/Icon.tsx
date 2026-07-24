@@ -45,6 +45,7 @@ import {
   TriangleAlert,
   Undo2,
   Unlock,
+  User,
   WandSparkles,
   Wrench,
   Zap,
@@ -100,6 +101,7 @@ export type IconName =
   | 'trash'
   | 'undo'
   | 'unlock'
+  | 'user'
   | 'warning'
   | 'wrench'
   | 'arrows';
@@ -153,6 +155,7 @@ const icons: Record<IconName, LucideIcon> = {
   trash: Trash2,
   undo: Undo2,
   unlock: Unlock,
+  user: User,
   warning: TriangleAlert,
   wrench: Wrench,
 };

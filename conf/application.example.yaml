@@ -1,52 +1,119 @@
 # Go Cerebro example configuration. Copy to application.yaml and edit.
 #
 # Environment variables are expanded inside string values, for example
-# "${APPLICATION_SECRET}". Direct overrides also exist for CEREBRO_PORT,
-# APPLICATION_SECRET and AUTH_TYPE.
+# "${APPLICATION_SECRET}". Direct overrides also exist for CEREBRO_PORT
+# and APPLICATION_SECRET.
 
 # A list of known hosts (Elasticsearch clusters). Each host can have its own auth
 # and a whitelist of HTTP headers forwarded from the user's request to ES.
 hosts:
-  - name: "Local cluster"
+  - id: "local-cluster"
+    name: "Local cluster"
     host: "http://localhost:9200"
     # auth:
     #   username: "elastic"
     #   password: "changeme"
     headers_whitelist: ["x-proxy-user", "x-proxy-roles", "X-Forwarded-For"]
 
-# Application authentication. type: disabled | basic | ldap.
+# Application authentication. Enable one or more providers.
+# A single provider can use the short form below. Multiple providers of the same
+# type use named maps, for example auth.basic.local_admins.enabled.
 auth:
-  # Set to "basic" or "ldap" before exposing Cerebro outside a trusted local network.
-  type: "disabled"
-  settings:
-    # basic auth
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
-    # LDAP. Use ldaps:// in production. For private development-only ldap://
-    # tests, set insecure_ldap: true.
+  session:
+    # 0 disables a limit.
+    cookie_max_age_seconds: 28800
+    max_lifetime_seconds: 28800
+    idle_timeout_seconds: 1800
+
+  basic:
+    enabled: false
+    users:
+      - username: "${BASIC_AUTH_USER}"
+        password: "${BASIC_AUTH_PWD}"
+        # Optional static groups. Useful when RBAC is enabled.
+        # groups: ["cerebro-admins"]
+
+  ldap:
+    enabled: false
+    # Use ldaps:// in production. For private development-only ldap:// tests,
+    # set insecure_ldap: true.
     url: "${LDAP_URL}"
     # ca_cert_file: "/etc/cerebro/ldap-ca.pem"
     base_dn: "${LDAP_BASE_DN}"
-    method: "${LDAP_METHOD}"
     user_template: "${LDAP_USER_TEMPLATE}"
     bind_dn: "${LDAP_BIND_DN}"
     bind_pw: "${LDAP_BIND_PWD}"
     # LDAP requires ldaps:// by default. Set this only for isolated development tests.
     insecure_ldap: false
+    # Optional allow-list. At least one discovered LDAP group must match.
+    # required_groups: ["cerebro-admins"]
     group_search:
       base_dn: "${LDAP_GROUP_BASE_DN}"
       user_attr: "${LDAP_USER_ATTR}"
       user_attr_template: "${LDAP_USER_ATTR_TEMPLATE}"
+      # LDAP group filter, for example "(objectClass=groupOfNames)" or
+      # "(&(objectClass=groupOfNames)(cn=cerebro-*)))."
       group: "${LDAP_GROUP}"
+      # Attribute used as the short group name exposed to RBAC. The full group DN
+      # is also exposed, so RBAC can bind either group:cerebro-admins or
+      # group:cn=cerebro-admins,ou=groups,dc=example,dc=com.
+      name_attr: "cn"
+
+  proxy:
+    enabled: false
+    # For oauth2-proxy, Azure Entra ID behind oauth2-proxy, Authelia, Traefik
+    # ForwardAuth, nginx auth_request or another trusted reverse proxy.
+    # Never enable this unless Cerebro is reachable only through trusted_proxies.
+    user_header: "X-Forwarded-User"
+    groups_header: "X-Forwarded-Groups"
+    group_separator: ","
+    trusted_proxies: ["127.0.0.1/32"]
+
+  entra_id:
+    enabled: false
+    tenant_id: "${ENTRA_ID_TENANT_ID}"
+    client_id: "${ENTRA_ID_CLIENT_ID}"
+    client_secret: "${ENTRA_ID_CLIENT_SECRET}"
+    # Optional. If empty, Cerebro derives it from the incoming request.
+    # Register the exact URL in Entra ID app registration redirect URIs.
+    # redirect_url: "https://cerebro.example.org/auth/entraid/entra_id/callback"
+    username_claim: "preferred_username"
+    groups_claim: "groups"
+    scopes: ["openid", "profile", "email"]
+
+  oauth:
+    enabled: false
+    # Displayed on the login button, for example "GitHub", "Dex" or "Keycloak".
+    name: "OAuth"
+    # OIDC discovery mode. Prefer this for OIDC providers.
+    issuer_url: "${OAUTH_ISSUER_URL}"
+    # Generic OAuth2 mode. Used only when issuer_url is empty.
+    # auth_url: "https://provider.example.org/oauth/authorize"
+    # token_url: "https://provider.example.org/oauth/token"
+    # userinfo_url: "https://provider.example.org/oauth/userinfo"
+    client_id: "${OAUTH_CLIENT_ID}"
+    client_secret: "${OAUTH_CLIENT_SECRET}"
+    # Optional. If empty, Cerebro derives it from the incoming request.
+    # redirect_url: "https://cerebro.example.org/auth/oauth/oauth/callback"
+    username_claim: "preferred_username"
+    groups_claim: "groups"
+    scopes: ["openid", "profile", "email"]
 
 server:
   port: 9000
   base_path: "/"
-  # Required when auth.type is basic or ldap. Use a strong random value.
+  # External origin when Cerebro is behind a reverse proxy, for example
+  # "https://cerebro.example.org". If empty, Cerebro uses the request host.
+  public_url: ""
+  # Reverse proxy IPs/CIDRs allowed to supply X-Forwarded-Host and
+  # X-Forwarded-Proto for redirects and CSRF origin checks.
+  trusted_proxies: []
+  # Required when any auth provider is enabled. Use a strong random value.
   secret: "${APPLICATION_SECRET}"
   # Keep true when served through HTTPS. Set false only for local HTTP dev.
   cookie_secure: true
-  # Require a session-bound CSRF token for Cerebro API requests.
+  # Require a session-bound CSRF token for Cerebro API requests. This protects
+  # browser requests; it is not a replacement for authentication.
   csrf_enabled: true
   max_request_bytes: 5242880
   # Optional HTTPS listener. When both files are configured, Cerebro serves HTTPS.
@@ -85,6 +152,24 @@ features:
   # it exposes document contents to every authenticated Cerebro user.
   data_explorer: false
 
+rbac:
+  # Optional backend authorization. Authentication identifies the user; RBAC decides
+  # which API resources/actions that user can call.
+  enabled: false
+  bindings:
+    - {subject: "admin", role: "role:admin"}
+    - {subject: "group:cerebro-admins", role: "role:admin"}
+    - {subject: "group:cerebro-viewers", role: "role:viewer"}
+  policies:
+    # Cerebro-feature policy shape: subject + resource + action + object + effect.
+    # Policies are evaluated by Casbin. Wildcards use shell-style matching.
+    # Deny wins over allow.
+    # Object is cluster-scoped: cluster-wide actions use the cluster id, resource
+    # actions use cluster-id/name, e.g. "prod" or "prod/index-*".
+    - {subject: "role:admin", resource: "*", action: "*", object: "*", effect: "allow"}
+    - {subject: "role:viewer", resource: "*", action: "read", object: "*", effect: "allow"}
+    - {subject: "role:viewer", resource: "rest", action: "execute", object: "*", effect: "deny"}
+
 data:
   path: "./cerebro.db"
 
@@ -95,3 +180,5 @@ logging:
   format: "text"
   # Controls per-request HTTP access logs. Request logs are emitted at info level.
   request_log_enabled: true
+  # Controls auth audit logs.
+  auth_log_enabled: true

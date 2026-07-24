@@ -1,10 +1,15 @@
 hosts: []
 
 auth:
-  type: "basic"
-  settings:
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
+  session:
+    cookie_max_age_seconds: 28800
+    max_lifetime_seconds: 28800
+    idle_timeout_seconds: 1800
+  basic:
+    enabled: true
+    users:
+      - username: "${BASIC_AUTH_USER}"
+        password: "${BASIC_AUTH_PWD}"
 
 server:
   port: 9000

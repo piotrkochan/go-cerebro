@@ -17,6 +17,8 @@ Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmene
 - data explorer for browsing, searching, inserting and editing index documents
 - data streams and ILM management
 - AWS OpenSearch SigV4 support with dedicated compatibility tests
+- LDAPS, trusted proxy, Entra ID and generic OIDC authentication
+- advanced RBAC
 
 AI assistance was used during the refactor. Despite careful review, there may still be rough edges, so please keep that in mind while evaluating or using this version.
 
@@ -52,11 +54,9 @@ Create a minimal `conf/application.yaml`:
 
 ```yaml
 hosts:
-  - name: "Local cluster"
+  - id: "local-cluster"
+    name: "Local cluster"
     host: "http://localhost:9200"
-
-auth:
-  type: "disabled"
 
 server:
   port: 9000
@@ -108,13 +108,17 @@ Copy [conf/application.example.yaml](./conf/application.example.yaml) to `conf/a
 
 Important sections:
 
-- `hosts`: known Elasticsearch clusters. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
+- `hosts`: known Elasticsearch clusters. Optional `hosts[].id` becomes the stable cluster slug used in URLs and RBAC; use lowercase letters, digits and hyphens. If omitted, the slug is generated from `hosts[].name`. Keep `es.allow_ad_hoc_hosts: false` in shared environments.
 - `hosts[].headers_whitelist`: request headers that Cerebro may forward to Elasticsearch, useful behind an authenticating proxy.
-- `auth`: `disabled`, `basic` or `ldap`. Do not expose an instance with `auth.type: disabled`.
+- `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id`, `auth.oauth`: optional authentication providers. Enable at least one outside local development. A single provider can use the short form (`auth.basic.enabled`); multiple providers use named maps (`auth.basic.local_admins.enabled`). Short-form providers are stored as `default`. Provider IDs may contain lowercase letters, digits, `_` and `-`.
+- `auth.session`: optional cookie lifetime, max session lifetime and idle timeout settings.
+- `rbac`: optional YAML authorization policies for users and groups.
 - `server.base_path`: URL path prefix when Cerebro is mounted below `/`.
+- `server.public_url`: external origin used for redirects when Cerebro is behind a reverse proxy.
+- `server.trusted_proxies`: proxy IPs/CIDRs allowed to provide `X-Forwarded-Host` and `X-Forwarded-Proto`.
 - `server.secret`: required for authenticated deployments. Set it to a strong random value.
 - `server.cookie_secure`: keep `true` behind HTTPS.
-- `server.csrf_enabled`: session-bound CSRF protection for Cerebro API requests. Keep enabled for browser-facing deployments.
+- `server.csrf_enabled`: session-bound CSRF protection for browser requests. Keep enabled for browser-facing deployments; it is not a replacement for authentication.
 - `server.max_request_bytes`: maximum accepted Cerebro API request body size.
 - `server.tls_cert_file`, `server.tls_key_file`: optional HTTPS listener certificate and private key.
 - `server.hsts_enabled`, `server.hsts_max_age_seconds`, `server.hsts_include_subdomains`: HTTPS Strict Transport Security settings. Enable only for domains that should always use HTTPS.
@@ -122,27 +126,43 @@ Important sections:
 - `es.max_response_bytes`: maximum Elasticsearch response body size Cerebro will read.
 - `es.aws`: AWS SigV4 signing for Amazon OpenSearch Service and OpenSearch Serverless.
 - `es.ca_cert_file`, `es.client_cert_file`, `es.client_key_file`: TLS trust and mutual TLS for Elasticsearch.
-- `auth.settings.ca_cert_file`: custom LDAP CA trust.
+- `auth.ldap.ca_cert_file`: custom LDAP CA trust in short form. For named LDAP providers, use `auth.ldap.<provider>.ca_cert_file`.
 - `rest.history_size`: number of REST console requests kept in local history.
 - `features.data_explorer`: document browser/editor. Disabled by default because it exposes index data to authenticated users.
 - `data.path`: SQLite file used for REST request history.
-- `logging.level`, `logging.format`, `logging.request_log_enabled`: application log level/format and per-request HTTP access logs. Request logs are emitted at `info`, so `logging.level: warn` also suppresses normal access logs.
+- `logging.level`, `logging.format`, `logging.request_log_enabled`, `logging.auth_log_enabled`: application log level/format, per-request HTTP access logs and auth audit logs. Request logs are emitted at `info`, so `logging.level: warn` also suppresses normal access logs.
 
 Production baseline:
 
 ```yaml
 hosts:
-  - name: "Production"
+  - id: "prod"
+    name: "Production"
     host: "https://elasticsearch.example.org:9200"
     auth:
       username: "${ES_USERNAME}"
       password: "${ES_PASSWORD}"
 
 auth:
-  type: "basic"
-  settings:
-    username: "${CEREBRO_USER}"
-    password: "${CEREBRO_PASSWORD}"
+  basic:
+    enabled: true
+    users:
+      - username: "${CEREBRO_USER}"
+        password: "${CEREBRO_PASSWORD}"
+        groups: ["cerebro-admins"]
+      - username: "${CEREBRO_VIEWER_USER}"
+        password: "${CEREBRO_VIEWER_PASSWORD}"
+        groups: ["cerebro-viewers"]
+
+rbac:
+  enabled: true
+  bindings:
+    - {subject: "group:cerebro-admins", role: "role:admin"}
+    - {subject: "group:cerebro-viewers", role: "role:viewer"}
+  policies:
+    - {subject: "role:admin", resource: "*", action: "*", object: "*", effect: "allow"}
+    - {subject: "role:viewer", resource: "*", action: "read", object: "*", effect: "allow"}
+    - {subject: "role:viewer", resource: "rest", action: "execute", object: "*", effect: "deny"}
 
 server:
   port: 9000
@@ -167,7 +187,8 @@ Elasticsearch HTTPS with a custom CA and client certificate:
 
 ```yaml
 hosts:
-  - name: "Secure cluster"
+  - id: "secure-cluster"
+    name: "Secure cluster"
     host: "https://elasticsearch.example.org:9200"
     auth:
       username: "${ES_USERNAME}"
@@ -186,7 +207,8 @@ Amazon OpenSearch Service with AWS SigV4 signing:
 
 ```yaml
 hosts:
-  - name: "AWS OpenSearch"
+  - id: "aws-opensearch"
+    name: "AWS OpenSearch"
     host: "https://search-domain.eu-central-1.es.amazonaws.com"
 
 es:
@@ -206,7 +228,6 @@ Environment variables are expanded inside YAML values. These direct overrides ar
 
 - `CEREBRO_PORT`
 - `APPLICATION_SECRET`
-- `AUTH_TYPE`
 
 ## Feature Flags
 
@@ -220,32 +241,41 @@ Go Cerebro targets Elasticsearch and OpenSearch clusters through the official El
 
 ## Authentication
 
-Basic auth example:
+Each auth type supports one short-form provider:
 
 ```yaml
 auth:
-  type: "basic"
-  settings:
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
-server:
-  secret: "${APPLICATION_SECRET}"
+  basic:
+    enabled: true
 ```
 
-LDAP uses `ldaps://` by default. For a private test-only LDAP server you can set `insecure_ldap: true`, but do not use that in production.
+For multiple providers of the same type, use named providers:
 
 ```yaml
 auth:
-  type: "ldap"
-  settings:
-    url: "ldaps://ldap.example.org:636"
-    ca_cert_file: "/etc/cerebro/ldap-ca.pem"
-    base_dn: "ou=people,dc=example,dc=org"
-    method: "simple"
-    user_template: "uid=%s,%s"
-    bind_dn: "cn=readonly,dc=example,dc=org"
-    bind_pw: "${LDAP_BIND_PWD}"
+  basic:
+    local_admins:
+      enabled: true
+    local_viewers:
+      enabled: true
+  oauth:
+    github:
+      enabled: true
+    dex:
+      enabled: true
 ```
+
+Short-form providers use the auth type as their provider ID (`basic`, `proxy`,
+`oauth`, etc.). Named provider IDs must be unique across all auth types and may
+contain lowercase letters, digits, `_` and `-`. Do not mix short-form fields and
+named providers under the same auth type.
+
+- [Basic auth](./docs/auth-basic.md)
+- [Microsoft Entra ID](./docs/auth-entra-id.md)
+- [Generic OAuth / OIDC](./docs/auth-oauth.md)
+- [LDAP](./docs/auth-ldap.md)
+- [Trusted proxy / oauth2-proxy](./docs/auth-proxy.md)
+- [RBAC](./docs/RBAC.md)
 
 ## Docker
 
@@ -278,18 +308,19 @@ docker compose down
 docker compose up --build
 ```
 
-More configuration examples are in [examples](./examples), including basic auth, LDAP and Elasticsearch mutual TLS.
+More configuration examples are in [examples](./examples), including basic auth, LDAP, OAuth/OIDC and Elasticsearch mutual TLS.
 
 ## Security Notes
 
 Cerebro can manage Elasticsearch clusters. Treat access to this UI as administrative access.
 
 - Serve Cerebro over HTTPS, either with `server.tls_cert_file`/`server.tls_key_file` or through a reverse proxy.
-- Keep `auth.type` enabled outside local development.
+- Enable at least one auth provider outside local development.
 - Set `server.secret`.
 - Keep `es.allow_ad_hoc_hosts: false` unless you explicitly need user-supplied ES targets.
 - Use dedicated Elasticsearch users with the minimum required privileges.
-- Use `ldaps://` or `auth.settings.ca_cert_file` for LDAP trust.
+- Use `ldaps://` or `auth.ldap.ca_cert_file` for LDAP trust.
+- Use `auth.proxy` only when Cerebro is reachable exclusively through the configured trusted proxies.
 - Do not put Elasticsearch credentials into host URLs; use the `auth` block per host.
 
 ## Contributing

@@ -13,6 +13,7 @@ import (
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/lmenezes/cerebro/internal/elastic"
 	"github.com/lmenezes/cerebro/internal/history"
+	"github.com/lmenezes/cerebro/internal/rbac"
 )
 
 type Deps struct {
@@ -20,6 +21,7 @@ type Deps struct {
 	Client  elastic.Client
 	History *history.Store
 	Auth    *auth.Module
+	RBAC    *rbac.Authorizer
 }
 
 // Output is the Huma output wrapper for a typed response body.

@@ -23,6 +23,7 @@ import {
   LoginRoute,
   NodesRoute,
   OverviewRoute,
+  ProfileRoute,
   RepositoriesRoute,
   RestRoute,
   SnapshotRoute,
@@ -31,7 +32,7 @@ import {
 import { sessionActions, sessionStore } from '../stores/sessionStore';
 
 type AppSearch = {
-  error?: 'invalid';
+  error?: 'external' | 'invalid';
   host?: string;
   index?: string;
   kind?: 'index' | 'component' | 'legacy';
@@ -41,7 +42,7 @@ type AppSearch = {
 };
 
 const validateSearch = (search: Record<string, unknown>): AppSearch => ({
-  error: search.error === 'invalid' ? search.error : undefined,
+  error: search.error === 'external' || search.error === 'invalid' ? search.error : undefined,
   host: typeof search.host === 'string' ? search.host : undefined,
   index: typeof search.index === 'string' ? search.index : undefined,
   kind: search.kind === 'index' || search.kind === 'component' || search.kind === 'legacy' ? search.kind : undefined,
@@ -98,6 +99,7 @@ const indexRoute = createRoute({
 const overviewRoute = appRoute('/overview', OverviewRoute);
 const nodesRoute = appRoute('/nodes', NodesRoute);
 const restRoute = appRoute('/rest', RestRoute);
+const profileRoute = appRoute('/profile', ProfileRoute);
 const aliasesRoute = appRoute('/aliases', AliasesRoute);
 const repositoriesRoute = appRoute('/repositories', RepositoriesRoute);
 const repositoryRoute = appRoute('/repository', RepositoriesRoute);
@@ -119,6 +121,7 @@ const routeTree = rootRoute.addChildren([
   overviewRoute,
   nodesRoute,
   restRoute,
+  profileRoute,
   aliasesRoute,
   repositoriesRoute,
   repositoryRoute,
