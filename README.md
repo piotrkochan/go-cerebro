@@ -93,7 +93,7 @@ cerebro serve -config conf/application.yaml
 Generate the OpenAPI spec:
 
 ```sh
-cerebro openapi -config conf/application.full-example.yaml > openapi/cerebro.json
+cerebro openapi -config conf/application.example.yaml > openapi/cerebro.json
 ```
 
 Print the version:
@@ -104,7 +104,7 @@ cerebro version
 
 ## Configuration
 
-Copy [conf/application.full-example.yaml](./conf/application.full-example.yaml) to `conf/application.yaml`, remove options you do not need and edit it for your environment.
+Copy [conf/application.example.yaml](./conf/application.example.yaml) to `conf/application.yaml`, remove options you do not need and edit it for your environment.
 
 Environment variables are expanded inside YAML string values. These direct overrides are also supported:
 
