@@ -6,7 +6,7 @@ Go Cerebro is a Go + React/TypeScript rewrite of the original Java + Angular Cer
 
 Requirements:
 
-- Go 1.26.x
+- Go 1.26.5
 - Node.js 24+ or 26+
 - npm
 - Docker Compose

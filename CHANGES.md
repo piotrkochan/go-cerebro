@@ -32,6 +32,7 @@
 ### Development
 - Enabled dev RBAC - `admin` has full access and `user` has read-only access.
 - docker-compose oauth2-proxy development setup
+- Updated the Go toolchain, CI and build images to Go 1.26.5.
 
 ### Documentation
 - Added dedicated RBAC documentation and updated authentication examples to the provider-based config format.
