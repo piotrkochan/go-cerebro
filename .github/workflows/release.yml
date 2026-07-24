@@ -198,6 +198,8 @@ jobs:
     needs:
       - build-binaries
       - publish-docker
+    outputs:
+      subjects: ${{ steps.provenance.outputs.subjects }}
     permissions:
       contents: write
 
@@ -213,6 +215,10 @@ jobs:
           name: release-binaries
           path: dist
 
+      - name: Prepare provenance subjects
+        id: provenance
+        run: echo "subjects=$(base64 -w0 dist/checksums.txt)" >> "$GITHUB_OUTPUT"
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -227,3 +233,14 @@ jobs:
             --title "Cerebro ${GITHUB_REF_NAME}" \
             "${RELEASE_FLAGS[@]}" \
             --verify-tag
+
+  provenance:
+    needs: publish-release
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: ${{ needs.publish-release.outputs.subjects }}
+      upload-assets: true
