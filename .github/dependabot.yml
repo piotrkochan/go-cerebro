@@ -22,9 +22,12 @@ updates:
       timezone: "Europe/Warsaw"
     open-pull-requests-limit: 10
     groups:
-      npm-dependencies:
+      npm-minor-patch:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"
