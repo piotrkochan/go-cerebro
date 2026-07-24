@@ -24,7 +24,6 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/elastic/elastic-transport-go/v8/elastictransport"
-	elasticsearch "github.com/elastic/go-elasticsearch/v9"
 	"github.com/elastic/go-elasticsearch/v9/esapi"
 	"github.com/lmenezes/cerebro/internal/config"
 )
@@ -289,7 +288,12 @@ func (c *HTTPClient) responseFromBody(status int, body io.Reader) (Response, err
 }
 
 func (c *HTTPClient) elasticsearchTransport(base string, auth *config.ESAuth) (elastictransport.Interface, error) {
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return nil, fmt.Errorf("parse elasticsearch base URL: %w", err)
+	}
 	transportOpts := []elastictransport.Option{
+		elastictransport.WithURLs(baseURL),
 		elastictransport.WithDisableRetry(),
 	}
 	if c.transport != nil {
@@ -298,16 +302,11 @@ func (c *HTTPClient) elasticsearchTransport(base string, auth *config.ESAuth) (e
 	if auth != nil {
 		transportOpts = append(transportOpts, elastictransport.WithBasicAuth(auth.Username, auth.Password))
 	}
-	opts := []elasticsearch.Option{
-		elasticsearch.WithAddresses(base),
-		elasticsearch.WithDisableMetaHeader(),
-		elasticsearch.WithTransportOptions(transportOpts...),
-	}
-	baseClient, err := elasticsearch.NewBase(opts...)
+	baseClient, err := elastictransport.NewClient(transportOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return baseClient.Transport, nil
+	return baseClient, nil
 }
 
 type headerTransport struct {
