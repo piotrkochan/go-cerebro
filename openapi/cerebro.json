@@ -149,6 +149,39 @@
         ],
         "type": "object"
       },
+      "ConnectHostsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ConnectHostsResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allow_ad_hoc_hosts": {
+            "description": "Whether users may enter an arbitrary Elasticsearch URL.",
+            "type": "boolean"
+          },
+          "items": {
+            "description": "Configured Elasticsearch hosts.",
+            "items": {
+              "$ref": "#/components/schemas/HostRef"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "allow_ad_hoc_hosts"
+        ],
+        "type": "object"
+      },
       "DataExplorerResult": {
         "additionalProperties": false,
         "properties": {
@@ -799,34 +832,6 @@
         ],
         "type": "object"
       },
-      "ListHostRef": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "https://example.com/schemas/ListHostRef.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "items": {
-            "description": "Collection items.",
-            "items": {
-              "$ref": "#/components/schemas/HostRef"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "items"
-        ],
-        "type": "object"
-      },
       "ListILMPolicy": {
         "additionalProperties": false,
         "properties": {
@@ -964,6 +969,23 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "LogoutResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "JSON schema URL for this response.",
+            "type": "string"
+          },
+          "redirect_url": {
+            "description": "URL the frontend should navigate to after logout.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "redirect_url"
         ],
         "type": "object"
       },
@@ -1751,6 +1773,38 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/auth/logout": {
+      "post": {
+        "description": "Clears the current Cerebro session and returns the URL the frontend should navigate to.",
+        "operationId": "auth-logout",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Log out",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/clusters/{cluster}/aliases": {
       "get": {
         "description": "Returns all index aliases flattened into one list.",
@@ -5214,7 +5268,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListHostRef"
+                  "$ref": "#/components/schemas/ConnectHostsResponse"
                 }
               }
             },

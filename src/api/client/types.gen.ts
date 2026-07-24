@@ -87,6 +87,21 @@ export type Changes = {
     nodes: Array<unknown> | null;
 };
 
+export type ConnectHostsResponse = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Whether users may enter an arbitrary Elasticsearch URL.
+     */
+    allow_ad_hoc_hosts: boolean;
+    /**
+     * Configured Elasticsearch hosts.
+     */
+    items: Array<HostRef> | null;
+};
+
 export type DataExplorerResult = {
     /**
      * A URL to the JSON Schema for this object.
@@ -362,17 +377,6 @@ export type ListAlias = {
     items: Array<Alias> | null;
 };
 
-export type ListHostRef = {
-    /**
-     * A URL to the JSON Schema for this object.
-     */
-    readonly $schema?: string;
-    /**
-     * Collection items.
-     */
-    items: Array<HostRef> | null;
-};
-
 export type ListIlmPolicy = {
     /**
      * A URL to the JSON Schema for this object.
@@ -426,6 +430,17 @@ export type ListTemplateSummary = {
      * Collection items.
      */
     items: Array<TemplateSummary> | null;
+};
+
+export type LogoutResponse = {
+    /**
+     * JSON schema URL for this response.
+     */
+    $schema?: string;
+    /**
+     * URL the frontend should navigate to after logout.
+     */
+    redirect_url: string;
 };
 
 export type Metadata = {
@@ -918,6 +933,17 @@ export type ChangesWritable = {
     nodes: Array<unknown> | null;
 };
 
+export type ConnectHostsResponseWritable = {
+    /**
+     * Whether users may enter an arbitrary Elasticsearch URL.
+     */
+    allow_ad_hoc_hosts: boolean;
+    /**
+     * Configured Elasticsearch hosts.
+     */
+    items: Array<HostRef> | null;
+};
+
 export type DataExplorerResultWritable = {
     /**
      * Columns discovered from the current result page.
@@ -1087,13 +1113,6 @@ export type ListAliasWritable = {
      * Collection items.
      */
     items: Array<Alias> | null;
-};
-
-export type ListHostRefWritable = {
-    /**
-     * Collection items.
-     */
-    items: Array<HostRef> | null;
 };
 
 export type ListIlmPolicyWritable = {
@@ -1268,6 +1287,31 @@ export type TemplateWritable = {
      */
     template: unknown;
 };
+
+export type AuthLogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/logout';
+};
+
+export type AuthLogoutErrors = {
+    /**
+     * Error
+     */
+    default: ErrorModel;
+};
+
+export type AuthLogoutError = AuthLogoutErrors[keyof AuthLogoutErrors];
+
+export type AuthLogoutResponses = {
+    /**
+     * OK
+     */
+    200: LogoutResponse;
+};
+
+export type AuthLogoutResponse = AuthLogoutResponses[keyof AuthLogoutResponses];
 
 export type AliasesGetData = {
     body?: never;
@@ -3426,7 +3470,7 @@ export type ConnectHostsResponses = {
     /**
      * OK
      */
-    200: ListHostRef;
+    200: ConnectHostsResponse;
 };
 
-export type ConnectHostsResponse = ConnectHostsResponses[keyof ConnectHostsResponses];
+export type ConnectHostsResponse2 = ConnectHostsResponses[keyof ConnectHostsResponses];

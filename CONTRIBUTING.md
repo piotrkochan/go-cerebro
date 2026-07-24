@@ -24,6 +24,8 @@ Run the development stack:
 docker compose up --build
 ```
 
+The optional `.env` file used by this compose setup is development-only. Start from `.env.example` when testing local basic auth or the GitHub oauth2-proxy flow; production configuration belongs in the Cerebro YAML config, not this file.
+
 Useful URLs:
 
 - `http://localhost:9000`: Go-served application

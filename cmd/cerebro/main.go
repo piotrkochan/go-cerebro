@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -105,10 +106,14 @@ func runServe(args []string) {
 	if cfg.Server.Secret == "" || cfg.Server.Secret == "change-me" || cfg.Server.Secret == "dev-secret-change-me" {
 		slog.Warn("server.secret is empty or set to a default placeholder — set APPLICATION_SECRET to a strong, random value before exposing this instance")
 	}
-	if cfg.Auth.Type == "disabled" {
+	authProviders := enabledAuthProviders(cfg.Auth)
+	if authProviders == "disabled" {
 		slog.Warn("authentication is disabled — anyone reaching this port can manage the configured Elasticsearch clusters")
+		if cfg.Server.CSRFEnabled {
+			slog.Warn("csrf is enabled without authentication — csrf protects browsers from cross-site requests but does not restrict direct API clients")
+		}
 	}
-	slog.Info("cerebro starting", "addr", fmt.Sprintf(":%d", cfg.Server.Port), "scheme", srv.Scheme(), "auth", cfg.Auth.Type, "hosts", len(cfg.Hosts))
+	slog.Info("cerebro starting", "addr", fmt.Sprintf(":%d", cfg.Server.Port), "scheme", srv.Scheme(), "auth", authProviders, "hosts", len(cfg.Hosts))
 	if err := srv.Run(ctx); err != nil {
 		slog.Error("server stopped", "err", err)
 		os.Exit(1)
@@ -143,7 +148,7 @@ func runOpenAPI(args []string) {
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		// Tolerate missing config — generate spec with defaults.
-		cfg = &config.Config{Server: config.Server{Port: 9000, BasePath: "/", Secret: "x"}, Auth: config.Auth{Type: "disabled"}}
+		cfg = &config.Config{Server: config.Server{Port: 9000, BasePath: "/", Secret: "x"}}
 	}
 	authMod, err := auth.NewModule(cfg)
 	if err != nil {
@@ -162,4 +167,27 @@ func runOpenAPI(args []string) {
 	})
 	out, _ := json.MarshalIndent(srv.HumaAPI().OpenAPI(), "", "  ")
 	fmt.Println(string(out))
+}
+
+func enabledAuthProviders(cfg config.Auth) string {
+	providers := []string{}
+	if n := cfg.EnabledBasicCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("basic(%d)", n))
+	}
+	if n := cfg.EnabledLDAPCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("ldap(%d)", n))
+	}
+	if n := cfg.EnabledProxyCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("proxy(%d)", n))
+	}
+	if n := cfg.EnabledEntraIDCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("entra_id(%d)", n))
+	}
+	if n := cfg.EnabledOAuthCount(); n > 0 {
+		providers = append(providers, fmt.Sprintf("oauth(%d)", n))
+	}
+	if len(providers) == 0 {
+		return "disabled"
+	}
+	return strings.Join(providers, ",")
 }

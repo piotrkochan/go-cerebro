@@ -1,0 +1,336 @@
+package rbac
+
+import (
+	"net/http"
+	"net/url"
+	"path"
+	"strings"
+
+	"github.com/casbin/casbin/v2"
+	"github.com/casbin/casbin/v2/model"
+	"github.com/lmenezes/cerebro/internal/config"
+)
+
+const AnonymousSubject = "anonymous"
+
+type Request struct {
+	Resource string
+	Action   string
+	Object   string
+	System   bool
+}
+
+const AdHocClusterID = "adhoc"
+
+type Authorizer struct {
+	enabled     bool
+	defaultRole string
+	enforcer    *casbin.Enforcer
+}
+
+func New(cfg config.RBAC) *Authorizer {
+	authorizer := &Authorizer{
+		enabled:     cfg.Enabled,
+		defaultRole: cfg.DefaultRole,
+	}
+	if !cfg.Enabled {
+		return authorizer
+	}
+	enforcer, err := newEnforcer(cfg)
+	if err != nil {
+		return authorizer
+	}
+	authorizer.enforcer = enforcer
+	return authorizer
+}
+
+func (a *Authorizer) Enabled() bool {
+	return a != nil && a.enabled
+}
+
+func (a *Authorizer) Allow(subject string, groups []string, req Request) bool {
+	if !a.Enabled() {
+		return true
+	}
+	if req.System {
+		return true
+	}
+	if a.enforcer == nil {
+		return false
+	}
+	allowed := false
+	for _, principal := range a.principals(subject, groups) {
+		ok, explanation, err := a.enforcer.EnforceEx(principal, req.Resource, req.Action, req.Object)
+		if err != nil {
+			return false
+		}
+		if len(explanation) >= 5 && explanation[4] == "deny" {
+			return false
+		}
+		if ok {
+			allowed = true
+		}
+	}
+	return allowed
+}
+
+func (a *Authorizer) principals(subject string, groups []string) []string {
+	if subject == "" {
+		subject = AnonymousSubject
+	}
+	out := []string{subject, "user:" + subject}
+	for _, group := range groups {
+		if group == "" {
+			continue
+		}
+		out = append(out, group, "group:"+group)
+	}
+	if a.defaultRole != "" {
+		out = append(out, a.defaultRole)
+	}
+	return out
+}
+
+func newEnforcer(cfg config.RBAC) (*casbin.Enforcer, error) {
+	m, err := model.NewModelFromString(casbinModel)
+	if err != nil {
+		return nil, err
+	}
+	enforcer, err := casbin.NewEnforcer(m)
+	if err != nil {
+		return nil, err
+	}
+	enforcer.AddFunction("cerebroMatch", casbinPatternMatch)
+	for _, policy := range cfg.Policies {
+		if _, err := enforcer.AddPolicy(policy.Subject, policy.Resource, policy.Action, policy.Object, policy.Effect); err != nil {
+			return nil, err
+		}
+	}
+	for _, binding := range cfg.Bindings {
+		if _, err := enforcer.AddGroupingPolicy(binding.Subject, binding.Role); err != nil {
+			return nil, err
+		}
+	}
+	return enforcer, nil
+}
+
+const casbinModel = `
+[request_definition]
+r = sub, res, act, obj
+
+[policy_definition]
+p = sub, res, act, obj, eft
+
+[role_definition]
+g = _, _
+
+[policy_effect]
+e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
+
+[matchers]
+m = (r.sub == p.sub || g(r.sub, p.sub)) && cerebroMatch(p.res, r.res) && cerebroMatch(p.act, r.act) && cerebroMatch(p.obj, r.obj)
+`
+
+func casbinPatternMatch(args ...interface{}) (interface{}, error) {
+	if len(args) != 2 {
+		return false, nil
+	}
+	pattern, ok := args[0].(string)
+	if !ok {
+		return false, nil
+	}
+	value, ok := args[1].(string)
+	if !ok {
+		return false, nil
+	}
+	return wildcardMatch(pattern, value), nil
+}
+
+func wildcardMatch(pattern, value string) bool {
+	if pattern == "*" || pattern == value {
+		return true
+	}
+	ok, err := path.Match(pattern, value)
+	return err == nil && ok
+}
+
+func Classify(method, requestPath string) Request {
+	return classify(method, requestPath)
+}
+
+func classify(method, requestPath string) Request {
+	action := actionForMethod(method)
+	object := "*"
+	cleaned := strings.Trim(requestPath, "/")
+	segments := strings.Split(cleaned, "/")
+	if len(segments) == 0 || segments[0] == "" {
+		return Request{Resource: "app", Action: action, Object: object}
+	}
+	if segments[0] == "auth" && len(segments) == 2 && segments[1] == "logout" {
+		return Request{Resource: "auth", Action: "logout", Object: object, System: true}
+	}
+	if segments[0] == "connect" {
+		return Request{Resource: "ui", Action: action, Object: object, System: true}
+	}
+	if segments[0] != "clusters" || len(segments) < 3 {
+		return Request{Resource: segments[0], Action: action, Object: object}
+	}
+
+	cluster := ClusterObject(segments[1])
+	rest := segments[2:]
+	object = cluster
+	switch rest[0] {
+	case "cluster_changes", "navbar":
+		return Request{Resource: "ui", Action: "read", Object: cluster, System: true}
+	case "nodes", "overview":
+		return classifyClusterResource(method, cluster, rest)
+	case "commons":
+		return classifyCommons(method, cluster, rest)
+	case "rest":
+		if method == http.MethodPost {
+			return Request{Resource: "rest", Action: "execute", Object: cluster}
+		}
+		return Request{Resource: "rest", Action: action, Object: cluster}
+	case "create_index":
+		return Request{Resource: "indices", Action: "create", Object: targetObject(cluster, rest, 1)}
+	case "index_settings":
+		return Request{Resource: "indices", Action: actionForMethod(method), Object: targetObject(cluster, rest, 1)}
+	case "data_explorer":
+		if len(rest) > 2 && rest[2] == "documents" {
+			return Request{Resource: "documents", Action: "write", Object: targetObject(cluster, rest, 1)}
+		}
+		return Request{Resource: "documents", Action: "read", Object: targetObject(cluster, rest, 1)}
+	case "analysis":
+		if method == http.MethodPost {
+			return Request{Resource: "analysis", Action: "execute", Object: targetObject(cluster, rest, 2)}
+		}
+		return Request{Resource: "analysis", Action: "read", Object: targetObject(cluster, rest, 2)}
+	case "cat":
+		return Request{Resource: "cat", Action: "read", Object: targetObject(cluster, rest, 1)}
+	case "aliases":
+		return Request{Resource: "aliases", Action: action, Object: cluster}
+	case "templates":
+		if len(rest) >= 3 {
+			return Request{Resource: "templates", Action: action, Object: cluster + "/" + rest[2]}
+		}
+		return Request{Resource: "templates", Action: action, Object: cluster}
+	case "repositories":
+		return Request{Resource: "repositories", Action: action, Object: targetObject(cluster, rest, 1)}
+	case "snapshots":
+		if len(rest) >= 4 && rest[3] == "restore" {
+			return Request{Resource: "snapshots", Action: "restore", Object: cluster + "/" + rest[1] + "/" + rest[2]}
+		}
+		if len(rest) >= 3 {
+			return Request{Resource: "snapshots", Action: action, Object: cluster + "/" + rest[1] + "/" + rest[2]}
+		}
+		return Request{Resource: "snapshots", Action: action, Object: targetObject(cluster, rest, 1)}
+	case "data_streams":
+		return classifyDataStreams(method, cluster, rest)
+	case "ilm":
+		return Request{Resource: "ilm", Action: action, Object: targetObject(cluster, rest, 2)}
+	case "cluster_settings":
+		return Request{Resource: "cluster_settings", Action: action, Object: cluster}
+	default:
+		return Request{Resource: rest[0], Action: action, Object: object}
+	}
+}
+
+func ClusterObject(raw string) string {
+	if object, ok := AdHocObject(raw); ok {
+		return object
+	}
+	return raw
+}
+
+func AdHocObject(raw string) (string, bool) {
+	value, err := url.PathUnescape(strings.TrimSpace(raw))
+	if err != nil {
+		value = strings.TrimSpace(raw)
+	}
+	u, err := url.Parse(value)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return "", false
+	}
+	if u.User != nil || strings.Trim(u.Path, "/") != "" || u.RawQuery != "" || u.Fragment != "" {
+		return "", false
+	}
+	return AdHocClusterID + "/" + strings.ToLower(u.Scheme+"-"+u.Host), true
+}
+
+func classifyClusterResource(method, cluster string, rest []string) Request {
+	if rest[0] == "overview" && len(rest) > 1 {
+		if rest[1] == "shard_allocation" {
+			if method == http.MethodDelete {
+				return Request{Resource: "shard_allocation", Action: "enable", Object: cluster}
+			}
+			return Request{Resource: "shard_allocation", Action: "disable", Object: cluster}
+		}
+		if rest[1] == "indices" {
+			object := targetObject(cluster, rest, 2)
+			if len(rest) >= 6 && rest[5] == "relocation" {
+				return Request{Resource: "shards", Action: "relocate", Object: object}
+			}
+			if method == http.MethodDelete {
+				return Request{Resource: "indices", Action: "delete", Object: object}
+			}
+			if len(rest) >= 4 {
+				switch rest[3] {
+				case "cache":
+					return Request{Resource: "indices", Action: "clear_cache", Object: object}
+				case "forcemerge":
+					return Request{Resource: "indices", Action: "force_merge", Object: object}
+				default:
+					return Request{Resource: "indices", Action: rest[3], Object: object}
+				}
+			}
+			return Request{Resource: "indices", Action: actionForMethod(method), Object: object}
+		}
+	}
+	return Request{Resource: rest[0], Action: actionForMethod(method), Object: cluster}
+}
+
+func classifyCommons(method, cluster string, rest []string) Request {
+	if len(rest) >= 2 && rest[1] == "indices" {
+		return Request{Resource: "indices", Action: actionForMethod(method), Object: targetObject(cluster, rest, 2)}
+	}
+	if len(rest) >= 2 && rest[1] == "nodes" {
+		return Request{Resource: "nodes", Action: actionForMethod(method), Object: targetObject(cluster, rest, 2)}
+	}
+	return Request{Resource: "ui", Action: actionForMethod(method), Object: cluster, System: true}
+}
+
+func classifyDataStreams(method, cluster string, rest []string) Request {
+	object := targetObject(cluster, rest, 1)
+	if len(rest) >= 3 {
+		switch rest[2] {
+		case "rollover":
+			return Request{Resource: "data_streams", Action: "rollover", Object: object}
+		case "lifecycle":
+			return Request{Resource: "data_streams", Action: "update_lifecycle", Object: object}
+		case "ilm":
+			if method == http.MethodDelete {
+				return Request{Resource: "data_streams", Action: "detach_ilm", Object: object}
+			}
+			return Request{Resource: "data_streams", Action: "attach_ilm", Object: object}
+		}
+	}
+	return Request{Resource: "data_streams", Action: actionForMethod(method), Object: object}
+}
+
+func actionForMethod(method string) string {
+	switch method {
+	case http.MethodGet, http.MethodHead:
+		return "read"
+	case http.MethodDelete:
+		return "delete"
+	default:
+		return "write"
+	}
+}
+
+func targetObject(cluster string, parts []string, index int) string {
+	if len(parts) <= index || parts[index] == "" {
+		return cluster
+	}
+	return cluster + "/" + parts[index]
+}

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/stretchr/testify/assert"
@@ -13,10 +14,11 @@ import (
 func TestAPIMiddleware_ReturnsUnauthorizedWithoutSession(t *testing.T) {
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			Type:     "basic",
-			Settings: config.AuthSettings{Username: "admin", Password: "admin123"},
+			Basic: map[string]config.BasicAuth{
+				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	handler := mod.APIMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,21 +33,64 @@ func TestAPIMiddleware_ReturnsUnauthorizedWithoutSession(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
-func TestBasicServiceAuthenticate(t *testing.T) {
-	service, err := NewBasicService(config.AuthSettings{Username: "admin", Password: "admin123"})
-	require.NoError(t, err)
-
-	user, err := service.Authenticate("admin", "admin123")
-	require.NoError(t, err)
-	assert.Equal(t, "admin", user)
-
-	_, err = service.Authenticate("admin", "wrong")
-	assert.ErrorIs(t, err, ErrInvalidCredentials)
+func TestNewEntraIDProviderRequiresSettings(t *testing.T) {
+	_, err := NewEntraIDProvider(config.EntraIDAuth{TenantID: "tenant", ClientID: "client"})
+	assert.EqualError(t, err, "entra id auth requires tenant_id, client_id and client_secret")
 }
 
-func TestNewBasicServiceRequiresCredentials(t *testing.T) {
-	_, err := NewBasicService(config.AuthSettings{Username: "admin"})
-	assert.EqualError(t, err, "basic auth requires username and password settings")
+func TestNewModuleEnablesEntraID(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth: config.Auth{
+			EntraID: map[string]config.EntraIDAuth{
+				config.DefaultAuthProviderID: {Enabled: true, TenantID: "example.onmicrosoft.com", ClientID: "client", ClientSecret: "secret"},
+			},
+		},
+		Server: config.Server{BasePath: "/"},
+	})
+	require.NoError(t, err)
+
+	assert.True(t, mod.Enabled())
+	assert.True(t, mod.EntraIDEnabled())
+	assert.False(t, mod.PasswordLoginEnabled())
+}
+
+func TestNewOAuthProviderRequiresSettings(t *testing.T) {
+	_, err := NewOAuthProvider(config.OAuthAuth{ClientID: "client", ClientSecret: "secret"})
+	assert.EqualError(t, err, "oauth auth requires issuer_url or auth_url, token_url and userinfo_url")
+}
+
+func TestNewModuleEnablesOAuth(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth: config.Auth{
+			OAuth: map[string]config.OAuthAuth{
+				config.DefaultAuthProviderID: {
+					Enabled:      true,
+					AuthURL:      "https://auth.example.org/authorize",
+					TokenURL:     "https://auth.example.org/token",
+					UserInfoURL:  "https://auth.example.org/userinfo",
+					ClientID:     "client",
+					ClientSecret: "secret",
+				},
+			},
+		},
+		Server: config.Server{BasePath: "/"},
+	})
+	require.NoError(t, err)
+
+	assert.True(t, mod.Enabled())
+	assert.True(t, mod.OAuthEnabled())
+	assert.Equal(t, "OAuth", mod.OAuthName())
+	assert.False(t, mod.PasswordLoginEnabled())
+}
+
+func TestEntraIDClaimHelpers(t *testing.T) {
+	claims := map[string]any{
+		"preferred_username": "alice@example.org",
+		"groups":             []any{"admins", "operators"},
+	}
+
+	assert.Equal(t, "alice@example.org", firstClaimString(claims, "missing", "preferred_username"))
+	assert.Equal(t, []string{"admins", "operators"}, claimStringSlice(claims["groups"]))
 }
 
 func TestSessionUserCSRFAndClearSession(t *testing.T) {
@@ -59,6 +104,10 @@ func TestSessionUserCSRFAndClearSession(t *testing.T) {
 	user, ok := mod.SessionUser(req)
 	require.True(t, ok)
 	assert.Equal(t, "admin", user)
+	identity, ok := mod.SessionIdentity(req)
+	require.True(t, ok)
+	assert.Equal(t, "admin", identity.Username)
+	assert.Equal(t, "", identity.Provider)
 
 	token, ok := mod.CSRFToken(req)
 	require.True(t, ok)
@@ -73,6 +122,77 @@ func TestSessionUserCSRFAndClearSession(t *testing.T) {
 	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
 	_, ok = mod.SessionUser(req)
 	assert.False(t, ok)
+}
+
+func TestSessionIdentityExpiresByMaxLifetime(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth:   config.Auth{Session: config.AuthSession{MaxLifetimeSeconds: 60}},
+		Server: config.Server{BasePath: "/"},
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
+	rr := httptest.NewRecorder()
+	require.NoError(t, mod.SetSessionIdentity(rr, req, Identity{Username: "admin", Provider: "basic"}))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	rr = httptest.NewRecorder()
+	sess, err := mod.Store().Get(req, SessionName)
+	require.NoError(t, err)
+	sess.Values[SessionIssuedAtKey] = time.Now().Add(-2 * time.Minute).Unix()
+	require.NoError(t, sess.Save(req, rr))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	_, ok := mod.SessionIdentity(req)
+	assert.False(t, ok)
+}
+
+func TestSessionIdentityExpiresByIdleTimeout(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth:   config.Auth{Session: config.AuthSession{IdleTimeoutSeconds: 60}},
+		Server: config.Server{BasePath: "/"},
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
+	rr := httptest.NewRecorder()
+	require.NoError(t, mod.SetSessionIdentity(rr, req, Identity{Username: "admin", Provider: "basic"}))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	rr = httptest.NewRecorder()
+	sess, err := mod.Store().Get(req, SessionName)
+	require.NoError(t, err)
+	sess.Values[SessionLastSeenKey] = time.Now().Add(-2 * time.Minute).Unix()
+	require.NoError(t, sess.Save(req, rr))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	_, ok := mod.SessionIdentity(req)
+	assert.False(t, ok)
+}
+
+func TestTouchSessionRefreshesIdleTimestamp(t *testing.T) {
+	mod, err := NewModule(&config.Config{
+		Auth:   config.Auth{Session: config.AuthSession{IdleTimeoutSeconds: 3600}},
+		Server: config.Server{BasePath: "/"},
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
+	rr := httptest.NewRecorder()
+	require.NoError(t, mod.SetSessionIdentity(rr, req, Identity{Username: "admin", Provider: "basic"}))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	rr = httptest.NewRecorder()
+	sess, err := mod.Store().Get(req, SessionName)
+	require.NoError(t, err)
+	oldSeen := time.Now().Add(-time.Minute).Unix()
+	sess.Values[SessionLastSeenKey] = oldSeen
+	require.NoError(t, sess.Save(req, rr))
+
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	rr = httptest.NewRecorder()
+	require.NoError(t, mod.TouchSession(rr, req))
+	req = requestWithCookies(rr, http.MethodGet, "http://example.test/api")
+	sess, err = mod.Store().Get(req, SessionName)
+	require.NoError(t, err)
+	assert.Greater(t, sess.Values[SessionLastSeenKey].(int64), oldSeen)
 }
 
 func TestEnsureCSRFTokenReusesExistingToken(t *testing.T) {
@@ -119,10 +239,11 @@ func TestAPIMiddlewareAddsUserToContext(t *testing.T) {
 	mod := testModule(t)
 	sessionReq := httptest.NewRequest(http.MethodGet, "http://example.test/api", nil)
 	sessionRR := httptest.NewRecorder()
-	require.NoError(t, mod.SetSessionUser(sessionRR, sessionReq, "admin"))
+	require.NoError(t, mod.SetSessionIdentity(sessionRR, sessionReq, Identity{Username: "admin", Groups: []string{"cerebro-admins"}}))
 
 	handler := mod.APIMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "admin", UserFrom(r.Context()))
+		assert.Equal(t, []string{"cerebro-admins"}, GroupsFrom(r.Context()))
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	req := requestWithCookies(sessionRR, http.MethodGet, "http://example.test/api")
@@ -137,10 +258,11 @@ func testModule(t *testing.T) *Module {
 	t.Helper()
 	mod, err := NewModule(&config.Config{
 		Auth: config.Auth{
-			Type:     "basic",
-			Settings: config.AuthSettings{Username: "admin", Password: "admin123"},
+			Basic: map[string]config.BasicAuth{
+				config.DefaultAuthProviderID: {Enabled: true, Users: []config.BasicAuthUser{{Username: "admin", Password: "admin123"}}},
+			},
 		},
-		Server: config.Server{BasePath: "/", Secret: "test-secret"},
+		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
 	return mod

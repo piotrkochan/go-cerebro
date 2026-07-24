@@ -15,6 +15,7 @@ import { IndexSettingsPage } from '../pages/IndexSettingsPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NodesPage } from '../pages/NodesPage';
 import { OverviewPage } from '../pages/OverviewPage';
+import { ProfilePage } from '../pages/ProfilePage';
 import { RepositoriesPage } from '../pages/RepositoriesPage';
 import { RestPage } from '../pages/RestPage';
 import { SnapshotPage } from '../pages/SnapshotPage';
@@ -66,6 +67,10 @@ export function LoginRoute() {
   return <LoginPage />;
 }
 
+export function ProfileRoute() {
+  return <ProfilePage />;
+}
+
 export function OverviewRoute() {
   const { connection, notify, refreshTick, setStatus } = usePageContext();
   return <OverviewPage connection={connection} notify={notify} refreshTick={refreshTick} setStatus={setStatus} />;
@@ -77,8 +82,8 @@ export function NodesRoute() {
 }
 
 export function RestRoute() {
-  const { connection } = usePageContext();
-  return <RestPage connection={connection} />;
+  const { connection, notify } = usePageContext();
+  return <RestPage connection={connection} notify={notify} />;
 }
 
 export function AliasesRoute() {
