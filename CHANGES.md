@@ -1,6 +1,6 @@
 # Cerebro Releases
 
-## v0.11.0 - July 7th, 2026
+## v0.11.0 - July 24th, 2026
 
 ### Breaking Changes
 - Replaced the old `auth.type` + `auth.settings` configuration format with provider-specific sections: `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id` and `auth.oauth`.
