@@ -3,10 +3,11 @@ hosts:
     host: "https://search-domain.eu-central-1.es.amazonaws.com"
 
 auth:
-  type: "basic"
-  settings:
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
+  basic:
+    enabled: true
+    users:
+      - username: "${BASIC_AUTH_USER}"
+        password: "${BASIC_AUTH_PWD}"
 
 server:
   port: 9000

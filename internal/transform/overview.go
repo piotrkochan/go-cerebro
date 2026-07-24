@@ -3,6 +3,7 @@ package transform
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 )
 
 // Overview is the payload of the /overview endpoint — the cluster dashboard data.
@@ -20,6 +21,7 @@ type Overview struct {
 	TotalIndices        int             `json:"total_indices"`
 	ClosedIndices       int             `json:"closed_indices"`
 	SpecialIndices      int             `json:"special_indices" doc:"Number of dot-prefixed (system) indices."`
+	IndexingComplete    int             `json:"indexing_complete_indices" doc:"Number of indices marked as ILM indexing complete."`
 	Indices             []OverviewIndex `json:"indices"`
 	Nodes               []OverviewNode  `json:"nodes"`
 	ShardAllocation     bool            `json:"shard_allocation" doc:"Whether shard allocation is enabled (cluster.routing.allocation.enable == all)."`
@@ -31,6 +33,7 @@ type OverviewIndex struct {
 	Name             string                      `json:"name" doc:"Index name."`
 	Closed           bool                        `json:"closed"`
 	Special          bool                        `json:"special" doc:"Whether the index is dot-prefixed (system index)."`
+	IndexingComplete bool                        `json:"indexing_complete" doc:"Whether ILM marked this index as indexing complete."`
 	DataStream       string                      `json:"data_stream,omitempty" doc:"Data stream name when this index is a backing index."`
 	Unhealthy        bool                        `json:"unhealthy" doc:"Whether any shard is not STARTED."`
 	DocCount         any                         `json:"doc_count"`
@@ -81,7 +84,7 @@ type OverviewNode struct {
 
 // ClusterOverview merges responses from multiple ES endpoints into the single payload consumed by the UI.
 // Port of services/overview/OverviewDataService.scala + models/overview/{ClusterOverview,Index,ClosedIndex,Node}.scala.
-func ClusterOverview(clusterState, nodesStats, indicesStats, clusterSettings, aliases, clusterHealth, nodesInfo json.RawMessage) (Overview, error) {
+func ClusterOverview(clusterState, nodesStats, indicesStats, clusterSettings, aliases, clusterHealth, nodesInfo, indexingCompleteSettings json.RawMessage) (Overview, error) {
 	var state map[string]any
 	_ = json.Unmarshal(clusterState, &state)
 	var settings map[string]any
@@ -96,6 +99,8 @@ func ClusterOverview(clusterState, nodesStats, indicesStats, clusterSettings, al
 	_ = json.Unmarshal(nodesStats, &nStats)
 	var nInfo map[string]any
 	_ = json.Unmarshal(nodesInfo, &nInfo)
+	var completeSettings map[string]any
+	_ = json.Unmarshal(indexingCompleteSettings, &completeSettings)
 
 	masterNodeID, _ := state["master_node"].(string)
 
@@ -110,15 +115,20 @@ func ClusterOverview(clusterState, nodesStats, indicesStats, clusterSettings, al
 		alloc = "all"
 	}
 
-	indices := buildIndices(state, iStats, aliasesMap)
+	completeIndices := indexingCompleteIndices(completeSettings)
+	indices := buildIndices(state, iStats, aliasesMap, completeIndices)
 	closedCount := 0
 	specialCount := 0
+	indexingCompleteCount := 0
 	for _, idx := range indices {
 		if idx.Closed {
 			closedCount++
 		}
 		if idx.Special {
 			specialCount++
+		}
+		if idx.IndexingComplete {
+			indexingCompleteCount++
 		}
 	}
 
@@ -145,6 +155,7 @@ func ClusterOverview(clusterState, nodesStats, indicesStats, clusterSettings, al
 		TotalIndices:        len(indices),
 		ClosedIndices:       closedCount,
 		SpecialIndices:      specialCount,
+		IndexingComplete:    indexingCompleteCount,
 		Indices:             indices,
 		Nodes:               buildOverviewNodes(masterNodeID, nInfo, nStats),
 		ShardAllocation:     alloc == "all",
@@ -229,7 +240,7 @@ func overviewNode(id string, info, stats map[string]any, masterID string) Overvi
 	}
 }
 
-func buildIndices(state, indicesStats, aliases map[string]any) []OverviewIndex {
+func buildIndices(state, indicesStats, aliases map[string]any, completeIndices map[string]bool) []OverviewIndex {
 	routing, _ := getNested(state, "routing_table", "indices").(map[string]any)
 	blocks, _ := getNested(state, "blocks", "indices").(map[string]any)
 	if blocks == nil {
@@ -254,7 +265,7 @@ func buildIndices(state, indicesStats, aliases map[string]any) []OverviewIndex {
 				idxAliases = al
 			}
 		}
-		out = append(out, buildIndex(index, idxStats, shards, idxAliases, idxBlock, dataStreams[index]))
+		out = append(out, buildIndex(index, idxStats, shards, idxAliases, idxBlock, dataStreams[index], completeIndices[index]))
 	}
 	// Closed indices (ES < 7.X)
 	for name, blk := range blocks {
@@ -264,17 +275,18 @@ func buildIndices(state, indicesStats, aliases map[string]any) []OverviewIndex {
 		blkMap, _ := blk.(map[string]any)
 		if _, ok := blkMap["4"]; ok {
 			out = append(out, OverviewIndex{
-				Name:       name,
-				Closed:     true,
-				Special:    startsWithDot(name),
-				DataStream: dataStreams[name],
+				Name:             name,
+				Closed:           true,
+				Special:          startsWithDot(name),
+				IndexingComplete: completeIndices[name],
+				DataStream:       dataStreams[name],
 			})
 		}
 	}
 	return out
 }
 
-func buildIndex(name string, stats, routing, aliasesObj, indexBlock map[string]any, dataStream string) OverviewIndex {
+func buildIndex(name string, stats, routing, aliasesObj, indexBlock map[string]any, dataStream string, indexingComplete bool) OverviewIndex {
 	shardMap := createShardMap(routing)
 	docCount := getNested(stats, "primaries", "docs", "count")
 	if docCount == nil {
@@ -323,6 +335,7 @@ func buildIndex(name string, stats, routing, aliasesObj, indexBlock map[string]a
 		Name:             name,
 		Closed:           closed,
 		Special:          startsWithDot(name),
+		IndexingComplete: indexingComplete,
 		DataStream:       dataStream,
 		Unhealthy:        isIndexUnhealthy(shardMap),
 		DocCount:         docCount,
@@ -363,6 +376,33 @@ func dataStreamBackingIndices(state map[string]any) map[string]string {
 		}
 	}
 	return out
+}
+
+func indexingCompleteIndices(settings map[string]any) map[string]bool {
+	out := map[string]bool{}
+	for name, raw := range settings {
+		index, _ := raw.(map[string]any)
+		if index == nil {
+			continue
+		}
+		if truthySetting(index["settings.index.lifecycle.indexing_complete"]) ||
+			truthySetting(index["index.lifecycle.indexing_complete"]) ||
+			truthySetting(getNested(index, "settings", "index", "lifecycle", "indexing_complete")) {
+			out[name] = true
+		}
+	}
+	return out
+}
+
+func truthySetting(v any) bool {
+	switch value := v.(type) {
+	case bool:
+		return value
+	case string:
+		return strings.EqualFold(value, "true")
+	default:
+		return false
+	}
 }
 
 func createShardMap(routing map[string]any) map[string][]map[string]any {

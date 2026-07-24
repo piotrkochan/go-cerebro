@@ -7,8 +7,9 @@ import { Icon } from '../components/Icon';
 import { LazyJsonEditor } from '../components/LazyJsonEditor';
 import { SplitPane } from '../components/SplitPane';
 import { restRequestFormDefaults, type RestRequestFormValues } from '../forms/restRequestForm';
+import type { Notify } from '../stores/alertsStore';
 import { clusterPath } from '../utils/connection';
-import { curl, formatJson, parseJson, textValue } from '../utils/format';
+import { curl, errorMessage, formatJson, parseJson, textValue } from '../utils/format';
 import { nextSort, sortByText, type SortState } from '../utils/sort';
 
 const restSplitKey = 'cerebro.restSplitPercent';
@@ -21,7 +22,7 @@ type RestResponseState = {
 type RestHistoryItem = { body?: unknown; created_at?: unknown; method?: unknown; path?: unknown };
 type RestHistorySortKey = 'created_at' | 'method' | 'path';
 
-export function RestPage({ connection }: { connection: HostBodyWritable }) {
+export function RestPage({ connection, notify }: { connection: HostBodyWritable; notify: Notify }) {
   const [curlCopied, setCurlCopied] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [pathFocused, setPathFocused] = useState(false);
@@ -54,7 +55,7 @@ export function RestPage({ connection }: { connection: HostBodyWritable }) {
       setResponse({ body: result.data.data, durationMs: Math.round(performance.now() - startedAt), status: result.data.status });
       await loadHistory();
     } catch (error) {
-      setResponse({ body: restErrorBody(error), durationMs: Math.round(performance.now() - startedAt), status: 0 });
+      notify('danger', `Error executing request: ${errorMessage(error)}`);
     } finally {
       setExecuting(false);
     }
@@ -281,18 +282,6 @@ async function copyText(value: string) {
 
 function restHistorySortValue(item: RestHistoryItem, key: RestHistorySortKey) {
   return textValue(item[key]);
-}
-
-function restErrorBody(error: unknown): unknown {
-  if (typeof error === 'object' && error !== null) {
-    const candidate = error as { data?: unknown; detail?: unknown; error?: unknown; message?: unknown; status?: unknown; title?: unknown };
-    if (candidate.data !== undefined) return candidate.data;
-    return {
-      error: candidate.error ?? candidate.detail ?? candidate.message ?? candidate.title ?? error,
-      status: candidate.status,
-    };
-  }
-  return { error };
 }
 
 function restResponseBody(body: unknown): unknown {

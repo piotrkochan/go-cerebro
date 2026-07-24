@@ -1,5 +1,43 @@
 # Cerebro Releases
 
+## v0.11.0 - July 7th, 2026
+
+### Breaking Changes
+- Replaced the old `auth.type` + `auth.settings` configuration format with provider-specific sections: `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id` and `auth.oauth`.
+- Basic auth users now live under `auth.basic.users`; LDAP settings now live under `auth.ldap`; trusted proxy, Microsoft Entra ID and generic OAuth/OIDC are separate provider sections.
+
+### Security
+- Added configurable YAML RBAC policies backed by Casbin for backend API authorization.
+- Added per-cluster RBAC objects and feature-oriented permissions for Cerebro actions.
+- Added profile page visibility for authenticated user, groups, roles and effective permissions.
+- Added multi-user basic authentication with backend-only password storage.
+- Added bcrypt password hashing for basic authentication checks.
+- Added session max lifetime, idle timeout and cookie max-age controls.
+- Added LDAP group discovery for RBAC bindings and LDAPS e2e coverage.
+- Added trusted proxy authentication for oauth2-proxy and similar reverse proxies.
+- Added generic OAuth/OIDC authentication provider support.
+- Added direct Microsoft Entra ID authentication through OIDC authorization-code flow.
+- Reworked authentication config into independent `auth.basic`, `auth.ldap`, `auth.proxy`, `auth.entra_id` and `auth.oauth` provider sections.
+- Added short-form single auth providers and named provider maps.
+- Added support for multiple named auth providers with globally unique provider IDs.
+- Returned both auth provider type and provider ID in auth status/profile responses.
+
+### Frontend
+- Added an overview filter for hiding ILM rolled-over indices marked with `index.lifecycle.indexing_complete` [(#13)](https://github.com/piotrkochan/go-cerebro/issues/13).
+- Added login buttons for configured external auth providers.
+- Added user menu in the navbar with profile and logout actions.
+- Fixed frontend API client session-cookie handling for Vite and generated-client requests.
+- Cleared frontend auth/session stores on login and logout transitions.
+
+### Development
+- Enabled dev RBAC - `admin` has full access and `user` has read-only access.
+- docker-compose oauth2-proxy development setup
+
+### Documentation
+- Added dedicated RBAC documentation and updated authentication examples to the provider-based config format.
+- Added dedicated authentication docs for basic auth, LDAP, trusted proxy, Microsoft Entra ID and generic OAuth/OIDC.
+- Added short example READMEs for auth-related example configs.
+
 ## v0.10.1 - July 4th, 2026
 
 ### Fixes

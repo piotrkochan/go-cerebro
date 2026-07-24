@@ -2,6 +2,7 @@
 .*
 # except for .gitignore
 !.gitignore
+!.env.example
 !.eslintrc.json
 !.github/
 !.github/**

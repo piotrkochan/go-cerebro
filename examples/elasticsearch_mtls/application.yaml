@@ -6,10 +6,11 @@ hosts:
       password: "${ES_PASSWORD}"
 
 auth:
-  type: "basic"
-  settings:
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
+  basic:
+    enabled: true
+    users:
+      - username: "${BASIC_AUTH_USER}"
+        password: "${BASIC_AUTH_PWD}"
 
 server:
   port: 9000

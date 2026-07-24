@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lmenezes/cerebro/internal/auth"
+	"github.com/lmenezes/cerebro/internal/config"
 )
 
 //go:embed all:static
@@ -25,17 +26,17 @@ func indexHandler(authMod *auth.Module) http.HandlerFunc {
 }
 
 // loginHandler sends legacy /login URLs to the React login route.
-func loginHandler(authMod *auth.Module) http.HandlerFunc {
+func loginHandler(cfg *config.Config, authMod *auth.Module) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !authMod.Enabled() {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			http.Redirect(w, r, basePathRedirect(cfg, "/"), http.StatusSeeOther)
 			return
 		}
 		if _, ok := authMod.SessionUser(r); ok {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			http.Redirect(w, r, basePathRedirect(cfg, "/"), http.StatusSeeOther)
 			return
 		}
-		http.Redirect(w, r, "/#/login", http.StatusSeeOther)
+		http.Redirect(w, r, basePathRedirect(cfg, "/#/login"), http.StatusSeeOther)
 	}
 }
 
@@ -72,3 +73,11 @@ func mustSub(root fs.FS, dir string) fs.FS {
 }
 
 func embeddedFS() fs.FS { return embeddedStatic }
+
+func basePathRedirect(cfg *config.Config, suffix string) string {
+	base := normalizedBasePath(cfg.Server.BasePath)
+	if base == "/" {
+		return suffix
+	}
+	return base + suffix
+}

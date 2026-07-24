@@ -17,6 +17,8 @@ Go Cerebro is a fork of the original [lmenezes/cerebro](https://github.com/lmene
 - data explorer for browsing, searching, inserting and editing index documents
 - data streams and ILM management
 - AWS OpenSearch SigV4 support with dedicated compatibility tests
+- LDAPS, trusted proxy, Entra ID and generic OIDC authentication
+- advanced RBAC
 
 AI assistance was used during the refactor. Despite careful review, there may still be rough edges, so please keep that in mind while evaluating or using this version.
 
@@ -52,11 +54,9 @@ Create a minimal `conf/application.yaml`:
 
 ```yaml
 hosts:
-  - name: "Local cluster"
+  - id: "local-cluster"
+    name: "Local cluster"
     host: "http://localhost:9200"
-
-auth:
-  type: "disabled"
 
 server:
   port: 9000
@@ -112,33 +112,77 @@ Environment variables are expanded inside YAML string values. These direct overr
 | --- | --- |
 | `CEREBRO_PORT` | `server.port` |
 | `APPLICATION_SECRET` | `server.secret` |
-| `AUTH_TYPE` | `auth.type` |
 
 | Option | Default | Description |
 | --- | --- | --- |
 | `hosts` | `[]` | Known Elasticsearch/OpenSearch clusters shown on the connect page. |
-| `hosts[].name` | `hosts[].host` | Display name and source for the stable cluster slug used in API routes. |
+| `hosts[].id` | generated from `hosts[].name` | Stable cluster slug used in URLs and RBAC. Use lowercase letters, digits and hyphens. |
+| `hosts[].name` | `hosts[].host` | Display name shown in the UI. |
 | `hosts[].host` | required | Elasticsearch/OpenSearch HTTP URL. Credentials in the URL are rejected; use `hosts[].auth`. |
 | `hosts[].auth.username` | empty | Username for this Elasticsearch/OpenSearch host. Kept server-side. |
 | `hosts[].auth.password` | empty | Password for this Elasticsearch/OpenSearch host. Kept server-side. |
 | `hosts[].headers_whitelist` | `[]` | Request headers Cerebro may forward to Elasticsearch, useful behind an authenticating proxy. |
-| `auth.type` | `disabled` | Application login provider: `disabled`, `none`, `basic` or `ldap`. Do not expose shared instances with auth disabled. |
-| `auth.settings.username` | empty | Basic-auth username. |
-| `auth.settings.password` | empty | Basic-auth password. |
-| `auth.settings.url` | empty | LDAP URL. `ldaps://` is required unless `insecure_ldap` is enabled. |
-| `auth.settings.ca_cert_file` | empty | LDAP CA certificate file for private LDAP trust. |
-| `auth.settings.base_dn` | empty | LDAP base DN for user lookup. |
-| `auth.settings.method` | empty | LDAP authentication method used by the LDAP service. |
-| `auth.settings.user_template` | empty | LDAP user DN/search template. |
-| `auth.settings.bind_dn` | empty | LDAP bind DN for searches. |
-| `auth.settings.bind_pw` | empty | LDAP bind password for searches. |
-| `auth.settings.insecure_ldap` | `false` | Allows plain `ldap://` for isolated development tests. Do not use in production. |
-| `auth.settings.group_search.base_dn` | empty | LDAP group search base DN. |
-| `auth.settings.group_search.user_attr` | empty | LDAP user attribute used for group membership matching. |
-| `auth.settings.group_search.user_attr_template` | empty | LDAP group membership value template. |
-| `auth.settings.group_search.group` | empty | Required LDAP group DN/name. |
+| `auth.session.cookie_max_age_seconds` | `0` | Session cookie max age in seconds. `0` creates a browser-session cookie. |
+| `auth.session.max_lifetime_seconds` | `0` | Maximum authenticated session lifetime. `0` disables the limit. |
+| `auth.session.idle_timeout_seconds` | `0` | Session idle timeout. `0` disables the limit. |
+| `auth.basic.enabled` | `false` | Enables YAML-backed basic authentication. Short form creates provider ID `basic`. |
+| `auth.basic.users[].username` | empty | Basic-auth username. |
+| `auth.basic.users[].password` | empty | Basic-auth password. Stored only on the backend and checked with bcrypt. |
+| `auth.basic.users[].groups` | `[]` | Static groups added to this basic-auth user. |
+| `auth.basic.default_groups` | `[]` | Groups added to every user authenticated by this provider. |
+| `auth.ldap.enabled` | `false` | Enables LDAP authentication. Short form creates provider ID `ldap`. |
+| `auth.ldap.url` | empty | LDAP URL. `ldaps://` is required unless `insecure_ldap` is enabled. |
+| `auth.ldap.ca_cert_file` | empty | LDAP CA certificate file for private LDAP trust. |
+| `auth.ldap.base_dn` | empty | LDAP base DN for user lookup. |
+| `auth.ldap.user_template` | empty | LDAP user DN/search template. |
+| `auth.ldap.bind_dn` | empty | Optional LDAP bind DN for searches. |
+| `auth.ldap.bind_pw` | empty | Optional LDAP bind password for searches. |
+| `auth.ldap.insecure_ldap` | `false` | Allows plain `ldap://` for isolated development tests. Do not use in production. |
+| `auth.ldap.default_groups` | `[]` | Groups added to every user authenticated by this provider. |
+| `auth.ldap.required_groups` | `[]` | Optional allow-list; login succeeds only when at least one discovered group matches. |
+| `auth.ldap.group_search.base_dn` | empty | LDAP group search base DN. |
+| `auth.ldap.group_search.user_attr` | empty | LDAP user attribute used for group membership matching. |
+| `auth.ldap.group_search.user_attr_template` | empty | LDAP group membership value template. |
+| `auth.ldap.group_search.group` | empty | LDAP group filter. |
+| `auth.ldap.group_search.name_attr` | `cn` | Attribute exposed as the short group name for RBAC bindings. |
+| `auth.proxy.enabled` | `false` | Enables trusted reverse-proxy authentication, for example oauth2-proxy. |
+| `auth.proxy.user_header` | empty | Header containing the authenticated username. |
+| `auth.proxy.groups_header` | empty | Optional header containing user groups. |
+| `auth.proxy.group_separator` | `,` | Separator for `groups_header`. |
+| `auth.proxy.default_groups` | `[]` | Groups added to every user authenticated by this provider. |
+| `auth.proxy.logout_url` | empty | Optional proxy logout URL used by the frontend logout flow. |
+| `auth.proxy.trusted_proxies` | `[]` | Proxy IPs/CIDRs allowed to provide trusted auth headers. |
+| `auth.entra_id.enabled` | `false` | Enables Microsoft Entra ID OIDC login. |
+| `auth.entra_id.name` | `Microsoft Entra ID` | Login button label. |
+| `auth.entra_id.tenant_id` | empty | Entra tenant ID. Either `tenant_id` or `issuer_url` is required. |
+| `auth.entra_id.issuer_url` | derived from `tenant_id` | Optional explicit OIDC issuer URL. |
+| `auth.entra_id.client_id` | empty | Entra application client ID. |
+| `auth.entra_id.client_secret` | empty | Entra application client secret. Kept server-side. |
+| `auth.entra_id.redirect_url` | derived from request | Optional exact callback URL registered in Entra ID. |
+| `auth.entra_id.username_claim` | `preferred_username` | Claim used as the Cerebro username. |
+| `auth.entra_id.groups_claim` | `groups` | Claim used for RBAC groups. |
+| `auth.entra_id.default_groups` | `[]` | Groups added to every user authenticated by this provider. |
+| `auth.entra_id.scopes` | `["openid", "profile", "email"]` | OIDC scopes requested during login. |
+| `auth.oauth.enabled` | `false` | Enables generic OAuth2/OIDC login. |
+| `auth.oauth.name` | `OAuth` | Login button label. |
+| `auth.oauth.issuer_url` | empty | OIDC discovery issuer URL. Prefer this when supported. |
+| `auth.oauth.auth_url` | empty | OAuth2 authorization endpoint for non-discovery providers. |
+| `auth.oauth.token_url` | empty | OAuth2 token endpoint for non-discovery providers. |
+| `auth.oauth.userinfo_url` | empty | OAuth2 userinfo endpoint for non-discovery providers. |
+| `auth.oauth.client_id` | empty | OAuth/OIDC client ID. |
+| `auth.oauth.client_secret` | empty | OAuth/OIDC client secret. Kept server-side. |
+| `auth.oauth.redirect_url` | derived from request | Optional exact callback URL registered in the provider. |
+| `auth.oauth.username_claim` | `preferred_username` | Claim used as the Cerebro username. |
+| `auth.oauth.groups_claim` | `groups` | Claim used for RBAC groups. |
+| `auth.oauth.default_groups` | `[]` | Groups added to every user authenticated by this provider. |
+| `auth.oauth.scopes` | `["openid", "profile", "email"]` | OAuth/OIDC scopes requested during login. |
+| `rbac.enabled` | `false` | Enables backend authorization policies. Requires authentication. |
+| `rbac.bindings` | `[]` | Subject-to-role bindings, for example user or group to `role:admin`. |
+| `rbac.policies` | `[]` | Casbin-backed Cerebro policy rules: subject, resource, action, object and effect. |
 | `server.port` | `9000` | HTTP/HTTPS listen port. Can be overridden with `CEREBRO_PORT`. |
 | `server.base_path` | `/` | URL path prefix when Cerebro is mounted below `/`. |
+| `server.public_url` | empty | External origin used for redirects when Cerebro is behind a reverse proxy. |
+| `server.trusted_proxies` | `[]` | Proxy IPs/CIDRs allowed to provide `X-Forwarded-Host` and `X-Forwarded-Proto`. |
 | `server.secret` | `change-me` | Session signing secret. Required and must be changed when auth is enabled. Can be overridden with `APPLICATION_SECRET`. |
 | `server.cookie_secure` | `true` | Marks session cookies as secure. Keep `true` behind HTTPS; set `false` only for local HTTP development. |
 | `server.csrf_enabled` | `true` | Enables session-bound CSRF protection for Cerebro API requests. |
@@ -167,22 +211,39 @@ Environment variables are expanded inside YAML string values. These direct overr
 | `logging.level` | `info` | Log level: `debug`, `info`, `warn` or `error`. |
 | `logging.format` | `text` | Log format: `text` or `json`. |
 | `logging.request_log_enabled` | `true` | Enables per-request HTTP access logs. Request logs are emitted at `info`, so `logging.level: warn` suppresses normal access logs. |
+| `logging.auth_log_enabled` | `true` | Enables authentication audit logs. |
 
 Production baseline:
 
 ```yaml
 hosts:
-  - name: "Production"
+  - id: "prod"
+    name: "Production"
     host: "https://elasticsearch.example.org:9200"
     auth:
       username: "${ES_USERNAME}"
       password: "${ES_PASSWORD}"
 
 auth:
-  type: "basic"
-  settings:
-    username: "${CEREBRO_USER}"
-    password: "${CEREBRO_PASSWORD}"
+  basic:
+    enabled: true
+    users:
+      - username: "${CEREBRO_USER}"
+        password: "${CEREBRO_PASSWORD}"
+        groups: ["cerebro-admins"]
+      - username: "${CEREBRO_VIEWER_USER}"
+        password: "${CEREBRO_VIEWER_PASSWORD}"
+        groups: ["cerebro-viewers"]
+
+rbac:
+  enabled: true
+  bindings:
+    - {subject: "group:cerebro-admins", role: "role:admin"}
+    - {subject: "group:cerebro-viewers", role: "role:viewer"}
+  policies:
+    - {subject: "role:admin", resource: "*", action: "*", object: "*", effect: "allow"}
+    - {subject: "role:viewer", resource: "*", action: "read", object: "*", effect: "allow"}
+    - {subject: "role:viewer", resource: "rest", action: "execute", object: "*", effect: "deny"}
 
 server:
   port: 9000
@@ -207,7 +268,8 @@ Elasticsearch HTTPS with a custom CA and client certificate:
 
 ```yaml
 hosts:
-  - name: "Secure cluster"
+  - id: "secure-cluster"
+    name: "Secure cluster"
     host: "https://elasticsearch.example.org:9200"
     auth:
       username: "${ES_USERNAME}"
@@ -226,7 +288,8 @@ Amazon OpenSearch Service with AWS SigV4 signing:
 
 ```yaml
 hosts:
-  - name: "AWS OpenSearch"
+  - id: "aws-opensearch"
+    name: "AWS OpenSearch"
     host: "https://search-domain.eu-central-1.es.amazonaws.com"
 
 es:
@@ -246,7 +309,6 @@ Environment variables are expanded inside YAML values. These direct overrides ar
 
 - `CEREBRO_PORT`
 - `APPLICATION_SECRET`
-- `AUTH_TYPE`
 
 ## Feature Flags
 
@@ -260,32 +322,41 @@ Go Cerebro targets Elasticsearch and OpenSearch clusters through the official El
 
 ## Authentication
 
-Basic auth example:
+Each auth type supports one short-form provider:
 
 ```yaml
 auth:
-  type: "basic"
-  settings:
-    username: "${BASIC_AUTH_USER}"
-    password: "${BASIC_AUTH_PWD}"
-server:
-  secret: "${APPLICATION_SECRET}"
+  basic:
+    enabled: true
 ```
 
-LDAP uses `ldaps://` by default. For a private test-only LDAP server you can set `insecure_ldap: true`, but do not use that in production.
+For multiple providers of the same type, use named providers:
 
 ```yaml
 auth:
-  type: "ldap"
-  settings:
-    url: "ldaps://ldap.example.org:636"
-    ca_cert_file: "/etc/cerebro/ldap-ca.pem"
-    base_dn: "ou=people,dc=example,dc=org"
-    method: "simple"
-    user_template: "uid=%s,%s"
-    bind_dn: "cn=readonly,dc=example,dc=org"
-    bind_pw: "${LDAP_BIND_PWD}"
+  basic:
+    local_admins:
+      enabled: true
+    local_viewers:
+      enabled: true
+  oauth:
+    github:
+      enabled: true
+    dex:
+      enabled: true
 ```
+
+Short-form providers use the auth type as their provider ID (`basic`, `proxy`,
+`oauth`, etc.). Named provider IDs must be unique across all auth types and may
+contain lowercase letters, digits, `_` and `-`. Do not mix short-form fields and
+named providers under the same auth type.
+
+- [Basic auth](./docs/auth-basic.md)
+- [Microsoft Entra ID](./docs/auth-entra-id.md)
+- [Generic OAuth / OIDC](./docs/auth-oauth.md)
+- [LDAP](./docs/auth-ldap.md)
+- [Trusted proxy / oauth2-proxy](./docs/auth-proxy.md)
+- [RBAC](./docs/RBAC.md)
 
 ## Docker
 
@@ -318,18 +389,19 @@ docker compose down
 docker compose up --build
 ```
 
-More configuration examples are in [examples](./examples), including basic auth, LDAP and Elasticsearch mutual TLS.
+More configuration examples are in [examples](./examples), including basic auth, LDAP, OAuth/OIDC and Elasticsearch mutual TLS.
 
 ## Security Notes
 
 Cerebro can manage Elasticsearch clusters. Treat access to this UI as administrative access.
 
 - Serve Cerebro over HTTPS, either with `server.tls_cert_file`/`server.tls_key_file` or through a reverse proxy.
-- Keep `auth.type` enabled outside local development.
+- Enable at least one auth provider outside local development.
 - Set `server.secret`.
 - Keep `es.allow_ad_hoc_hosts: false` unless you explicitly need user-supplied ES targets.
 - Use dedicated Elasticsearch users with the minimum required privileges.
-- Use `ldaps://` or `auth.settings.ca_cert_file` for LDAP trust.
+- Use `ldaps://` or `auth.ldap.ca_cert_file` for LDAP trust.
+- Use `auth.proxy` only when Cerebro is reachable exclusively through the configured trusted proxies.
 - Do not put Elasticsearch credentials into host URLs; use the `auth` block per host.
 
 ## Contributing
