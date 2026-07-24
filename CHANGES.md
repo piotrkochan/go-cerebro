@@ -21,6 +21,7 @@
 - Added short-form single auth providers and named provider maps.
 - Added support for multiple named auth providers with globally unique provider IDs.
 - Returned both auth provider type and provider ID in auth status/profile responses.
+- Added OpenSSF Scorecard analysis with published reports and Code Scanning integration.
 
 ### Frontend
 - Added an overview filter for hiding ILM rolled-over indices marked with `index.lifecycle.indexing_complete` [(#13)](https://github.com/piotrkochan/go-cerebro/issues/13).
