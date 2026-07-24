@@ -23,6 +23,7 @@
 - Returned both auth provider type and provider ID in auth status/profile responses.
 
 ### Frontend
+- Added an overview filter for hiding ILM rolled-over indices marked with `index.lifecycle.indexing_complete` [(#13)](https://github.com/piotrkochan/go-cerebro/issues/13).
 - Added login buttons for configured external auth providers.
 - Added user menu in the navbar with profile and logout actions.
 - Fixed frontend API client session-cookie handling for Vite and generated-client requests.

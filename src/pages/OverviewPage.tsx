@@ -69,6 +69,7 @@ export function OverviewPage({
   const [nodeFilter, setNodeFilter] = useState('');
   const [showClosed, setShowClosed] = useState(false);
   const [showSpecial, setShowSpecial] = useState(false);
+  const [hideRolledOver, setHideRolledOver] = useState(true);
   const [expandedView, setExpandedView] = useState(false);
   const [asc, setAsc] = useState(true);
   const [showOnlyAffected, setShowOnlyAffected] = useState(false);
@@ -238,10 +239,13 @@ export function OverviewPage({
 
   if (!data) return <Loading label="loading overview" />;
 
-  const indices = (data.indices ?? [])
+  const baseIndices = (data.indices ?? [])
     .filter((index) => (showClosed || !index.closed) && (showSpecial || !index.special))
     .filter((index) => !showOnlyAffected || index.unhealthy || Boolean(index.shards?.unassigned?.length))
-    .filter((index) => `${index.name} ${(index.aliases ?? []).join(' ')}`.toLowerCase().includes(filterName.toLowerCase()))
+    .filter((index) => `${index.name} ${(index.aliases ?? []).join(' ')}`.toLowerCase().includes(filterName.toLowerCase()));
+  const rolledOverCount = baseIndices.filter((index) => index.indexing_complete).length;
+  const indices = baseIndices
+    .filter((index) => !hideRolledOver || !index.indexing_complete)
     .sort((left, right) => (asc ? left.name.localeCompare(right.name) : right.name.localeCompare(left.name)));
   const nodesList = (data.nodes ?? []).filter((node) =>
     textValue(node.name).toLowerCase().includes(nodeFilter.toLowerCase()),
@@ -298,6 +302,16 @@ export function OverviewPage({
         <div className="form-group m-0 pt-[7px]">
           <Checkbox checked={showSpecial} className="whitespace-nowrap" label={`.special (${data.special_indices})`} onChange={setShowSpecial} />
         </div>
+        {rolledOverCount > 0 ? (
+          <div className="form-group m-0 pt-[7px]">
+          <Checkbox
+            checked={hideRolledOver}
+            className="whitespace-nowrap"
+            label={`hide rolled over (${rolledOverCount})`}
+            onChange={setHideRolledOver}
+          />
+          </div>
+        ) : null}
         <div className="form-group m-0 w-[190px] max-w-full">
           <input
             className="form-control form-control-sm"
