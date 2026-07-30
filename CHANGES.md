@@ -198,6 +198,7 @@ This is the first Go Cerebro release. It is a fork of [lmenezes/cerebro](https:/
 - Added generated frontend build during release packaging.
 - Added Dependabot configuration for Go modules, npm, GitHub Actions, Docker and Docker Compose.
 - Added Docker image publishing to GitHub Container Registry for releases and prereleases.
+- Added release notes generated from the matching manual `CHANGES.md` section with a git-cliff `Chore` section for Dependabot updates.
 - Embedded frontend assets into the Go binary for releases and Docker images.
 - Switched REST history storage to a pure-Go SQLite driver to support cross-platform release binaries.
 - Replaced release archives with standalone binaries for Linux, macOS and Windows on common architectures.
