@@ -100,6 +100,10 @@ go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 npm audit
 ```
 
+## Release Notes
+
+Keep release notes under the base version in `CHANGES.md`, for example `## v0.11.0`. Stable and prerelease tags such as `v0.11.0-rc1` use that section. The release workflow adds the tag date and a git-cliff `Chore` section containing only Dependabot commits since the previous stable release.
+
 ## Code Style
 
 - Keep Go code formatted with `gofmt`.

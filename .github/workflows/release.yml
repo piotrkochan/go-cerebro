@@ -24,6 +24,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff@2.13.1
+          fallback: none
+
+      - name: Generate release notes
+        run: scripts/release-notes.sh "${GITHUB_REF_NAME}" dist/release-notes.md
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: dist/release-notes.md
+          if-no-files-found: error
+
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
@@ -215,6 +231,12 @@ jobs:
           name: release-binaries
           path: dist
 
+      - name: Download release notes
+        uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: dist
+
       - name: Prepare provenance subjects
         id: provenance
         run: echo "subjects=$(base64 -w0 dist/checksums.txt)" >> "$GITHUB_OUTPUT"
@@ -231,6 +253,7 @@ jobs:
             dist/cerebro-* \
             dist/checksums.txt \
             --title "Cerebro ${GITHUB_REF_NAME}" \
+            --notes-file dist/release-notes.md \
             "${RELEASE_FLAGS[@]}" \
             --verify-tag
 
