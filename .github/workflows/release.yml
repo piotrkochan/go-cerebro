@@ -31,6 +31,9 @@ jobs:
           fallback: none
 
       - name: Generate release notes
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: scripts/release-notes.sh "${GITHUB_REF_NAME}" dist/release-notes.md
 
       - name: Upload release notes
