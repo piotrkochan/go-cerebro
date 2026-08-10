@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install git-cliff
-        uses: taiki-e/install-action@v2.85.5
+        uses: taiki-e/install-action@v2.85.10
         with:
           tool: git-cliff@2.13.1
           fallback: none
