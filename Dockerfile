@@ -7,7 +7,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
 RUN npm run build:vite
 
-FROM --platform=$BUILDPLATFORM golang:1.26.5-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.6-alpine AS build
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
