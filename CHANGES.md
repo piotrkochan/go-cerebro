@@ -1,5 +1,9 @@
 # Cerebro Releases
 
+## v0.11.1 - August 19th, 2026
+
+- Dependency update
+
 ## v0.11.0 - July 24th, 2026
 
 ### Breaking Changes
