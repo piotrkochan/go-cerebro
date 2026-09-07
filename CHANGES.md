@@ -7,7 +7,6 @@
 
 ### Development
 - Upgraded frontend type checking to TypeScript 7.
-- Updated the declared Go version and toolchain to Go 1.27.1.
 
 ## v0.11.1 - August 19th, 2026
 
