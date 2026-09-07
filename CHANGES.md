@@ -2,6 +2,9 @@
 
 ## v0.11.2
 
+### Frontend
+- Constrained the cluster health dropdown to the viewport with a compact scrollbar.
+
 ### Development
 - Upgraded frontend type checking to TypeScript 7.
 

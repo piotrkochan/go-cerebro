@@ -51,7 +51,7 @@ export function SettingsPageLayout<TSetting>({
               <div className="text-[12px] uppercase text-[#8b8f95]">groups</div>
               <div className="text-[18px] font-light">{visibleSettings} settings</div>
             </div>
-            <nav className="settings-group-nav max-h-[calc(100vh-150px)] overflow-y-auto p-1" aria-label={groupAriaLabel}>
+            <nav className="app-scrollbar max-h-[calc(100vh-150px)] overflow-y-auto p-1" aria-label={groupAriaLabel}>
               {groups.map((group) => (
                 <button
                   className="flex w-full cursor-pointer items-center justify-between px-2 py-1.5 text-left text-[#d0d0d0] hover:bg-[#434749] hover:text-white"

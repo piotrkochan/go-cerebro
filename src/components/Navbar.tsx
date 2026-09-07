@@ -284,7 +284,7 @@ function HealthIssuePanel({
           </div>
         </ModalFrame>
       ) : null}
-      <div className="absolute top-full right-0 z-[1000] w-[560px] border border-[#55595c] bg-[#373a3c] p-[12px] text-left shadow-lg">
+      <div className="app-scrollbar absolute top-full right-0 z-[1000] max-h-[calc(100dvh-50px)] w-[560px] overflow-y-auto overscroll-contain border border-[#55595c] bg-[#373a3c] p-[12px] text-left shadow-lg">
         <div className="mb-[8px] flex items-center justify-between border-b border-[#55595c] pb-[8px]">
           <span className={status === 'red' ? 'text-[#E64759]' : 'text-[#E4D836]'}>
             <Icon className={status === 'red' ? 'fill-[#E64759]' : 'fill-[#E4D836]'} name="circle" size={9} /> cluster {status}
