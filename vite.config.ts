@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
-import packageJson from './package.json';
+import packageJson from './package.json' with { type: 'json' };
 
 const apiTarget = process.env.VITE_API_TARGET ?? 'http://localhost:9000';
 const appVersion = process.env.VITE_APP_VERSION ?? packageJson.version;
