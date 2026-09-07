@@ -1,5 +1,10 @@
 # Cerebro Releases
 
+## v0.11.2
+
+### Development
+- Upgraded frontend type checking to TypeScript 7.
+
 ## v0.11.1 - August 19th, 2026
 
 - Dependency update
