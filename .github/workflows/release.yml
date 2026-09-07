@@ -48,7 +48,7 @@ jobs:
           fi
 
       - name: Install git-cliff
-        uses: taiki-e/install-action@v2.85.13
+        uses: taiki-e/install-action@v2.87.5
         with:
           tool: git-cliff@2.13.1
           fallback: none
