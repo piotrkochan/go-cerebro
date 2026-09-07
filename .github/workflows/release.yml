@@ -24,6 +24,29 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check release version
+        shell: bash
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [[ ! "${tag_version}" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "invalid release tag: ${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
+
+          release_version="${BASH_REMATCH[1]}"
+          package_version="$(jq -r '.version' package.json)"
+          lock_version="$(jq -r '.version' package-lock.json)"
+          lock_root_version="$(jq -r '.packages[""].version' package-lock.json)"
+
+          if [[ "${package_version}" != "${release_version}" ]]; then
+            echo "package.json version ${package_version} does not match release ${release_version}" >&2
+            exit 1
+          fi
+          if [[ "${lock_version}" != "${package_version}" || "${lock_root_version}" != "${package_version}" ]]; then
+            echo "package-lock.json version does not match package.json ${package_version}" >&2
+            exit 1
+          fi
+
       - name: Install git-cliff
         uses: taiki-e/install-action@v2.85.13
         with:
