@@ -12,10 +12,11 @@
     "build:vite": "vite build",
     "build": "npm run api:generate && npm run typecheck && npm run build:vite",
     "preview": "vite preview",
+    "test:frontend": "node --no-warnings --experimental-strip-types --test tests/ilmPolicyForm.test.mjs",
     "test:go": "go test ./cmd/... ./internal/...",
     "test:e2e:elasticsearch": "bash scripts/e2e-elasticsearch-compat.sh",
     "test:e2e:floci-opensearch": "bash scripts/e2e-floci-opensearch-compat.sh",
-    "test": "npm run typecheck && npm run api:typecheck && npm run test:go"
+    "test": "npm run typecheck && npm run api:typecheck && npm run test:frontend && npm run test:go"
   },
   "repository": {
     "type": "git",
