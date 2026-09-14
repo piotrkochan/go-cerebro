@@ -10,6 +10,7 @@ versions=(
   "8:8.19.6"
   "9:9.2.0"
   "9:9.3.6"
+  "9:9.5.3"
 )
 
 if [[ "${CEREBRO_E2E_ES_VERSIONS:-}" != "" ]]; then
