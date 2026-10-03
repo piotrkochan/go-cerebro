@@ -1,13 +1,14 @@
 package auth
 
 import (
+	"crypto/pbkdf2"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
 	"strings"
 
 	"github.com/lmenezes/cerebro/internal/config"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type BasicService struct {
@@ -16,12 +17,19 @@ type BasicService struct {
 
 var _ PasswordAuthenticator = (*BasicService)(nil)
 
-var basicBcryptCost = bcrypt.DefaultCost
+const (
+	basicPasswordSaltLength = 16
+	basicPasswordKeyLength  = 32
+)
+
+// basicPasswordHashIterations follows OWASP's PBKDF2-HMAC-SHA-256 guidance.
+var basicPasswordHashIterations = 600_000
 
 type basicUser struct {
 	username     string
 	usernameHash [sha256.Size]byte
 	passwordHash []byte
+	passwordSalt []byte
 	groups       []string
 }
 
@@ -40,7 +48,11 @@ func NewBasicService(s config.BasicAuth) (*BasicService, error) {
 			return nil, errors.New("basic auth usernames must be unique")
 		}
 		seen[username] = true
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), basicBcryptCost)
+		passwordSalt := make([]byte, basicPasswordSaltLength)
+		if _, err := rand.Read(passwordSalt); err != nil {
+			return nil, err
+		}
+		passwordHash, err := deriveBasicPasswordHash(user.Password, passwordSalt)
 		if err != nil {
 			return nil, err
 		}
@@ -48,6 +60,7 @@ func NewBasicService(s config.BasicAuth) (*BasicService, error) {
 			username:     username,
 			usernameHash: sha256.Sum256([]byte(username)),
 			passwordHash: passwordHash,
+			passwordSalt: passwordSalt,
 			groups:       mergeGroups(s.DefaultGroups, user.Groups),
 		})
 	}
@@ -62,7 +75,8 @@ func (b *BasicService) Authenticate(username, password string) (Identity, error)
 		user := &b.users[i]
 		uOK := subtle.ConstantTimeCompare(usernameHash[:], user.usernameHash[:])
 		pOK := 1
-		if bcrypt.CompareHashAndPassword(user.passwordHash, []byte(password)) != nil {
+		passwordHash, err := deriveBasicPasswordHash(password, user.passwordSalt)
+		if err != nil || subtle.ConstantTimeCompare(passwordHash, user.passwordHash) != 1 {
 			pOK = 0
 		}
 		if uOK&pOK == 1 {
@@ -73,4 +87,8 @@ func (b *BasicService) Authenticate(username, password string) (Identity, error)
 		return Identity{Username: matched.username, Groups: append([]string(nil), matched.groups...), Provider: "basic"}, nil
 	}
 	return Identity{}, ErrInvalidCredentials
+}
+
+func deriveBasicPasswordHash(password string, salt []byte) ([]byte, error) {
+	return pbkdf2.Key(sha256.New, password, salt, basicPasswordHashIterations, basicPasswordKeyLength)
 }
