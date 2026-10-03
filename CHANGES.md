@@ -6,7 +6,7 @@
 - feat: expand ilm policy wizard (#72)
 
 ### Security
-- Replaced Basic Auth bcrypt hashing with PBKDF2-HMAC-SHA-256 and removed the direct golang.org/x/crypto dependency (#79).
+- Replaced bcrypt with PBKDF2 for Basic Auth (#79).
 
 ## v0.11.2
 
