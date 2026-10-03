@@ -40,6 +40,7 @@ function usePageContext() {
 
   return {
     connection,
+    elasticsearchVersion: session.version,
     majorVersion: parseMajorVersion(session.version),
     notify,
     refreshTick,
@@ -144,9 +145,9 @@ export function DataStreamsRoute() {
 }
 
 export function ILMPoliciesRoute() {
-  const { connection, notify, refreshTick } = usePageContext();
+  const { connection, elasticsearchVersion, notify, refreshTick } = usePageContext();
   const search = useSearch({ strict: false });
-  return <ILMPoliciesPage connection={connection} initialPolicy={typeof search.policy === 'string' ? search.policy : ''} notify={notify} refreshTick={refreshTick} />;
+  return <ILMPoliciesPage connection={connection} elasticsearchVersion={elasticsearchVersion} initialPolicy={typeof search.policy === 'string' ? search.policy : ''} notify={notify} refreshTick={refreshTick} />;
 }
 
 export function SnapshotRoute() {
