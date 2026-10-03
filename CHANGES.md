@@ -1,5 +1,10 @@
 # Cerebro Releases
 
+## v0.11.3
+
+### Features
+- feat: expand ilm policy wizard (#72)
+
 ## v0.11.2
 
 ### Frontend
