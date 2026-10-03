@@ -5,6 +5,9 @@
 ### Features
 - feat: expand ilm policy wizard (#72)
 
+### Security
+- Updated js-yaml to 4.3.2 (#80).
+
 ## v0.11.2
 
 ### Frontend
