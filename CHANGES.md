@@ -5,6 +5,9 @@
 ### Features
 - feat: expand ilm policy wizard (#72)
 
+### Security
+- Replaced bcrypt with PBKDF2 for Basic Auth (#79).
+
 ## v0.11.2
 
 ### Frontend
