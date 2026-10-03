@@ -1,6 +1,6 @@
 # Cerebro Releases
 
-## v0.11.3
+## v0.12.0
 
 ### Features
 - feat: expand ilm policy wizard (#72)
