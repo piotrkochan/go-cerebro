@@ -67,6 +67,8 @@ rbac:
 - Never expose Cerebro directly when `auth.proxy.enabled: true`.
 - Restrict network access so only the trusted proxy can reach Cerebro.
 - Set `trusted_proxies` to exact proxy IPs/CIDRs.
+- Configure `user_header` with a username header, never a credential header. Cerebro rejects header names associated with tokens, passwords, cookies and authorization.
+- Have the proxy replace client-supplied identity headers with the authenticated username. Authentication audit logs record that username in clear text when enabled.
 - Use `server.public_url` or `server.trusted_proxies` when the proxy terminates TLS or rewrites the external host.
 - Do not trust identity headers from arbitrary clients.
 - Strip incoming identity headers at the edge before oauth2-proxy or your reverse proxy sets them.
