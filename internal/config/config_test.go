@@ -641,6 +641,24 @@ server:
 	require.ErrorContains(t, err, "mutually exclusive")
 }
 
+func TestLoad_LDAPStartTLSConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  ldap:
+    enabled: true
+    urls: [ldap://dc1.example.org:389, ldap://dc2.example.org:389]
+    start_tls: true
+    base_dn: dc=example,dc=org
+    user_template: uid=%s,%s
+server:
+  secret: test-secret
+`), 0o600))
+	cfg, err := Load(path)
+	require.NoError(t, err)
+	assert.True(t, cfg.Auth.LDAP["ldap"].StartTLS)
+}
+
 func TestLoad_RejectsIncompleteOAuthAuth(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.yaml")

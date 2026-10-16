@@ -1,6 +1,6 @@
 # LDAP Authentication
 
-Go Cerebro can authenticate users against LDAP. Production deployments should use `ldaps://`.
+Go Cerebro can authenticate users against LDAP. Production deployments should use `ldaps://` or `ldap://` with `start_tls: true`.
 
 ## Config
 
@@ -35,6 +35,8 @@ server:
 
 `group_search.user_attr_template` receives the same values and should produce the user value stored in group membership entries.
 
+For LDAP on port 389, set `url: "ldap://dc.example.org:389"` and `start_tls: true`. TLS is required before binding.
+
 ## RBAC Groups
 
 When `group_search` is configured, Cerebro exposes both:
@@ -62,7 +64,7 @@ The `examples/open_ldap` and `examples/open_ldap_group` directories use plain `l
 
 ## Security Notes
 
-- Use `ldaps://` in production.
+- Use `ldaps://` or `ldap://` with `start_tls: true` in production.
 - Use `auth.ldap.ca_cert_file` when the LDAP server uses a private CA.
 - Do not use `insecure_ldap: true` outside isolated local tests.
 - Use a read-only bind account for group discovery.

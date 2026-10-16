@@ -3,7 +3,9 @@ package auth
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io"
 	"net"
 	"net/http/httptest"
 	"os"
@@ -121,6 +123,175 @@ func TestNewLDAPService_RejectsMixedAndInsecureURLs(t *testing.T) {
 	settings.URLs = []string{"ldaps://dc1.example.org:636", "ldap://dc2.example.org:389"}
 	_, err = NewLDAPService(settings)
 	require.ErrorContains(t, err, "requires ldaps")
+}
+
+func TestNewLDAPService_ValidatesStartTLS(t *testing.T) {
+	settings := config.LDAPAuth{BaseDN: "dc=example,dc=org", UserTemplate: "uid=%s,%s", StartTLS: true}
+	settings.URL = "ldaps://dc.example.org:636"
+	_, err := NewLDAPService(settings)
+	require.ErrorContains(t, err, "start_tls requires ldap://")
+
+	settings.URL = "ldap://dc.example.org:389"
+	settings.InsecureLDAP = true
+	_, err = NewLDAPService(settings)
+	require.ErrorContains(t, err, "mutually exclusive")
+
+	settings.InsecureLDAP = false
+	settings.URL = ""
+	settings.URLs = []string{"ldap://dc1.example.org:389", "ldaps://dc2.example.org:636"}
+	_, err = NewLDAPService(settings)
+	require.ErrorContains(t, err, "start_tls requires ldap://")
+}
+
+func TestLDAPAuthenticate_StartTLSFailsOverBeforeBind(t *testing.T) {
+	certServer := httptest.NewTLSServer(nil)
+	defer certServer.Close()
+	cert := certServer.TLS.Certificates[0]
+	caFile := filepath.Join(t.TempDir(), "ldap-ca.pem")
+	require.NoError(t, os.WriteFile(caFile, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Certificate[0]}), 0o600))
+
+	startServer := func(resultCode int) (string, <-chan int) {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		require.NoError(t, err)
+		t.Cleanup(func() { listener.Close() })
+		operations := make(chan int, 2)
+		go func() {
+			defer close(operations)
+			client, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			defer client.Close()
+			_ = client.SetDeadline(time.Now().Add(3 * time.Second))
+			request, err := ber.ReadPacket(client)
+			if err != nil {
+				return
+			}
+			operations <- int(request.Children[1].Tag)
+			writeLDAPResult(client, request.Children[0].Value, 24, resultCode)
+			if resultCode != 0 {
+				return
+			}
+			secure := tls.Server(client, &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12})
+			if err := secure.Handshake(); err != nil {
+				return
+			}
+			request, err = ber.ReadPacket(secure)
+			if err != nil {
+				return
+			}
+			operations <- int(request.Children[1].Tag)
+			writeLDAPResult(secure, request.Children[0].Value, 1, 0)
+		}()
+		return "ldap://" + listener.Addr().String(), operations
+	}
+	firstURL, firstOps := startServer(52) // Unavailable: no plaintext bind is allowed.
+	secondURL, secondOps := startServer(0)
+	service, err := NewLDAPService(config.LDAPAuth{
+		URLs:         []string{firstURL, secondURL},
+		StartTLS:     true,
+		CACertFile:   caFile,
+		BaseDN:       "dc=example,dc=org",
+		UserTemplate: "uid=%s,%s",
+	})
+	require.NoError(t, err)
+	identity, err := service.Authenticate("alice", "password")
+	require.NoError(t, err)
+	assert.Equal(t, "alice", identity.Username)
+	assert.Equal(t, []int{23}, collectLDAPOperations(firstOps))
+	assert.Equal(t, []int{23, 0}, collectLDAPOperations(secondOps))
+}
+
+func TestLDAPAuthenticate_StartTLSRejectsUntrustedCertificate(t *testing.T) {
+	certServer := httptest.NewTLSServer(nil)
+	defer certServer.Close()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer listener.Close()
+	bindSeen := make(chan bool, 1)
+	go func() {
+		client, err := listener.Accept()
+		if err != nil {
+			bindSeen <- false
+			return
+		}
+		defer client.Close()
+		_ = client.SetDeadline(time.Now().Add(3 * time.Second))
+		request, err := ber.ReadPacket(client)
+		if err != nil {
+			bindSeen <- false
+			return
+		}
+		writeLDAPResult(client, request.Children[0].Value, 24, 0)
+		secure := tls.Server(client, &tls.Config{Certificates: certServer.TLS.Certificates, MinVersion: tls.VersionTLS12})
+		if err := secure.Handshake(); err != nil {
+			bindSeen <- false
+			return
+		}
+		_, err = ber.ReadPacket(secure)
+		bindSeen <- err == nil
+	}()
+	service, err := NewLDAPService(config.LDAPAuth{
+		URL:          "ldap://" + listener.Addr().String(),
+		StartTLS:     true,
+		BaseDN:       "dc=example,dc=org",
+		UserTemplate: "uid=%s,%s",
+	})
+	require.NoError(t, err)
+	_, err = service.Authenticate("alice", "password")
+	require.ErrorIs(t, err, ErrInvalidCredentials)
+	assert.False(t, <-bindSeen)
+}
+
+func TestLDAPDial_StartTLSHandshakeTimeout(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer listener.Close()
+	go func() {
+		client, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer client.Close()
+		request, err := ber.ReadPacket(client)
+		if err != nil {
+			return
+		}
+		writeLDAPResult(client, request.Children[0].Value, 24, 0)
+		// Leave the TLS handshake unanswered until the client's deadline closes it.
+		_, _ = io.Copy(io.Discard, client)
+	}()
+	service, err := NewLDAPService(config.LDAPAuth{
+		URL:                "ldap://" + listener.Addr().String(),
+		StartTLS:           true,
+		DialTimeoutSeconds: 1,
+		BaseDN:             "dc=example,dc=org",
+		UserTemplate:       "uid=%s,%s",
+	})
+	require.NoError(t, err)
+	start := time.Now()
+	_, err = service.dial()
+	require.Error(t, err)
+	assert.Less(t, time.Since(start), 3*time.Second)
+}
+
+func writeLDAPResult(conn net.Conn, messageID any, tag uint64, resultCode int) {
+	response := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Response")
+	response.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, messageID, "MessageID"))
+	result := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ber.Tag(tag), nil, "LDAP Result")
+	result.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, resultCode, "Result code"))
+	result.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "Matched DN"))
+	result.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "Diagnostic message"))
+	response.AppendChild(result)
+	_, _ = conn.Write(response.Bytes())
+}
+
+func collectLDAPOperations(operations <-chan int) []int {
+	var result []int
+	for op := range operations {
+		result = append(result, op)
+	}
+	return result
 }
 
 func TestLDAPDial_FailsOverAfterTLSHandshakeError(t *testing.T) {

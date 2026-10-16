@@ -11,7 +11,7 @@ auth:
     base_dn: "DC=example,DC=org"
     user_template: "uid=%s,%s"
     # The example LDAP container uses plain ldap:// for local testing.
-    # Production config should use ldaps:// or ca_cert_file.
+    # Production config should use ldaps:// or ldap:// with start_tls: true.
     insecure_ldap: true
 
 server:

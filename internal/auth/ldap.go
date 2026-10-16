@@ -20,6 +20,7 @@ type LDAPService struct {
 	urls           []string
 	dialTimeout    time.Duration
 	readTimeout    time.Duration
+	startTLS       bool
 	userTemplate   string
 	baseDN         string
 	insecureLDAP   bool
@@ -52,6 +53,9 @@ func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
 	if s.DialTimeoutSeconds < 0 || s.ReadTimeoutSeconds < 0 {
 		return nil, errors.New("ldap auth timeouts must not be negative")
 	}
+	if s.StartTLS && s.InsecureLDAP {
+		return nil, errors.New("ldap auth start_tls and insecure_ldap are mutually exclusive")
+	}
 	for i, address := range urls {
 		if strings.TrimSpace(address) == "" {
 			return nil, fmt.Errorf("invalid ldap urls[%d]: empty address", i)
@@ -60,7 +64,10 @@ func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid ldap url %q: %w", address, err)
 		}
-		if ldapURL.Scheme != "ldaps" && !s.InsecureLDAP {
+		if s.StartTLS && (ldapURL.Scheme != "ldap" || ldapURL.Hostname() == "") {
+			return nil, fmt.Errorf("ldap auth start_tls requires ldap:// with a hostname: %q", address)
+		}
+		if ldapURL.Scheme != "ldaps" && !s.StartTLS && !s.InsecureLDAP {
 			return nil, errors.New("ldap auth requires ldaps:// unless insecure_ldap is explicitly enabled")
 		}
 	}
@@ -72,6 +79,7 @@ func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
 		urls:           urls,
 		dialTimeout:    defaultLDAPDialTimeout,
 		readTimeout:    defaultLDAPReadTimeout,
+		startTLS:       s.StartTLS,
 		userTemplate:   s.UserTemplate,
 		baseDN:         s.BaseDN,
 		insecureLDAP:   s.InsecureLDAP,
@@ -130,16 +138,18 @@ func (l *LDAPService) Authenticate(username, password string) (Identity, error) 
 func (l *LDAPService) dial() (*ldap.Conn, error) {
 	var errs []error
 	for _, address := range l.urls {
-		opts := []ldap.DialOpt{ldap.DialWithDialer(&net.Dialer{Timeout: l.dialTimeout})}
-		if parsed, _ := url.Parse(address); parsed.Scheme == "ldaps" {
-			tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
-			if l.tlsConfig != nil {
-				tlsConfig = l.tlsConfig.Clone()
+		parsed, _ := url.Parse(address) // Validated by NewLDAPService.
+		var conn *ldap.Conn
+		var err error
+		if l.startTLS {
+			conn, err = l.dialStartTLS(parsed)
+		} else {
+			opts := []ldap.DialOpt{ldap.DialWithDialer(&net.Dialer{Timeout: l.dialTimeout})}
+			if parsed.Scheme == "ldaps" {
+				opts = append(opts, ldap.DialWithTLSConfig(l.tlsConfigForHost(parsed.Hostname())))
 			}
-			tlsConfig.ServerName = parsed.Hostname()
-			opts = append(opts, ldap.DialWithTLSConfig(tlsConfig))
+			conn, err = ldap.DialURL(address, opts...)
 		}
-		conn, err := ldap.DialURL(address, opts...)
 		if err == nil {
 			conn.SetTimeout(l.readTimeout)
 			return conn, nil
@@ -147,6 +157,44 @@ func (l *LDAPService) dial() (*ldap.Conn, error) {
 		errs = append(errs, fmt.Errorf("%s: %w", address, err))
 	}
 	return nil, errors.Join(errs...)
+}
+
+func (l *LDAPService) tlsConfigForHost(host string) *tls.Config {
+	config := &tls.Config{MinVersion: tls.VersionTLS12}
+	if l.tlsConfig != nil {
+		config = l.tlsConfig.Clone()
+	}
+	config.ServerName = host
+	return config
+}
+
+func (l *LDAPService) dialStartTLS(address *url.URL) (*ldap.Conn, error) {
+	port := address.Port()
+	if port == "" {
+		port = ldap.DefaultLdapPort
+	}
+	deadline := time.Now().Add(l.dialTimeout)
+	raw, err := (&net.Dialer{Deadline: deadline}).Dial("tcp", net.JoinHostPort(address.Hostname(), port))
+	if err != nil {
+		return nil, err
+	}
+	if err := raw.SetDeadline(deadline); err != nil {
+		raw.Close()
+		return nil, err
+	}
+	conn := ldap.NewConn(raw, false)
+	conn.Start()
+	conn.SetTimeout(l.dialTimeout)
+	if err := conn.StartTLS(l.tlsConfigForHost(address.Hostname())); err != nil {
+		raw.Close()
+		conn.Close()
+		return nil, fmt.Errorf("start TLS: %w", err)
+	}
+	if err := raw.SetDeadline(time.Time{}); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return conn, nil
 }
 
 func ldapTLSConfig(caCertFile string) (*tls.Config, error) {

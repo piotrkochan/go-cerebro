@@ -64,6 +64,7 @@ type LDAPAuth struct {
 	URLs               []string     `yaml:"urls"`
 	DialTimeoutSeconds int          `yaml:"dial_timeout_seconds"`
 	ReadTimeoutSeconds int          `yaml:"read_timeout_seconds"`
+	StartTLS           bool         `yaml:"start_tls"`
 	CACertFile         string       `yaml:"ca_cert_file"`
 	BaseDN             string       `yaml:"base_dn"`
 	UserTemplate       string       `yaml:"user_template"`
@@ -772,7 +773,7 @@ func validateOAuthAuthProvider(prefix string, provider OAuthAuth) error {
 
 var (
 	basicAuthFields   = boolSet("enabled", "default_groups", "users")
-	ldapAuthFields    = boolSet("enabled", "url", "urls", "dial_timeout_seconds", "read_timeout_seconds", "ca_cert_file", "base_dn", "user_template", "bind_dn", "bind_pw", "insecure_ldap", "group_search", "default_groups", "required_groups")
+	ldapAuthFields    = boolSet("enabled", "url", "urls", "dial_timeout_seconds", "read_timeout_seconds", "start_tls", "ca_cert_file", "base_dn", "user_template", "bind_dn", "bind_pw", "insecure_ldap", "group_search", "default_groups", "required_groups")
 	proxyAuthFields   = boolSet("enabled", "user_header", "groups_header", "group_separator", "default_groups", "logout_url", "trusted_proxies")
 	entraIDAuthFields = boolSet("enabled", "name", "tenant_id", "issuer_url", "client_id", "client_secret", "redirect_url", "scopes", "username_claim", "groups_claim", "default_groups")
 	oauthAuthFields   = boolSet("enabled", "name", "issuer_url", "auth_url", "token_url", "userinfo_url", "client_id", "client_secret", "redirect_url", "scopes", "username_claim", "groups_claim", "default_groups")
