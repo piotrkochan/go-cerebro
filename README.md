@@ -131,7 +131,11 @@ Environment variables are expanded inside YAML string values. These direct overr
 | `auth.basic.users[].groups` | `[]` | Static groups added to this basic-auth user. |
 | `auth.basic.default_groups` | `[]` | Groups added to every user authenticated by this provider. |
 | `auth.ldap.enabled` | `false` | Enables LDAP authentication. Short form creates provider ID `ldap`. |
-| `auth.ldap.url` | empty | LDAP URL. `ldaps://` is required unless `insecure_ldap` is enabled. |
+| `auth.ldap.url` | empty | LDAP URL. Use `ldaps://`, or `ldap://` with `start_tls: true`. |
+| `auth.ldap.urls` | empty | Ordered LDAP URLs for connection failover. Use instead of `url`. |
+| `auth.ldap.dial_timeout_seconds` | `5` | TCP/TLS connection timeout per LDAP server; `0` uses the default. |
+| `auth.ldap.read_timeout_seconds` | `30` | Timeout for each LDAP bind or search response; `0` uses the default. |
+| `auth.ldap.start_tls` | `false` | Upgrade `ldap://` to TLS before any bind; incompatible with `ldaps://` and `insecure_ldap`. |
 | `auth.ldap.ca_cert_file` | empty | LDAP CA certificate file for private LDAP trust. |
 | `auth.ldap.base_dn` | empty | LDAP base DN for user lookup. |
 | `auth.ldap.user_template` | empty | LDAP user DN/search template. |
@@ -400,7 +404,7 @@ Cerebro can manage Elasticsearch clusters. Treat access to this UI as administra
 - Set `server.secret`.
 - Keep `es.allow_ad_hoc_hosts: false` unless you explicitly need user-supplied ES targets.
 - Use dedicated Elasticsearch users with the minimum required privileges.
-- Use `ldaps://` or `auth.ldap.ca_cert_file` for LDAP trust.
+- Use `ldaps://` or `ldap://` with `auth.ldap.start_tls: true`. `ca_cert_file` adds trust for a private CA; it does not enable TLS by itself.
 - Use `auth.proxy` only when Cerebro is reachable exclusively through the configured trusted proxies.
 - Do not put Elasticsearch credentials into host URLs; use the `auth` block per host.
 

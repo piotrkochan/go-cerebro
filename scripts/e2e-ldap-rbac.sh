@@ -11,13 +11,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-wait_for_ldaps() {
+wait_for_port() {
   local port="$1"
   local deadline=$((SECONDS + 90))
-  until nc -z 127.0.0.1 "${port}" >/dev/null 2>&1; do
+  until (: >"/dev/tcp/127.0.0.1/${port}") 2>/dev/null; do
     if (( SECONDS >= deadline )); then
       docker logs "${container}" >&2 || true
-      echo "LDAP test server did not start on LDAPS port ${port}" >&2
+      echo "LDAP test server did not start on port ${port}" >&2
       return 1
     fi
     sleep 1
@@ -70,16 +70,20 @@ create_test_cert
 docker rm -f "${container}" >/dev/null 2>&1 || true
 docker run -d \
   --name "${container}" \
+  -p 127.0.0.1::10389 \
   -p 127.0.0.1::10636 \
   -v "${tmp_dir}/ldap.crt:/etc/ldap/ssl/ldap.crt:ro" \
   -v "${tmp_dir}/ldap.key:/etc/ldap/ssl/ldap.key:ro" \
   "${image}" >/dev/null
 
 ldaps_port="$(docker port "${container}" 10636/tcp | awk -F: '{print $NF}' | tail -n 1)"
-wait_for_ldaps "${ldaps_port}"
+ldap_port="$(docker port "${container}" 10389/tcp | awk -F: '{print $NF}' | tail -n 1)"
+wait_for_port "${ldaps_port}"
+wait_for_port "${ldap_port}"
 wait_for_cert
 wait_for_directory
 
 CEREBRO_E2E_LDAP_URL="ldaps://localhost:${ldaps_port}" \
+CEREBRO_E2E_LDAP_STARTTLS_URL="ldap://localhost:${ldap_port}" \
 CEREBRO_E2E_LDAP_CA_CERT_FILE="${tmp_dir}/ldap.crt" \
-  go test -tags=e2e ./internal/e2e -run TestLDAPRBACGroupsOverLDAPS -count=1 -v
+  go test -tags=e2e ./internal/e2e -run TestLDAPRBACGroupsOver -count=1 -v

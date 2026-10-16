@@ -59,17 +59,21 @@ type BasicAuth struct {
 func (a BasicAuth) enabled() bool { return a.Enabled }
 
 type LDAPAuth struct {
-	Enabled        bool         `yaml:"enabled"`
-	URL            string       `yaml:"url"`
-	CACertFile     string       `yaml:"ca_cert_file"`
-	BaseDN         string       `yaml:"base_dn"`
-	UserTemplate   string       `yaml:"user_template"`
-	BindDN         string       `yaml:"bind_dn"`
-	BindPW         string       `yaml:"bind_pw"`
-	InsecureLDAP   bool         `yaml:"insecure_ldap"`
-	GroupSearch    *GroupSearch `yaml:"group_search,omitempty"`
-	DefaultGroups  []string     `yaml:"default_groups,omitempty"`
-	RequiredGroups []string     `yaml:"required_groups,omitempty"`
+	Enabled            bool         `yaml:"enabled"`
+	URL                string       `yaml:"url"`
+	URLs               []string     `yaml:"urls"`
+	DialTimeoutSeconds int          `yaml:"dial_timeout_seconds"`
+	ReadTimeoutSeconds int          `yaml:"read_timeout_seconds"`
+	StartTLS           bool         `yaml:"start_tls"`
+	CACertFile         string       `yaml:"ca_cert_file"`
+	BaseDN             string       `yaml:"base_dn"`
+	UserTemplate       string       `yaml:"user_template"`
+	BindDN             string       `yaml:"bind_dn"`
+	BindPW             string       `yaml:"bind_pw"`
+	InsecureLDAP       bool         `yaml:"insecure_ldap"`
+	GroupSearch        *GroupSearch `yaml:"group_search,omitempty"`
+	DefaultGroups      []string     `yaml:"default_groups,omitempty"`
+	RequiredGroups     []string     `yaml:"required_groups,omitempty"`
 }
 
 func (a LDAPAuth) enabled() bool { return a.Enabled }
@@ -638,8 +642,22 @@ func validateLDAPAuthProvider(prefix string, provider LDAPAuth) error {
 	if !provider.Enabled {
 		return nil
 	}
-	if strings.TrimSpace(provider.URL) == "" {
-		return fmt.Errorf("%s.url is required when %s.enabled is true", prefix, prefix)
+	if provider.URL != "" && len(provider.URLs) > 0 {
+		return fmt.Errorf("%s.url and %s.urls are mutually exclusive", prefix, prefix)
+	}
+	if strings.TrimSpace(provider.URL) == "" && len(provider.URLs) == 0 {
+		return fmt.Errorf("%s.url or %s.urls is required when %s.enabled is true", prefix, prefix, prefix)
+	}
+	for i, address := range provider.URLs {
+		if strings.TrimSpace(address) == "" {
+			return fmt.Errorf("%s.urls[%d] must not be empty", prefix, i)
+		}
+	}
+	if provider.DialTimeoutSeconds < 0 {
+		return fmt.Errorf("%s.dial_timeout_seconds must not be negative", prefix)
+	}
+	if provider.ReadTimeoutSeconds < 0 {
+		return fmt.Errorf("%s.read_timeout_seconds must not be negative", prefix)
 	}
 	if strings.TrimSpace(provider.BaseDN) == "" {
 		return fmt.Errorf("%s.base_dn is required when %s.enabled is true", prefix, prefix)
@@ -755,7 +773,7 @@ func validateOAuthAuthProvider(prefix string, provider OAuthAuth) error {
 
 var (
 	basicAuthFields   = boolSet("enabled", "default_groups", "users")
-	ldapAuthFields    = boolSet("enabled", "url", "ca_cert_file", "base_dn", "user_template", "bind_dn", "bind_pw", "insecure_ldap", "group_search", "default_groups", "required_groups")
+	ldapAuthFields    = boolSet("enabled", "url", "urls", "dial_timeout_seconds", "read_timeout_seconds", "start_tls", "ca_cert_file", "base_dn", "user_template", "bind_dn", "bind_pw", "insecure_ldap", "group_search", "default_groups", "required_groups")
 	proxyAuthFields   = boolSet("enabled", "user_header", "groups_header", "group_separator", "default_groups", "logout_url", "trusted_proxies")
 	entraIDAuthFields = boolSet("enabled", "name", "tenant_id", "issuer_url", "client_id", "client_secret", "redirect_url", "scopes", "username_claim", "groups_claim", "default_groups")
 	oauthAuthFields   = boolSet("enabled", "name", "issuer_url", "auth_url", "token_url", "userinfo_url", "client_id", "client_secret", "redirect_url", "scopes", "username_claim", "groups_claim", "default_groups")
