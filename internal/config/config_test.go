@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -578,6 +579,66 @@ server:
 
 	assert.Equal(t, []string{"cerebro-viewers"}, cfg.Auth.LDAP["ldap"].DefaultGroups)
 	assert.Equal(t, []string{"cerebro-admins"}, cfg.Auth.LDAP["ldap"].RequiredGroups)
+}
+
+func TestLoad_LDAPURLsInShortAndNamedProviders(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		ldapConfig string
+		providerID string
+	}{
+		{"short", "  ldap:\n    enabled: true\n    urls: [\"ldaps://dc1.example.org:636\", \"ldaps://dc2.example.org:636\"]\n    dial_timeout_seconds: 2\n    read_timeout_seconds: 3\n    base_dn: dc=example,dc=org\n    user_template: uid=%s,%s\n", "ldap"},
+		{"named", "  ldap:\n    directory:\n      enabled: true\n      urls: [\"ldaps://dc1.example.org:636\", \"ldaps://dc2.example.org:636\"]\n      dial_timeout_seconds: 2\n      read_timeout_seconds: 3\n      base_dn: dc=example,dc=org\n      user_template: uid=%s,%s\n", "directory"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "app.yaml")
+			require.NoError(t, os.WriteFile(path, []byte("auth:\n"+tc.ldapConfig+"server:\n  secret: test-secret\n"), 0o600))
+			cfg, err := Load(path)
+			require.NoError(t, err)
+			assert.Equal(t, []string{"ldaps://dc1.example.org:636", "ldaps://dc2.example.org:636"}, cfg.Auth.LDAP[tc.providerID].URLs)
+			assert.Equal(t, 2, cfg.Auth.LDAP[tc.providerID].DialTimeoutSeconds)
+			assert.Equal(t, 3, cfg.Auth.LDAP[tc.providerID].ReadTimeoutSeconds)
+		})
+	}
+}
+
+func TestLoad_LDAPRejectsNegativeTimeouts(t *testing.T) {
+	for _, field := range []string{"dial_timeout_seconds", "read_timeout_seconds"} {
+		t.Run(field, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "app.yaml")
+			configYAML := `
+auth:
+  ldap:
+    enabled: true
+    url: ldaps://dc1.example.org:636
+    TIMEOUT_FIELD: -1
+    base_dn: dc=example,dc=org
+    user_template: uid=%s,%s
+server:
+  secret: test-secret
+`
+			require.NoError(t, os.WriteFile(path, []byte(strings.Replace(configYAML, "TIMEOUT_FIELD", field, 1)), 0o600))
+			_, err := Load(path)
+			require.ErrorContains(t, err, field+" must not be negative")
+		})
+	}
+}
+
+func TestLoad_LDAPRejectsMixedURLSettings(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  ldap:
+    enabled: true
+    url: ldaps://dc1.example.org:636
+    urls: [ldaps://dc2.example.org:636]
+    base_dn: dc=example,dc=org
+    user_template: uid=%s,%s
+server:
+  secret: test-secret
+`), 0o600))
+	_, err := Load(path)
+	require.ErrorContains(t, err, "mutually exclusive")
 }
 
 func TestLoad_RejectsIncompleteOAuthAuth(t *testing.T) {

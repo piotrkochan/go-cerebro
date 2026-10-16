@@ -132,6 +132,9 @@ Environment variables are expanded inside YAML string values. These direct overr
 | `auth.basic.default_groups` | `[]` | Groups added to every user authenticated by this provider. |
 | `auth.ldap.enabled` | `false` | Enables LDAP authentication. Short form creates provider ID `ldap`. |
 | `auth.ldap.url` | empty | LDAP URL. `ldaps://` is required unless `insecure_ldap` is enabled. |
+| `auth.ldap.urls` | empty | Ordered LDAP URLs for connection failover. Use instead of `url`. |
+| `auth.ldap.dial_timeout_seconds` | `5` | TCP/TLS connection timeout per LDAP server; `0` uses the default. |
+| `auth.ldap.read_timeout_seconds` | `30` | Timeout for each LDAP bind or search response; `0` uses the default. |
 | `auth.ldap.ca_cert_file` | empty | LDAP CA certificate file for private LDAP trust. |
 | `auth.ldap.base_dn` | empty | LDAP base DN for user lookup. |
 | `auth.ldap.user_template` | empty | LDAP user DN/search template. |

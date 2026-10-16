@@ -8,7 +8,11 @@ Go Cerebro can authenticate users against LDAP. Production deployments should us
 auth:
   ldap:
     enabled: true
-    url: "ldaps://ldap.example.org:636"
+    urls:
+      - "ldaps://dc1.example.org:636"
+      - "ldaps://dc2.example.org:636"
+    dial_timeout_seconds: 5
+    read_timeout_seconds: 30
     ca_cert_file: "/etc/cerebro/ldap-ca.pem"
     base_dn: "ou=people,dc=example,dc=org"
     user_template: "uid=%s,%s"

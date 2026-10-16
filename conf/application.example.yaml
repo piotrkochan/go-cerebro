@@ -38,6 +38,14 @@ auth:
     # Use ldaps:// in production. For private development-only ldap:// tests,
     # set insecure_ldap: true.
     url: "${LDAP_URL}"
+    # For controller failover, replace url with urls (do not set both):
+    # urls:
+    #   - "ldaps://dc1.example.org:636"
+    #   - "ldaps://dc2.example.org:636"
+    # Timeout per LDAP server connection, including TLS. Defaults to 5 seconds.
+    # dial_timeout_seconds: 5
+    # Timeout for each LDAP bind or search response. Defaults to 30 seconds.
+    # read_timeout_seconds: 30
     # ca_cert_file: "/etc/cerebro/ldap-ca.pem"
     base_dn: "${LDAP_BASE_DN}"
     user_template: "${LDAP_USER_TEMPLATE}"

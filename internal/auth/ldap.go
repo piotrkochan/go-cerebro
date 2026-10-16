@@ -6,16 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/lmenezes/cerebro/internal/config"
 )
 
 type LDAPService struct {
-	url            string
+	urls           []string
+	dialTimeout    time.Duration
+	readTimeout    time.Duration
 	userTemplate   string
 	baseDN         string
 	insecureLDAP   bool
@@ -29,23 +33,45 @@ type LDAPService struct {
 
 var _ PasswordAuthenticator = (*LDAPService)(nil)
 
+const (
+	defaultLDAPDialTimeout = 5 * time.Second
+	defaultLDAPReadTimeout = 30 * time.Second
+)
+
 func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
-	if s.URL == "" || s.UserTemplate == "" || s.BaseDN == "" {
-		return nil, errors.New("ldap auth requires url, user_template and base_dn")
+	if s.URL != "" && len(s.URLs) > 0 {
+		return nil, errors.New("ldap auth url and urls are mutually exclusive")
 	}
-	ldapURL, err := url.Parse(s.URL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid ldap url: %w", err)
+	urls := append([]string(nil), s.URLs...)
+	if s.URL != "" {
+		urls = []string{s.URL}
 	}
-	if ldapURL.Scheme != "ldaps" && !s.InsecureLDAP {
-		return nil, errors.New("ldap auth requires ldaps:// unless insecure_ldap is explicitly enabled")
+	if len(urls) == 0 || s.UserTemplate == "" || s.BaseDN == "" {
+		return nil, errors.New("ldap auth requires url or urls, user_template and base_dn")
+	}
+	if s.DialTimeoutSeconds < 0 || s.ReadTimeoutSeconds < 0 {
+		return nil, errors.New("ldap auth timeouts must not be negative")
+	}
+	for i, address := range urls {
+		if strings.TrimSpace(address) == "" {
+			return nil, fmt.Errorf("invalid ldap urls[%d]: empty address", i)
+		}
+		ldapURL, err := url.Parse(address)
+		if err != nil {
+			return nil, fmt.Errorf("invalid ldap url %q: %w", address, err)
+		}
+		if ldapURL.Scheme != "ldaps" && !s.InsecureLDAP {
+			return nil, errors.New("ldap auth requires ldaps:// unless insecure_ldap is explicitly enabled")
+		}
 	}
 	tlsConfig, err := ldapTLSConfig(s.CACertFile)
 	if err != nil {
 		return nil, err
 	}
 	svc := &LDAPService{
-		url:            s.URL,
+		urls:           urls,
+		dialTimeout:    defaultLDAPDialTimeout,
+		readTimeout:    defaultLDAPReadTimeout,
 		userTemplate:   s.UserTemplate,
 		baseDN:         s.BaseDN,
 		insecureLDAP:   s.InsecureLDAP,
@@ -54,6 +80,12 @@ func NewLDAPService(s config.LDAPAuth) (*LDAPService, error) {
 		requiredGroups: append([]string(nil), s.RequiredGroups...),
 		defaultGroups:  mergeGroups(s.DefaultGroups),
 		tlsConfig:      tlsConfig,
+	}
+	if s.DialTimeoutSeconds > 0 {
+		svc.dialTimeout = time.Duration(s.DialTimeoutSeconds) * time.Second
+	}
+	if s.ReadTimeoutSeconds > 0 {
+		svc.readTimeout = time.Duration(s.ReadTimeoutSeconds) * time.Second
 	}
 	if s.GroupSearch != nil && s.GroupSearch.UserAttr != "" {
 		gs := *s.GroupSearch
@@ -96,10 +128,25 @@ func (l *LDAPService) Authenticate(username, password string) (Identity, error) 
 }
 
 func (l *LDAPService) dial() (*ldap.Conn, error) {
-	if l.tlsConfig != nil {
-		return ldap.DialURL(l.url, ldap.DialWithTLSConfig(l.tlsConfig))
+	var errs []error
+	for _, address := range l.urls {
+		opts := []ldap.DialOpt{ldap.DialWithDialer(&net.Dialer{Timeout: l.dialTimeout})}
+		if parsed, _ := url.Parse(address); parsed.Scheme == "ldaps" {
+			tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
+			if l.tlsConfig != nil {
+				tlsConfig = l.tlsConfig.Clone()
+			}
+			tlsConfig.ServerName = parsed.Hostname()
+			opts = append(opts, ldap.DialWithTLSConfig(tlsConfig))
+		}
+		conn, err := ldap.DialURL(address, opts...)
+		if err == nil {
+			conn.SetTimeout(l.readTimeout)
+			return conn, nil
+		}
+		errs = append(errs, fmt.Errorf("%s: %w", address, err))
 	}
-	return ldap.DialURL(l.url)
+	return nil, errors.Join(errs...)
 }
 
 func ldapTLSConfig(caCertFile string) (*tls.Config, error) {

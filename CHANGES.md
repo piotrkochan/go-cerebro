@@ -1,5 +1,11 @@
 # Cerebro Releases
 
+## v0.13.0
+
+### Authentication
+- Added ordered LDAP server failover with `auth.ldap.urls`, while preserving `auth.ldap.url` and named provider configuration.
+- Added `auth.ldap.dial_timeout_seconds` (default 5 seconds) and `auth.ldap.read_timeout_seconds` (default 30 seconds). Failover occurs on connection or TLS errors, without retrying rejected credentials across the URL list.
+
 ## v0.12.0
 
 ### Features
