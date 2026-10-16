@@ -402,6 +402,30 @@ server:
 	assert.Equal(t, []string{"127.0.0.1/32"}, proxy.TrustedProxies)
 }
 
+func TestIsCredentialHeader(t *testing.T) {
+	for _, header := range []string{"Authorization", "proxy-authorization", "Cookie", "X-Forwarded-Authorization", "X-Auth-Token", "X-Api-Key"} {
+		assert.True(t, IsCredentialHeader(header), header)
+	}
+	for _, header := range []string{"X-Forwarded-User", "X-Auth-Request-User", "X-Forwarded-Email"} {
+		assert.False(t, IsCredentialHeader(header), header)
+	}
+}
+
+func TestLoad_RejectsCredentialHeaderAsProxyUser(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+auth:
+  proxy:
+    enabled: true
+    user_header: "Authorization"
+    trusted_proxies: ["127.0.0.1/32"]
+server:
+  secret: "test-secret"
+`), 0o600))
+	_, err := Load(path)
+	require.ErrorContains(t, err, "credential header")
+}
+
 func TestLoad_RejectsUnsafeProxyLogoutURL(t *testing.T) {
 	tests := []string{"javascript:alert(1)", "//evil.example.org/logout", `/\evil`}
 	for _, logoutURL := range tests {

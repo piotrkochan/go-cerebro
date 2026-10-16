@@ -657,6 +657,9 @@ func validateProxyAuthProvider(prefix string, provider ProxyAuth) error {
 	if strings.TrimSpace(provider.UserHeader) == "" {
 		return fmt.Errorf("%s.user_header is required when %s.enabled is true", prefix, prefix)
 	}
+	if IsCredentialHeader(provider.UserHeader) {
+		return fmt.Errorf("%s.user_header must identify a username, not a credential header", prefix)
+	}
 	if len(provider.TrustedProxies) == 0 {
 		return fmt.Errorf("%s.trusted_proxies is required when %s.enabled is true", prefix, prefix)
 	}
@@ -671,6 +674,17 @@ func validateProxyAuthProvider(prefix string, provider ProxyAuth) error {
 		}
 	}
 	return nil
+}
+
+// IsCredentialHeader rejects headers that commonly carry passwords or tokens.
+func IsCredentialHeader(header string) bool {
+	name := strings.ToLower(strings.TrimSpace(header))
+	for _, part := range []string{"authorization", "cookie", "token", "secret", "password", "credential", "api-key", "api_key", "apikey"} {
+		if strings.Contains(name, part) {
+			return true
+		}
+	}
+	return false
 }
 
 func validateEntraIDAuthProvider(prefix string, provider EntraIDAuth) error {

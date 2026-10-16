@@ -1,5 +1,10 @@
 # Cerebro Releases
 
+## Unreleased
+
+### Security
+- Rejected credential-bearing headers as proxy username sources while keeping usernames in authentication audit logs.
+
 ## v0.12.0
 
 ### Features

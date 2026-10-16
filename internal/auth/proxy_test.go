@@ -31,6 +31,14 @@ func TestProxyAuthenticatorIdentity(t *testing.T) {
 	assert.Equal(t, []string{"cerebro-viewers", "developers", "cerebro-admins"}, identity.Groups)
 }
 
+func TestProxyAuthenticatorRejectsCredentialHeader(t *testing.T) {
+	_, err := NewProxyAuthenticator(config.ProxyAuth{
+		UserHeader:     "Authorization",
+		TrustedProxies: []string{"127.0.0.1/32"},
+	})
+	require.ErrorContains(t, err, "credential header")
+}
+
 func TestProxyAuthenticatorUsesOAuthProxyFallbackHeaders(t *testing.T) {
 	proxy, err := NewProxyAuthenticator(config.ProxyAuth{
 		UserHeader:     "X-Forwarded-User",

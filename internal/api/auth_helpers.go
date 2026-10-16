@@ -26,6 +26,8 @@ func (d *Deps) auditAuth(r *http.Request, event string, identity auth.Identity, 
 	if reason != "" {
 		attrs = append(attrs, "reason", reason)
 	}
+	// Proxy usernames are read only from a trusted proxy's identity header.
+	// codeql[go/clear-text-logging]
 	slog.InfoContext(r.Context(), "auth audit", attrs...)
 }
 

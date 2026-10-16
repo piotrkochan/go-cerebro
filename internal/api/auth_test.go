@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -88,6 +90,11 @@ func TestHandleAuthMeRequiresSession(t *testing.T) {
 }
 
 func TestHandleLogoutReturnsProviderRedirectForJSONClients(t *testing.T) {
+	var auditLog bytes.Buffer
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&auditLog, nil)))
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+
 	authMod, err := auth.NewModule(&config.Config{
 		Auth: config.Auth{
 			Proxy: map[string]config.ProxyAuth{
@@ -102,7 +109,10 @@ func TestHandleLogoutReturnsProviderRedirectForJSONClients(t *testing.T) {
 		Server: config.Server{BasePath: "/"},
 	})
 	require.NoError(t, err)
-	deps := &Deps{Auth: authMod, Cfg: &config.Config{Server: config.Server{BasePath: "/"}}}
+	deps := &Deps{Auth: authMod, Cfg: &config.Config{
+		Server:  config.Server{BasePath: "/"},
+		Logging: config.Logging{AuthLogEnabled: true},
+	}}
 	req := httptest.NewRequest(http.MethodPost, "http://example.test/auth/logout", nil)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Forwarded-User", "alice")
@@ -114,6 +124,9 @@ func TestHandleLogoutReturnsProviderRedirectForJSONClients(t *testing.T) {
 	require.Equal(t, http.StatusOK, got.Status)
 	assert.Equal(t, "http://example.test/schemas/LogoutResponse.json", got.Body.Schema)
 	assert.Equal(t, "/oauth2/sign_out?rd=/oauth2/sign_in", got.Body.RedirectURL)
+	assert.Contains(t, auditLog.String(), `"event":"logout"`)
+	assert.Contains(t, auditLog.String(), `"provider":"proxy"`)
+	assert.Contains(t, auditLog.String(), `"user":"alice"`)
 }
 
 func TestLogoutClearsSessionAndReturnsLoginRedirect(t *testing.T) {
