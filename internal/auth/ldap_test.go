@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -13,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -89,7 +89,7 @@ func TestLDAPAuthenticate_ReadTimeout(t *testing.T) {
 			return
 		}
 		defer client.Close()
-		if _, err := ber.ReadPacket(client); err != nil {
+		if _, _, err := readLDAPOperation(client); err != nil {
 			return
 		}
 		<-done // Deliberately leave the bind request unanswered.
@@ -163,12 +163,12 @@ func TestLDAPAuthenticate_StartTLSFailsOverBeforeBind(t *testing.T) {
 			}
 			defer client.Close()
 			_ = client.SetDeadline(time.Now().Add(3 * time.Second))
-			request, err := ber.ReadPacket(client)
+			messageID, operation, err := readLDAPOperation(client)
 			if err != nil {
 				return
 			}
-			operations <- int(request.Children[1].Tag)
-			writeLDAPResult(client, request.Children[0].Value, 24, resultCode)
+			operations <- operation
+			writeLDAPResult(client, messageID, 24, resultCode)
 			if resultCode != 0 {
 				return
 			}
@@ -176,12 +176,12 @@ func TestLDAPAuthenticate_StartTLSFailsOverBeforeBind(t *testing.T) {
 			if err := secure.Handshake(); err != nil {
 				return
 			}
-			request, err = ber.ReadPacket(secure)
+			messageID, operation, err = readLDAPOperation(secure)
 			if err != nil {
 				return
 			}
-			operations <- int(request.Children[1].Tag)
-			writeLDAPResult(secure, request.Children[0].Value, 1, 0)
+			operations <- operation
+			writeLDAPResult(secure, messageID, 1, 0)
 		}()
 		return "ldap://" + listener.Addr().String(), operations
 	}
@@ -217,18 +217,18 @@ func TestLDAPAuthenticate_StartTLSRejectsUntrustedCertificate(t *testing.T) {
 		}
 		defer client.Close()
 		_ = client.SetDeadline(time.Now().Add(3 * time.Second))
-		request, err := ber.ReadPacket(client)
+		messageID, _, err := readLDAPOperation(client)
 		if err != nil {
 			bindSeen <- false
 			return
 		}
-		writeLDAPResult(client, request.Children[0].Value, 24, 0)
+		writeLDAPResult(client, messageID, 24, 0)
 		secure := tls.Server(client, &tls.Config{Certificates: certServer.TLS.Certificates, MinVersion: tls.VersionTLS12})
 		if err := secure.Handshake(); err != nil {
 			bindSeen <- false
 			return
 		}
-		_, err = ber.ReadPacket(secure)
+		_, _, err = readLDAPOperation(secure)
 		bindSeen <- err == nil
 	}()
 	service, err := NewLDAPService(config.LDAPAuth{
@@ -253,11 +253,11 @@ func TestLDAPDial_StartTLSHandshakeTimeout(t *testing.T) {
 			return
 		}
 		defer client.Close()
-		request, err := ber.ReadPacket(client)
+		messageID, _, err := readLDAPOperation(client)
 		if err != nil {
 			return
 		}
-		writeLDAPResult(client, request.Children[0].Value, 24, 0)
+		writeLDAPResult(client, messageID, 24, 0)
 		// Leave the TLS handshake unanswered until the client's deadline closes it.
 		_, _ = io.Copy(io.Discard, client)
 	}()
@@ -275,15 +275,61 @@ func TestLDAPDial_StartTLSHandshakeTimeout(t *testing.T) {
 	assert.Less(t, time.Since(start), 3*time.Second)
 }
 
-func writeLDAPResult(conn net.Conn, messageID any, tag uint64, resultCode int) {
-	response := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Response")
-	response.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, messageID, "MessageID"))
-	result := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ber.Tag(tag), nil, "LDAP Result")
-	result.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, resultCode, "Result code"))
-	result.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "Matched DN"))
-	result.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "Diagnostic message"))
-	response.AppendChild(result)
-	_, _ = conn.Write(response.Bytes())
+func readLDAPOperation(conn net.Conn) (int, int, error) {
+	header := make([]byte, 2)
+	if _, err := io.ReadFull(conn, header); err != nil {
+		return 0, 0, err
+	}
+	if header[0] != 0x30 {
+		return 0, 0, fmt.Errorf("unexpected LDAP envelope tag: %x", header[0])
+	}
+	length := int(header[1])
+	if length&0x80 != 0 {
+		count := length & 0x7f
+		if count == 0 || count > 4 {
+			return 0, 0, fmt.Errorf("invalid LDAP envelope length")
+		}
+		extra := make([]byte, count)
+		if _, err := io.ReadFull(conn, extra); err != nil {
+			return 0, 0, err
+		}
+		header = append(header, extra...)
+		length = 0
+		for _, b := range extra {
+			length = length<<8 | int(b)
+		}
+	}
+	if length > 1<<20 {
+		return 0, 0, fmt.Errorf("LDAP test request exceeds limit")
+	}
+	payload := make([]byte, length)
+	if _, err := io.ReadFull(conn, payload); err != nil {
+		return 0, 0, err
+	}
+	var envelope, operation asn1.RawValue
+	if _, err := asn1.Unmarshal(append(header, payload...), &envelope); err != nil {
+		return 0, 0, err
+	}
+	var messageID int
+	rest, err := asn1.Unmarshal(envelope.Bytes, &messageID)
+	if err != nil {
+		return 0, 0, err
+	}
+	if _, err := asn1.Unmarshal(rest, &operation); err != nil {
+		return 0, 0, err
+	}
+	return messageID, operation.Tag, nil
+}
+
+func writeLDAPResult(conn net.Conn, messageID, tag, resultCode int) {
+	result := []byte{0x0a, 0x01, byte(resultCode), 0x04, 0x00, 0x04, 0x00}
+	response, err := asn1.Marshal(struct {
+		MessageID int
+		Operation asn1.RawValue
+	}{messageID, asn1.RawValue{Class: asn1.ClassApplication, Tag: tag, IsCompound: true, Bytes: result}})
+	if err == nil {
+		_, _ = conn.Write(response)
+	}
 }
 
 func collectLDAPOperations(operations <-chan int) []int {
@@ -330,19 +376,12 @@ func TestLDAPAuthenticate_DoesNotFailOverAfterInvalidCredentials(t *testing.T) {
 		}
 		defer client.Close()
 		_ = client.SetDeadline(time.Now().Add(time.Second))
-		request, err := ber.ReadPacket(client)
+		messageID, _, err := readLDAPOperation(client)
 		if err != nil {
 			return
 		}
 		binds <- struct{}{}
-		response := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Response")
-		response.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, request.Children[0].Value, "MessageID"))
-		result := ber.Encode(ber.ClassApplication, ber.TypeConstructed, 1, nil, "Bind Response")
-		result.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, 49, "Invalid credentials"))
-		result.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "Matched DN"))
-		result.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "", "Diagnostic message"))
-		response.AppendChild(result)
-		_, _ = client.Write(response.Bytes())
+		writeLDAPResult(client, messageID, 1, 49)
 	}()
 
 	service, err := NewLDAPService(config.LDAPAuth{
