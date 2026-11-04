@@ -1,16 +1,14 @@
 # Cerebro Releases
 
-## Unreleased
-
-### Security
-- Rejected proxy username header names associated with credentials to prevent common configuration mistakes, while keeping usernames in authentication audit logs. This name-based check does not inspect header values.
-
 ## v0.13.0
 
 ### Authentication
 - Added ordered LDAP server failover with `auth.ldap.urls`, while preserving `auth.ldap.url` and named provider configuration.
 - Added `auth.ldap.dial_timeout_seconds` (default 5 seconds) and `auth.ldap.read_timeout_seconds` (default 30 seconds). Failover occurs on connection or TLS errors, without retrying rejected credentials across the URL list.
 - Added opt-in LDAP StartTLS on port 389 with certificate validation before binding, including failover across `urls`.
+
+### Security
+- Rejected proxy username header names associated with credentials to prevent common configuration mistakes, while keeping usernames in authentication audit logs. This name-based check does not inspect header values.
 
 ## v0.12.0
 
