@@ -14,14 +14,23 @@ import (
 )
 
 func TestLDAPRBACGroupsOverLDAPS(t *testing.T) {
-	ldapURL := strings.TrimSpace(os.Getenv("CEREBRO_E2E_LDAP_URL"))
+	testLDAPRBACGroups(t, "CEREBRO_E2E_LDAP_URL", false)
+}
+
+func TestLDAPRBACGroupsOverStartTLS(t *testing.T) {
+	testLDAPRBACGroups(t, "CEREBRO_E2E_LDAP_STARTTLS_URL", true)
+}
+
+func testLDAPRBACGroups(t *testing.T, urlEnv string, startTLS bool) {
+	ldapURL := strings.TrimSpace(os.Getenv(urlEnv))
 	caCertFile := strings.TrimSpace(os.Getenv("CEREBRO_E2E_LDAP_CA_CERT_FILE"))
 	if ldapURL == "" || caCertFile == "" {
-		t.Skip("set CEREBRO_E2E_LDAP_URL and CEREBRO_E2E_LDAP_CA_CERT_FILE to run LDAP RBAC e2e tests")
+		t.Skipf("set %s and CEREBRO_E2E_LDAP_CA_CERT_FILE to run LDAP RBAC e2e tests", urlEnv)
 	}
 
 	service, err := auth.NewLDAPService(config.LDAPAuth{
 		URL:          ldapURL,
+		StartTLS:     startTLS,
 		CACertFile:   caCertFile,
 		BaseDN:       "dc=planetexpress,dc=com",
 		UserTemplate: "cn=%s,ou=people,%s",
