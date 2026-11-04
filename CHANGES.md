@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Security
-- Rejected credential-bearing headers as proxy username sources while keeping usernames in authentication audit logs.
+- Rejected proxy username header names associated with credentials to prevent common configuration mistakes, while keeping usernames in authentication audit logs. This name-based check does not inspect header values.
 
 ## v0.13.0
 

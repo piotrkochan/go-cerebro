@@ -116,6 +116,9 @@ func TestHandleLogoutReturnsProviderRedirectForJSONClients(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "http://example.test/auth/logout", nil)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Forwarded-User", "alice")
+	req.Header.Set("Authorization", "Bearer audit-test-access-token")
+	req.Header.Set("Cookie", "session=audit-test-session-secret")
+	req.Header.Set("X-Api-Key", "audit-test-api-key")
 	req.RemoteAddr = "127.0.0.1:12345"
 
 	got, err := deps.logout(WithHTTPRequest(context.Background(), req))
@@ -127,6 +130,9 @@ func TestHandleLogoutReturnsProviderRedirectForJSONClients(t *testing.T) {
 	assert.Contains(t, auditLog.String(), `"event":"logout"`)
 	assert.Contains(t, auditLog.String(), `"provider":"proxy"`)
 	assert.Contains(t, auditLog.String(), `"user":"alice"`)
+	assert.NotContains(t, auditLog.String(), "audit-test-access-token")
+	assert.NotContains(t, auditLog.String(), "audit-test-session-secret")
+	assert.NotContains(t, auditLog.String(), "audit-test-api-key")
 }
 
 func TestLogoutClearsSessionAndReturnsLoginRedirect(t *testing.T) {

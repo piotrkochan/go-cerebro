@@ -694,7 +694,9 @@ func validateProxyAuthProvider(prefix string, provider ProxyAuth) error {
 	return nil
 }
 
-// IsCredentialHeader rejects headers that commonly carry passwords or tokens.
+// IsCredentialHeader reports whether a header name suggests passwords or tokens.
+// This guards against common configuration mistakes; it does not inspect header
+// values or guarantee that other headers contain no credentials.
 func IsCredentialHeader(header string) bool {
 	name := strings.ToLower(strings.TrimSpace(header))
 	for _, part := range []string{"authorization", "cookie", "token", "secret", "password", "credential", "api-key", "api_key", "apikey"} {
