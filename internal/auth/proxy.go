@@ -29,6 +29,9 @@ func NewNamedProxyAuthenticator(providerID string, settings config.ProxyAuth) (*
 	if strings.TrimSpace(settings.UserHeader) == "" {
 		return nil, fmt.Errorf("proxy auth requires user_header")
 	}
+	if config.IsCredentialHeader(settings.UserHeader) {
+		return nil, fmt.Errorf("proxy auth user_header must identify a username, not a credential header")
+	}
 	if len(settings.TrustedProxies) == 0 {
 		return nil, fmt.Errorf("proxy auth requires trusted_proxies")
 	}

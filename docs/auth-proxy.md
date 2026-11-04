@@ -64,6 +64,8 @@ rbac:
 
 ## Security Notes
 
+- The header selected by `user_header` must contain an authenticated username, never a password, token or session cookie. Usernames are included in authentication audit logs when `logging.auth_log_enabled` is enabled.
+- Configuration rejects header names containing `authorization`, `cookie`, `token`, `secret`, `password`, `credential`, `api-key`, `api_key` or `apikey` (case-insensitive). This prevents common configuration mistakes; it does not inspect values or guarantee that other headers contain no credentials.
 - Never expose Cerebro directly when `auth.proxy.enabled: true`.
 - Restrict network access so only the trusted proxy can reach Cerebro.
 - Set `trusted_proxies` to exact proxy IPs/CIDRs.
