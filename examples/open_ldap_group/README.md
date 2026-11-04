@@ -25,4 +25,4 @@ The active Cerebro configuration is [application.yaml](./application.yaml). The 
 memberof=cn=cerebro,ou=groups,dc=example,dc=org
 ```
 
-This example intentionally sets `insecure_ldap: true` because the test container uses plain `ldap://`. Production LDAP should use `ldaps://` or `auth.ldap.ca_cert_file`.
+This example intentionally sets `insecure_ldap: true` because the test container uses plain `ldap://`. Production LDAP should use `ldaps://` or `ldap://` with `start_tls: true`.
