@@ -96,6 +96,9 @@ func New(opts Options) *Server {
 	// Wildcard GET fallback — chi only reaches here when no specific route matched.
 	// We let http.FileServer answer 404 for missing files; no need to second-guess paths.
 	publicHandler := publicAssets()
+	if base := normalizedBasePath(opts.Cfg.Server.BasePath); base != "/" {
+		publicHandler = http.StripPrefix(base, publicHandler)
+	}
 	r.Get("/*", publicHandler.ServeHTTP)
 
 	router := mountBasePath(opts.Cfg.Server.BasePath, r)

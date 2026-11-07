@@ -41,6 +41,7 @@ const apiProxyPaths = [
 ];
 
 export default defineConfig({
+  base: './',
   build: {
     emptyOutDir: false,
     outDir: 'internal/server/static',
