@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 
-FROM --platform=$BUILDPLATFORM node:26-alpine AS frontend
+FROM --platform=$BUILDPLATFORM node:26-alpine@sha256:6f08a523443ddedf52941874c203475b0ad503e859ad70cb26ab8be9a517dbd5 AS frontend
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
 RUN npm run build:vite
 
-FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414 AS build
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -31,10 +31,10 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
       CGO_ENABLED=0 GOOS="${target_os}" GOARCH="${target_arch}" go build -trimpath -o /out/cerebro ./cmd/cerebro; \
     fi
 
-FROM --platform=$BUILDPLATFORM alpine:3.24 AS certs
+FROM --platform=$BUILDPLATFORM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS certs
 RUN apk add --no-cache ca-certificates
 
-FROM alpine:3.24
+FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 WORKDIR /opt/cerebro
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /out/cerebro /usr/local/bin/cerebro
