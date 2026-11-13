@@ -6,6 +6,7 @@
 - Pinned CI and release workflow actions, Docker base images, and the development image tool to immutable revisions.
 
 ### Development
+- Updated the Go toolchain and build/development Docker images from Go 1.27.1 to 1.27.4.
 - Added `make bumpgo` to select a newer Go release and update the pinned Go images and module toolchain together.
 
 ## v0.13.0
