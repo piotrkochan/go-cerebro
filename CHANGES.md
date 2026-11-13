@@ -5,6 +5,9 @@
 ### Security
 - Pinned CI and release workflow actions, Docker base images, and the development image tool to immutable revisions.
 
+### Development
+- Added `make bumpgo` to select a newer Go release and update the pinned Go images and module toolchain together.
+
 ## v0.13.0
 
 ### Authentication

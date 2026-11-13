@@ -7,6 +7,8 @@
 !.github/
 !.github/**
 node_modules
+__pycache__/
+*.pyc
 cerebro.db
 cerebro.db-*
 /cerebro
