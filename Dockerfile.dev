@@ -1,7 +1,9 @@
-FROM golang:1.27.1-alpine
+# Go 1.27.4; update with make bumpgo.
+FROM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf
 
 RUN apk add --no-cache curl
-RUN go install github.com/air-verse/air@latest
+# air v1.67.4
+RUN go install github.com/air-verse/air@9f19e52511f7bb697036e6ee2c12a212e742199d
 
 WORKDIR /workspace/cerebro
 COPY go.mod go.sum ./
