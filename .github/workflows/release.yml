@@ -275,13 +275,22 @@ jobs:
           if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
             RELEASE_FLAGS+=(--prerelease)
           fi
-          gh release create "${GITHUB_REF_NAME}" \
-            dist/cerebro-* \
-            dist/checksums.txt \
-            --title "Cerebro ${GITHUB_REF_NAME}" \
-            --notes-file dist/release-notes.md \
-            "${RELEASE_FLAGS[@]}" \
-            --verify-tag
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" dist/cerebro-* dist/checksums.txt --clobber
+            gh release edit "${GITHUB_REF_NAME}" \
+              --title "Cerebro ${GITHUB_REF_NAME}" \
+              --notes-file dist/release-notes.md \
+              "${RELEASE_FLAGS[@]}" \
+              --verify-tag
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              dist/cerebro-* \
+              dist/checksums.txt \
+              --title "Cerebro ${GITHUB_REF_NAME}" \
+              --notes-file dist/release-notes.md \
+              "${RELEASE_FLAGS[@]}" \
+              --verify-tag
+          fi
 
   provenance:
     needs: publish-release
@@ -289,7 +298,8 @@ jobs:
       actions: read
       id-token: write
       contents: write
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
+    # SLSA requires a version tag here so the generated provenance can be verified.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: ${{ needs.publish-release.outputs.subjects }}
       upload-assets: true
