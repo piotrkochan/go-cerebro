@@ -416,7 +416,14 @@ func mountBasePath(basePath string, app chi.Router) chi.Router {
 		return app
 	}
 	outer := chi.NewRouter()
-	outer.Mount(base, app)
+	// Chi strips the mount prefix from its route context, but leaves URL.Path
+	// intact. Normalize it before auth, CSRF, RBAC and static asset handling.
+	outer.Mount(base, http.StripPrefix(base, app))
+	outer.Get(base, func(w http.ResponseWriter, r *http.Request) {
+		// Relative frontend assets need a directory URL; preserve query parameters.
+		target := url.URL{Path: base + "/", RawQuery: r.URL.RawQuery}
+		http.Redirect(w, r, target.String(), http.StatusPermanentRedirect)
+	})
 	outer.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, base+"/", http.StatusSeeOther)
 	})
