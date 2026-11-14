@@ -2,7 +2,11 @@
 
 ## v0.14.0
 
+### Fixes
+- Fixed frontend asset loading under a configured base path and redirected the bare base path to its trailing-slash URL while preserving query parameters ([#109](https://github.com/piotrkochan/go-cerebro/pull/109), thanks to @vCra).
+
 ### Security
+- Fixed session, CSRF, and RBAC checks being bypassed for API requests under a configured base path ([#109](https://github.com/piotrkochan/go-cerebro/pull/109)).
 - Pinned CI and release workflow actions, Docker base images, and the development image tool to immutable revisions.
 
 ### Development
