@@ -1,6 +1,6 @@
 # Cerebro Releases
 
-## Unreleased
+## v0.14.0
 
 ### Security
 - Pinned CI and release workflow actions, Docker base images, and the development image tool to immutable revisions.
