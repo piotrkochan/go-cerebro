@@ -3,6 +3,7 @@
 ## v0.14.0
 
 ### Fixes
+- Restored release provenance generation by using the SLSA generator's required version tag.
 - Fixed frontend asset loading under a configured base path and redirected the bare base path to its trailing-slash URL while preserving query parameters ([#109](https://github.com/piotrkochan/go-cerebro/pull/109), thanks to @vCra).
 
 ### Security
