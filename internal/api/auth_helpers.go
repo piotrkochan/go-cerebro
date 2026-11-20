@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lmenezes/cerebro/internal/auth"
 	"github.com/lmenezes/cerebro/internal/config"
 )
@@ -22,11 +23,25 @@ func (d *Deps) auditAuth(r *http.Request, event string, identity auth.Identity, 
 		"provider", identity.Provider,
 		"provider_id", identity.ProviderID,
 		"remote_addr", r.RemoteAddr,
+		"client_ip", ClientIP(r),
 	}
 	if reason != "" {
 		attrs = append(attrs, "reason", reason)
 	}
 	slog.InfoContext(r.Context(), "auth audit", attrs...)
+}
+
+// ClientIP returns the client address resolved from X-Forwarded-For through
+// server.trusted_proxies, or the TCP peer when no trusted proxy is involved.
+func ClientIP(r *http.Request) string {
+	if ip := middleware.GetClientIP(r.Context()); ip != "" {
+		return ip
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 func basePathFor(d *Deps, suffix string) string {

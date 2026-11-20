@@ -1,5 +1,11 @@
 # Cerebro Releases
 
+## v0.14.1
+
+### Security
+- Stopped rewriting the request remote address from `True-Client-IP`, `X-Real-IP` and `X-Forwarded-For`. A client reaching Cerebro directly could spoof a trusted proxy address and bypass `auth.proxy.trusted_proxies` (impersonating any user and group) or `server.trusted_proxies`. Proxy authentication behind a load balancer that appends `X-Forwarded-For` now works as documented.
+- Request and auth audit logs now include `client_ip`, resolved from `X-Forwarded-For` only through `server.trusted_proxies`.
+
 ## v0.14.0
 
 ### Fixes

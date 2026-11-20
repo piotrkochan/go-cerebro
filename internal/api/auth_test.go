@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lmenezes/cerebro/internal/auth"
 	"github.com/lmenezes/cerebro/internal/config"
 	"github.com/stretchr/testify/assert"
@@ -133,6 +134,33 @@ func TestHandleLogoutReturnsProviderRedirectForJSONClients(t *testing.T) {
 	assert.NotContains(t, auditLog.String(), "audit-test-access-token")
 	assert.NotContains(t, auditLog.String(), "audit-test-session-secret")
 	assert.NotContains(t, auditLog.String(), "audit-test-api-key")
+}
+
+func TestAuditAuthLogsClientIPResolvedThroughTrustedProxies(t *testing.T) {
+	var auditLog bytes.Buffer
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&auditLog, nil)))
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+
+	deps := &Deps{Cfg: &config.Config{Logging: config.Logging{AuthLogEnabled: true}}}
+	audit := middleware.ClientIPFromXFF("10.0.0.10/32")(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		deps.auditAuth(r, "logout", auth.Identity{Username: "alice", Provider: "proxy"}, "success", "")
+	}))
+
+	viaProxy := httptest.NewRequest(http.MethodPost, "http://example.test/auth/logout", nil)
+	viaProxy.RemoteAddr = "10.0.0.10:4444"
+	viaProxy.Header.Set("X-Forwarded-For", "203.0.113.5")
+	audit.ServeHTTP(httptest.NewRecorder(), viaProxy)
+	assert.Contains(t, auditLog.String(), `"remote_addr":"10.0.0.10:4444"`)
+	assert.Contains(t, auditLog.String(), `"client_ip":"203.0.113.5"`)
+
+	auditLog.Reset()
+	direct := httptest.NewRequest(http.MethodPost, "http://example.test/auth/logout", nil)
+	direct.RemoteAddr = "198.51.100.7:4444"
+	direct.Header.Set("X-Forwarded-For", "203.0.113.5")
+	audit.ServeHTTP(httptest.NewRecorder(), direct)
+	assert.Contains(t, auditLog.String(), `"client_ip":"198.51.100.7"`)
+	assert.NotContains(t, auditLog.String(), "203.0.113.5")
 }
 
 func TestLogoutClearsSessionAndReturnsLoginRedirect(t *testing.T) {

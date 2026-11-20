@@ -41,7 +41,11 @@ type Options struct {
 func New(opts Options) *Server {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	// Never rewrite r.RemoteAddr from request headers: trusted-proxy checks for
+	// proxy auth and forwarded host/proto rely on it being the TCP peer.
+	if prefixes := trustedProxyPrefixes(opts.Cfg.Server.TrustedProxies); len(prefixes) > 0 {
+		r.Use(middleware.ClientIPFromXFF(prefixes...))
+	}
 	if opts.Cfg.Logging.RequestLogEnabled {
 		r.Use(requestLogger)
 	}
@@ -193,6 +197,7 @@ func requestLogger(next http.Handler) http.Handler {
 			"bytes", ww.BytesWritten(),
 			"duration", time.Since(start).String(),
 			"remote_addr", r.RemoteAddr,
+			"client_ip", api.ClientIP(r),
 			"user_agent", r.UserAgent(),
 		)
 	})
@@ -325,6 +330,7 @@ func auditAccess(r *http.Request, event string, identity auth.Identity, outcome,
 		"method", r.Method,
 		"path", r.URL.Path,
 		"remote_addr", r.RemoteAddr,
+		"client_ip", api.ClientIP(r),
 	}
 	if reason != "" {
 		attrs = append(attrs, "reason", reason)
@@ -465,6 +471,18 @@ func trustedRemote(remoteAddr string, trustedProxies []string) bool {
 		}
 	}
 	return false
+}
+
+func trustedProxyPrefixes(trustedProxies []string) []string {
+	prefixes := make([]string, 0, len(trustedProxies))
+	for _, raw := range trustedProxies {
+		network, err := trustedProxyNet(raw)
+		if err != nil {
+			continue
+		}
+		prefixes = append(prefixes, network.String())
+	}
+	return prefixes
 }
 
 func trustedProxyNet(raw string) (*net.IPNet, error) {
