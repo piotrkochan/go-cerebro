@@ -197,7 +197,7 @@ func requestLogger(next http.Handler) http.Handler {
 			"bytes", ww.BytesWritten(),
 			"duration", time.Since(start).String(),
 			"remote_addr", r.RemoteAddr,
-			"client_ip", clientIP(r),
+			"client_ip", api.ClientIP(r),
 			"user_agent", r.UserAgent(),
 		)
 	})
@@ -330,7 +330,7 @@ func auditAccess(r *http.Request, event string, identity auth.Identity, outcome,
 		"method", r.Method,
 		"path", r.URL.Path,
 		"remote_addr", r.RemoteAddr,
-		"client_ip", clientIP(r),
+		"client_ip", api.ClientIP(r),
 	}
 	if reason != "" {
 		attrs = append(attrs, "reason", reason)
@@ -471,19 +471,6 @@ func trustedRemote(remoteAddr string, trustedProxies []string) bool {
 		}
 	}
 	return false
-}
-
-// clientIP returns the client address resolved from X-Forwarded-For through
-// server.trusted_proxies, or the TCP peer when no trusted proxy is involved.
-func clientIP(r *http.Request) string {
-	if ip := middleware.GetClientIP(r.Context()); ip != "" {
-		return ip
-	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
 }
 
 func trustedProxyPrefixes(trustedProxies []string) []string {
