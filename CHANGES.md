@@ -1,10 +1,13 @@
 # Cerebro Releases
 
-## v0.14.1
+## v0.15.0
+
+### Features
+- Added `rbac.hide_forbidden_hosts`. When enabled, the cluster selection page lists only clusters whose overview the user can read. The option is off by default ([#124](https://github.com/piotrkochan/go-cerebro/pull/124)).
 
 ### Security
-- Stopped rewriting the request remote address from `True-Client-IP`, `X-Real-IP` and `X-Forwarded-For`. A client reaching Cerebro directly could spoof a trusted proxy address and bypass `auth.proxy.trusted_proxies` (impersonating any user and group) or `server.trusted_proxies`. Proxy authentication behind a load balancer that appends `X-Forwarded-For` now works as documented.
-- Request and auth audit logs now include `client_ip`, resolved from `X-Forwarded-For` only through `server.trusted_proxies`.
+- Fixed a proxy authentication bypass by checking proxy trust against the TCP peer address. The same check protects forwarded hosts and schemes used for redirects and CSRF. Trusted proxies can now forward the client's IP in `X-Forwarded-For` without breaking proxy authentication ([#125](https://github.com/piotrkochan/go-cerebro/pull/125)).
+- Request and auth audit logs now record the peer address in `remote_addr` and the client IP in `client_ip`. Cerebro uses `X-Forwarded-For` for `client_ip` only through `server.trusted_proxies`.
 
 ## v0.14.0
 
