@@ -41,7 +41,11 @@ type Options struct {
 func New(opts Options) *Server {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	// Never rewrite r.RemoteAddr from request headers: trusted-proxy checks for
+	// proxy auth and forwarded host/proto rely on it being the TCP peer.
+	if prefixes := trustedProxyPrefixes(opts.Cfg.Server.TrustedProxies); len(prefixes) > 0 {
+		r.Use(middleware.ClientIPFromXFF(prefixes...))
+	}
 	if opts.Cfg.Logging.RequestLogEnabled {
 		r.Use(requestLogger)
 	}
@@ -193,6 +197,7 @@ func requestLogger(next http.Handler) http.Handler {
 			"bytes", ww.BytesWritten(),
 			"duration", time.Since(start).String(),
 			"remote_addr", r.RemoteAddr,
+			"client_ip", clientIP(r),
 			"user_agent", r.UserAgent(),
 		)
 	})
@@ -325,6 +330,7 @@ func auditAccess(r *http.Request, event string, identity auth.Identity, outcome,
 		"method", r.Method,
 		"path", r.URL.Path,
 		"remote_addr", r.RemoteAddr,
+		"client_ip", clientIP(r),
 	}
 	if reason != "" {
 		attrs = append(attrs, "reason", reason)
@@ -465,6 +471,31 @@ func trustedRemote(remoteAddr string, trustedProxies []string) bool {
 		}
 	}
 	return false
+}
+
+// clientIP returns the client address resolved from X-Forwarded-For through
+// server.trusted_proxies, or the TCP peer when no trusted proxy is involved.
+func clientIP(r *http.Request) string {
+	if ip := middleware.GetClientIP(r.Context()); ip != "" {
+		return ip
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+func trustedProxyPrefixes(trustedProxies []string) []string {
+	prefixes := make([]string, 0, len(trustedProxies))
+	for _, raw := range trustedProxies {
+		network, err := trustedProxyNet(raw)
+		if err != nil {
+			continue
+		}
+		prefixes = append(prefixes, network.String())
+	}
+	return prefixes
 }
 
 func trustedProxyNet(raw string) (*net.IPNet, error) {
