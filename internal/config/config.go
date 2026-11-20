@@ -247,10 +247,13 @@ type RBACBinding struct {
 }
 
 type RBAC struct {
-	Enabled     bool          `yaml:"enabled"`
-	DefaultRole string        `yaml:"default_role"`
-	Policies    []RBACPolicy  `yaml:"policies"`
-	Bindings    []RBACBinding `yaml:"bindings"`
+	Enabled     bool   `yaml:"enabled"`
+	DefaultRole string `yaml:"default_role"`
+	// HideForbiddenHosts removes clusters from the connect page when the user
+	// has no read access to them.
+	HideForbiddenHosts bool          `yaml:"hide_forbidden_hosts"`
+	Policies           []RBACPolicy  `yaml:"policies"`
+	Bindings           []RBACBinding `yaml:"bindings"`
 }
 
 var rbacResourceActions = map[string]map[string]bool{

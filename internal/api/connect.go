@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/lmenezes/cerebro/internal/auth"
 	"github.com/lmenezes/cerebro/internal/config"
+	"github.com/lmenezes/cerebro/internal/rbac"
 )
 
 type ConnectIn struct {
@@ -26,7 +28,7 @@ func (d *Deps) RegisterConnect(api huma.API) {
 		Description: "Returns the names of the Elasticsearch hosts configured in Cerebro.",
 		Tags:        []string{"connect"},
 	}, func(ctx context.Context, _ *struct{}) (*Output[ConnectHostsResponse], error) {
-		refs := d.Cfg.HostRefs()
+		refs := d.visibleHostRefs(ctx)
 		if refs == nil {
 			refs = []config.HostRef{}
 		}
@@ -51,4 +53,24 @@ func (d *Deps) RegisterConnect(api huma.API) {
 		}
 		return raw(resp.Status, resp.Body)
 	})
+}
+
+// visibleHostRefs returns the configured hosts. With rbac.hide_forbidden_hosts
+// enabled it drops hosts the current user cannot read, so the connect page
+// only lists clusters the user may open.
+func (d *Deps) visibleHostRefs(ctx context.Context) []config.HostRef {
+	refs := d.Cfg.HostRefs()
+	if !d.RBAC.Enabled() || !d.Cfg.RBAC.HideForbiddenHosts {
+		return refs
+	}
+	subject := auth.UserFrom(ctx)
+	groups := auth.GroupsFrom(ctx)
+	visible := make([]config.HostRef, 0, len(refs))
+	for _, ref := range refs {
+		req := rbac.Classify(http.MethodGet, "/clusters/"+ref.Slug+"/overview")
+		if d.RBAC.Allow(subject, groups, req) {
+			visible = append(visible, ref)
+		}
+	}
+	return visible
 }

@@ -181,6 +181,7 @@ Environment variables are expanded inside YAML string values. These direct overr
 | `auth.oauth.default_groups` | `[]` | Groups added to every user authenticated by this provider. |
 | `auth.oauth.scopes` | `["openid", "profile", "email"]` | OAuth/OIDC scopes requested during login. |
 | `rbac.enabled` | `false` | Enables backend authorization policies. Requires authentication. |
+| `rbac.hide_forbidden_hosts` | `false` | Hides clusters from the connect page when the user has no `read` access to them. Does not replace RBAC checks on the API. |
 | `rbac.bindings` | `[]` | Subject-to-role bindings, for example user or group to `role:admin`. |
 | `rbac.policies` | `[]` | Casbin-backed Cerebro policy rules: subject, resource, action, object and effect. |
 | `server.port` | `9000` | HTTP/HTTPS listen port. Can be overridden with `CEREBRO_PORT`. |

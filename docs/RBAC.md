@@ -159,6 +159,22 @@ policies:
   - {subject: "role:prod-reader", resource: "*", action: "read", object: "prod/*", effect: "allow"}
 ```
 
+## Hiding Clusters From The Connect Page
+
+By default the connect page lists every configured cluster, and a user without access gets
+`Permission denied` after opening one. Set `hide_forbidden_hosts` to list only clusters the user
+can read:
+
+```yaml
+rbac:
+  enabled: true
+  hide_forbidden_hosts: true
+```
+
+A cluster is shown when the user would be allowed `read` on its overview, that is when a matching
+`allow` policy for the cluster object (for example `prod`) exists and no `deny` matches. Hiding is a
+usability feature: backend authorization is still enforced on every request.
+
 ## Wildcards
 
 Wildcards use shell-style matching from Go's `path.Match`.
